@@ -1,0 +1,27 @@
+# ============================================================
+# DealFlow360 — Database Connection (SQLAlchemy + asyncpg)
+# ============================================================
+# Responsibilities:
+#   - Create async SQLAlchemy engine
+#   - Provide async session factory
+#   - Base class for all ORM models
+# ============================================================
+
+# TODO: implement when starting backend development
+#
+# from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+# from sqlalchemy.orm import DeclarativeBase, sessionmaker
+# from app.core.config import settings
+#
+# engine = create_async_engine(settings.DATABASE_URL, echo=settings.DEBUG)
+#
+# AsyncSessionLocal = sessionmaker(
+#     engine, class_=AsyncSession, expire_on_commit=False
+# )
+#
+# class Base(DeclarativeBase):
+#     pass
+#
+# async def get_db():
+#     async with AsyncSessionLocal() as session:
+#         yield session
