@@ -396,3 +396,4 @@ Because internal users are invited (never self-signup):
 - The "Sign Up" button on the Login page leads to the Customer signup form ONLY
 - A note is shown: "Internal team member? Contact your administrator for an invite."
 - No role selector anywhere on the public-facing Login or Signup pages
+

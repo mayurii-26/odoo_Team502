@@ -65,7 +65,7 @@ docker-compose up
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 18 + TypeScript + Vite |
+| Frontend | Next.js 16 (App Router) + TypeScript |
 | Styling | Vanilla CSS Modules |
 | Backend | Python 3.12 + FastAPI |
 | Database | PostgreSQL 16 + pgvector |
@@ -94,3 +94,4 @@ Configure `RESEND_API_KEY` in `.env`.
 | Finance / Ops | Internal app | Admin invites |
 | Sales Rep | Internal app | Admin invites |
 | Customer | Portal only | Self-signup |
+
