@@ -1,0 +1,9 @@
+id,name,category_id,product_id,customer_tier,max_discount_percent,approval_required,approval_role,risk_level,rule_description,status,created_at,updated_at
+1,Hardware Standard Cap,1,,,15.0,False,,LOW,Standard hardware discount limit up to 15%,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+2,Monitors Standard Cap,2,,,15.0,False,,LOW,Standard monitors discount ceiling,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+3,Services Maximum Cap,4,,,10.0,True,Sales Manager,HIGH,Services discount ceiling is 10%. Higher discounts require manager approval,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+4,Support Plans Cap,5,,,12.0,True,Sales Manager,MEDIUM,Support plans discount limit is 12%,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+5,Networking Hardware Cap,6,,,12.0,False,,LOW,Standard networking devices discount limit,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+6,Enterprise Tier Privilege,,,ENTERPRISE,18.0,True,Sales Manager,MEDIUM,Enterprise accounts can receive up to 18% with manager sign-off,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+7,Accessories Clearance Allowance,3,,,20.0,False,,LOW,High-margin accessories permitted up to 20% discount,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+8,Deep Discount Risk Floor,,,,20.0,True,Finance/Operations,CRITICAL,Discounts over 20% strictly require Finance/Operations approval,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00

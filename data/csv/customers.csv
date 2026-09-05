@@ -1,0 +1,41 @@
+id,customer_code,company_name,industry,company_size,country,state,city,currency,customer_tier,sales_owner_id,credit_limit,payment_terms_days,lifetime_value,status,created_at,updated_at
+1,CUST-001,Acme Corp,Technology,10-50,United States,California,San Francisco,USD,ENTERPRISE,1,250000.0,30,150000.0,ACTIVE,2025-01-02 09:00:00,2025-01-02 09:00:00
+2,CUST-002,Nova Systems,Healthcare,50-200,United States,Texas,Austin,USD,MID_MARKET,2,100000.0,45,93074.0,ACTIVE,2025-01-03 09:00:00,2025-01-03 09:00:00
+3,CUST-003,Vertex Technologies,Education,200-500,United States,Washington,Seattle,USD,SMB,1,40000.0,60,24134.0,ACTIVE,2025-01-04 09:00:00,2025-01-04 09:00:00
+4,CUST-004,BluePeak Retail,Manufacturing,500-1000,United States,Illinois,Chicago,USD,ENTERPRISE,2,250000.0,30,114586.0,ACTIVE,2025-01-05 09:00:00,2025-01-05 09:00:00
+5,CUST-005,Orion Manufacturing,Retail,1000-5000,United States,Massachusetts,Boston,USD,MID_MARKET,1,100000.0,45,115801.0,ACTIVE,2025-01-06 09:00:00,2025-01-06 09:00:00
+6,CUST-006,Apex Healthcare,Financial Services,10-50,United States,New York,New York,USD,SMB,2,40000.0,60,48786.0,ACTIVE,2025-01-07 09:00:00,2025-01-07 09:00:00
+7,CUST-007,Zenith Logistics,Logistics,50-200,United States,Colorado,Denver,USD,ENTERPRISE,1,250000.0,30,89565.0,ACTIVE,2025-01-08 09:00:00,2025-01-08 09:00:00
+8,CUST-008,CloudMatrix,Professional Services,200-500,United States,Georgia,Atlanta,USD,MID_MARKET,2,100000.0,45,100314.0,ACTIVE,2025-01-09 09:00:00,2025-01-09 09:00:00
+9,CUST-009,BrightPath Education,Technology,500-1000,United States,California,San Francisco,USD,SMB,1,40000.0,60,43384.0,ACTIVE,2025-01-10 09:00:00,2025-01-10 09:00:00
+10,CUST-010,Pinnacle Financial,Healthcare,1000-5000,United States,Texas,Austin,USD,ENTERPRISE,2,250000.0,30,51280.0,ACTIVE,2025-01-11 09:00:00,2025-01-11 09:00:00
+11,CUST-011,NexGen Software,Education,10-50,United States,Washington,Seattle,USD,MID_MARKET,1,100000.0,45,110445.0,ACTIVE,2025-01-12 09:00:00,2025-01-12 09:00:00
+12,CUST-012,BioHealth Labs,Manufacturing,50-200,United States,Illinois,Chicago,USD,SMB,2,40000.0,60,64838.0,ACTIVE,2025-01-13 09:00:00,2025-01-13 09:00:00
+13,CUST-013,Titan Industrial,Retail,200-500,United States,Massachusetts,Boston,USD,ENTERPRISE,1,250000.0,30,24738.0,ACTIVE,2025-01-14 09:00:00,2025-01-14 09:00:00
+14,CUST-014,Horizon Media,Financial Services,500-1000,United States,New York,New York,USD,MID_MARKET,2,100000.0,45,73246.0,ACTIVE,2025-01-15 09:00:00,2025-01-15 09:00:00
+15,CUST-015,Summit Analytics,Logistics,1000-5000,United States,Colorado,Denver,USD,SMB,1,40000.0,60,88763.0,ACTIVE,2025-01-16 09:00:00,2025-01-16 09:00:00
+16,CUST-016,Vanguard Logistics,Professional Services,10-50,United States,Georgia,Atlanta,USD,ENTERPRISE,2,250000.0,30,45897.0,ACTIVE,2025-01-17 09:00:00,2025-01-17 09:00:00
+17,CUST-017,Silverline Retail,Technology,50-200,United States,California,San Francisco,USD,MID_MARKET,1,100000.0,45,83967.0,ACTIVE,2025-01-18 09:00:00,2025-01-18 09:00:00
+18,CUST-018,CyberShield Networks,Healthcare,200-500,United States,Texas,Austin,USD,SMB,2,40000.0,60,22552.0,ACTIVE,2025-01-19 09:00:00,2025-01-19 09:00:00
+19,CUST-019,OmniGlobal Services,Education,500-1000,United States,Washington,Seattle,USD,ENTERPRISE,1,250000.0,30,19917.0,ACTIVE,2025-01-20 09:00:00,2025-01-20 09:00:00
+20,CUST-020,Starlight Education,Manufacturing,1000-5000,United States,Illinois,Chicago,USD,MID_MARKET,2,100000.0,45,72962.0,ACTIVE,2025-01-21 09:00:00,2025-01-21 09:00:00
+21,CUST-021,Beacon Medical,Retail,10-50,United States,Massachusetts,Boston,USD,SMB,1,40000.0,60,49255.0,ACTIVE,2025-01-22 09:00:00,2025-01-22 09:00:00
+22,CUST-022,Quantum Dynamics,Financial Services,50-200,United States,New York,New York,USD,ENTERPRISE,2,250000.0,30,40812.0,ACTIVE,2025-01-23 09:00:00,2025-01-23 09:00:00
+23,CUST-023,Atlas Heavy Machinery,Logistics,200-500,United States,Colorado,Denver,USD,MID_MARKET,1,100000.0,45,59737.0,ACTIVE,2025-01-24 09:00:00,2025-01-24 09:00:00
+24,CUST-024,Velocity Freight,Professional Services,500-1000,United States,Georgia,Atlanta,USD,SMB,2,40000.0,60,28104.0,ACTIVE,2025-01-25 09:00:00,2025-01-25 09:00:00
+25,CUST-025,GreenPulse Energy,Technology,1000-5000,United States,California,San Francisco,USD,ENTERPRISE,1,250000.0,30,19572.0,ACTIVE,2025-01-26 09:00:00,2025-01-26 09:00:00
+26,CUST-026,Echo Systems,Healthcare,10-50,United States,Texas,Austin,USD,MID_MARKET,2,100000.0,45,89119.0,ACTIVE,2025-01-27 09:00:00,2025-01-27 09:00:00
+27,CUST-027,Frontier Biotech,Education,50-200,United States,Washington,Seattle,USD,SMB,1,40000.0,60,21487.0,ACTIVE,2025-01-28 09:00:00,2025-01-28 09:00:00
+28,CUST-028,Catalyst Consulting,Manufacturing,200-500,United States,Illinois,Chicago,USD,ENTERPRISE,2,250000.0,30,47667.0,ACTIVE,2025-01-29 09:00:00,2025-01-29 09:00:00
+29,CUST-029,Ironclad Security,Retail,500-1000,United States,Massachusetts,Boston,USD,MID_MARKET,1,100000.0,45,41200.0,ACTIVE,2025-01-30 09:00:00,2025-01-30 09:00:00
+30,CUST-030,Alpine Financial,Financial Services,1000-5000,United States,New York,New York,USD,SMB,2,40000.0,60,102664.0,ACTIVE,2025-01-31 09:00:00,2025-01-31 09:00:00
+31,CUST-031,Synergy Solutions,Logistics,10-50,United States,Colorado,Denver,USD,ENTERPRISE,1,250000.0,30,34736.0,ACTIVE,2025-02-01 09:00:00,2025-02-01 09:00:00
+32,CUST-032,Prime Global,Professional Services,50-200,United States,Georgia,Atlanta,USD,MID_MARKET,2,100000.0,45,109364.0,ACTIVE,2025-02-02 09:00:00,2025-02-02 09:00:00
+33,CUST-033,Crestview Health,Technology,200-500,United States,California,San Francisco,USD,SMB,1,40000.0,60,104561.0,ACTIVE,2025-02-03 09:00:00,2025-02-03 09:00:00
+34,CUST-034,Paramount Packaging,Healthcare,500-1000,United States,Texas,Austin,USD,ENTERPRISE,2,250000.0,30,15581.0,ACTIVE,2025-02-04 09:00:00,2025-02-04 09:00:00
+35,CUST-035,Integra Core,Education,1000-5000,United States,Washington,Seattle,USD,MID_MARKET,1,100000.0,45,101444.0,ACTIVE,2025-02-05 09:00:00,2025-02-05 09:00:00
+36,CUST-036,Polaris Marine,Manufacturing,10-50,United States,Illinois,Chicago,USD,SMB,2,40000.0,60,93515.0,ACTIVE,2025-02-06 09:00:00,2025-02-06 09:00:00
+37,CUST-037,Dynamic Commerce,Retail,50-200,United States,Massachusetts,Boston,USD,ENTERPRISE,1,250000.0,30,79358.0,ACTIVE,2025-02-07 09:00:00,2025-02-07 09:00:00
+38,CUST-038,Spectrum Media,Financial Services,200-500,United States,New York,New York,USD,MID_MARKET,2,100000.0,45,16195.0,ACTIVE,2025-02-08 09:00:00,2025-02-08 09:00:00
+39,CUST-039,TrueNorth Health,Logistics,500-1000,United States,Colorado,Denver,USD,SMB,1,40000.0,60,32830.0,ACTIVE,2025-02-09 09:00:00,2025-02-09 09:00:00
+40,CUST-040,Vast Horizons,Professional Services,1000-5000,United States,Georgia,Atlanta,USD,ENTERPRISE,2,250000.0,30,102648.0,ACTIVE,2025-02-10 09:00:00,2025-02-10 09:00:00

@@ -1,0 +1,41 @@
+id,source_product_id,target_product_id,relationship_type,strength,priority,reason,created_at,updated_at
+1,1,2,UPSELL,0.88,1,Screen size and processor upgrade from 14-inch to 16-inch,2025-01-01 09:00:00,2025-01-01 09:00:00
+2,1,3,UPSELL,0.42,2,Workstation tier upgrade with dedicated graphics,2025-01-01 09:00:00,2025-01-01 09:00:00
+3,2,3,UPSELL,0.65,1,Flagship workstation upgrade with maximum memory,2025-01-01 09:00:00,2025-01-01 09:00:00
+4,4,5,UPSELL,0.82,1,QHD resolution and 27-inch screen size upgrade,2025-01-01 09:00:00,2025-01-01 09:00:00
+5,4,6,UPSELL,0.38,2,4K UHD ultra-wide premium display upgrade,2025-01-01 09:00:00,2025-01-01 09:00:00
+6,5,6,UPSELL,0.68,1,Curved 4K HDR ultra-wide upgrade,2025-01-01 09:00:00,2025-01-01 09:00:00
+7,7,8,UPSELL,0.78,1,2-year coverage with 24/7 priority support,2025-01-01 09:00:00,2025-01-01 09:00:00
+8,7,9,UPSELL,0.35,2,3-year mission-critical enterprise support SLA,2025-01-01 09:00:00,2025-01-01 09:00:00
+9,8,9,UPSELL,0.58,1,Enterprise on-site SLA upgrade,2025-01-01 09:00:00,2025-01-01 09:00:00
+10,10,11,UPSELL,0.75,1,Throughput and advanced VPN capacity upgrade,2025-01-01 09:00:00,2025-01-01 09:00:00
+11,10,12,UPSELL,0.32,2,Redundant carrier-grade appliance upgrade,2025-01-01 09:00:00,2025-01-01 09:00:00
+12,11,12,UPSELL,0.62,1,High availability enterprise cluster upgrade,2025-01-01 09:00:00,2025-01-01 09:00:00
+13,1,13,CROSS_SELL,0.92,1,Frequent co-purchase: Ergonomic Wireless Mouse,2025-01-01 09:00:00,2025-01-01 09:00:00
+14,1,15,CROSS_SELL,0.85,1,Frequent co-purchase: Thunderbolt 4 Docking Station,2025-01-01 09:00:00,2025-01-01 09:00:00
+15,1,16,CROSS_SELL,0.75,2,Complementary protection: Padded Laptop Bag,2025-01-01 09:00:00,2025-01-01 09:00:00
+16,1,22,CROSS_SELL,0.72,2,Hardware protection: Extended Warranty,2025-01-01 09:00:00,2025-01-01 09:00:00
+17,1,8,CROSS_SELL,0.68,3,Priority support plan: Premium Care 2yr,2025-01-01 09:00:00,2025-01-01 09:00:00
+18,1,14,CROSS_SELL,0.6,3,Productivity keyboard: Mechanical Keyboard,2025-01-01 09:00:00,2025-01-01 09:00:00
+19,1,17,CROSS_SELL,0.55,4,Remote conferencing: Ultra HD Webcam,2025-01-01 09:00:00,2025-01-01 09:00:00
+20,1,18,CROSS_SELL,0.52,4,Secondary mobile power: Power Adapter 100W,2025-01-01 09:00:00,2025-01-01 09:00:00
+21,1,19,CROSS_SELL,0.48,4,Deployment service: Onsite Setup Service,2025-01-01 09:00:00,2025-01-01 09:00:00
+22,1,23,CROSS_SELL,0.45,5,Data backup: Cloud Backup 1yr,2025-01-01 09:00:00,2025-01-01 09:00:00
+23,2,13,CROSS_SELL,0.9,1,High co-purchase: Wireless Mouse,2025-01-01 09:00:00,2025-01-01 09:00:00
+24,2,15,CROSS_SELL,0.88,1,High co-purchase: Docking Station,2025-01-01 09:00:00,2025-01-01 09:00:00
+25,2,8,CROSS_SELL,0.75,2,Recommended support: Premium Care 2yr,2025-01-01 09:00:00,2025-01-01 09:00:00
+26,2,22,CROSS_SELL,0.7,2,Extended Warranty protection,2025-01-01 09:00:00,2025-01-01 09:00:00
+27,2,14,CROSS_SELL,0.62,3,Mechanical Keyboard peripheral,2025-01-01 09:00:00,2025-01-01 09:00:00
+28,2,19,CROSS_SELL,0.5,3,Onsite Setup Service for 16-inch fleet,2025-01-01 09:00:00,2025-01-01 09:00:00
+29,3,15,CROSS_SELL,0.92,1,Essential Docking Station for workstation,2025-01-01 09:00:00,2025-01-01 09:00:00
+30,3,9,CROSS_SELL,0.8,1,Enterprise Care 3yr mission-critical protection,2025-01-01 09:00:00,2025-01-01 09:00:00
+31,3,14,CROSS_SELL,0.68,2,Mechanical Keyboard for workstation,2025-01-01 09:00:00,2025-01-01 09:00:00
+32,4,15,CROSS_SELL,0.7,1,Display docking connection: Docking Station,2025-01-01 09:00:00,2025-01-01 09:00:00
+33,5,15,CROSS_SELL,0.76,1,Display docking connection: Docking Station,2025-01-01 09:00:00,2025-01-01 09:00:00
+34,5,17,CROSS_SELL,0.64,2,Conferencing mount: Ultra HD Webcam,2025-01-01 09:00:00,2025-01-01 09:00:00
+35,6,15,CROSS_SELL,0.82,1,Thunderbolt docking for 4K display,2025-01-01 09:00:00,2025-01-01 09:00:00
+36,10,21,CROSS_SELL,0.85,1,Implementation service: Network Setup,2025-01-01 09:00:00,2025-01-01 09:00:00
+37,11,21,CROSS_SELL,0.88,1,Implementation service: Network Setup,2025-01-01 09:00:00,2025-01-01 09:00:00
+38,12,21,CROSS_SELL,0.94,1,Enterprise implementation: Network Setup,2025-01-01 09:00:00,2025-01-01 09:00:00
+39,10,20,CROSS_SELL,0.65,2,Deployment service: Data Migration,2025-01-01 09:00:00,2025-01-01 09:00:00
+40,11,20,CROSS_SELL,0.7,2,Deployment service: Data Migration,2025-01-01 09:00:00,2025-01-01 09:00:00

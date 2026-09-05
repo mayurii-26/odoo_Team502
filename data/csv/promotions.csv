@@ -1,0 +1,11 @@
+id,promotion_code,name,description,promotion_type,product_id,category_id,discount_percent,discount_amount,minimum_quantity,valid_from,valid_to,priority,status,created_at,updated_at
+1,UPGRADE10,Laptop Pro 16 Upgrade Incentive,10% off Laptop Pro 16 when upgrading from Laptop Pro 14,UPGRADE,2,1,10.0,0.0,1,2025-01-01 09:00:00,2027-01-01 09:00:00,1,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+2,UPGRADE15,Monitor Pro 27 Display Upgrade,15% off Monitor Pro 27 when upgrading from 24-inch,UPGRADE,5,2,15.0,0.0,1,2025-01-01 09:00:00,2027-01-01 09:00:00,2,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+3,ACCESSORY12,Docking Station 12% Off,12% off Docking Station when purchased with any laptop,PERCENTAGE,15,3,12.0,0.0,1,2025-01-01 09:00:00,2027-01-01 09:00:00,1,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+4,CARE15,Premium Care 15% Off,15% off Premium Care 2yr plan with workstation bundles,PERCENTAGE,8,5,15.0,0.0,1,2025-01-01 09:00:00,2027-01-01 09:00:00,1,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+5,MOUSE5,Wireless Mouse $5 Instant Credit,$5 off Wireless Mouse companion peripheral,FIXED_AMOUNT,13,3,0.0,5.0,1,2025-01-01 09:00:00,2027-01-01 09:00:00,1,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+6,BUNDLE_MONITOR,Dual Display Bundle,8% off Monitor Ultra 32 when bundling 2 or more,BUNDLE,6,2,8.0,0.0,2,2025-01-01 09:00:00,2027-01-01 09:00:00,2,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+7,WINTER_LAPTOP,Winter 2024 Laptop Sale,8% off laptops in Q4 2024,PERCENTAGE,,1,8.0,0.0,1,2024-10-03 09:00:00,2024-12-31 09:00:00,3,EXPIRED,2025-01-01 09:00:00,2025-01-01 09:00:00
+8,SPRING_CARE,Spring Support Promotion 2024,10% off Basic Care plans,PERCENTAGE,7,5,10.0,0.0,1,2024-07-05 09:00:00,2024-10-02 09:00:00,2,EXPIRED,2025-01-01 09:00:00,2025-01-01 09:00:00
+9,SERVICE_DISC,Initial Deployment Discount,5% off Professional Services in early 2024,CATEGORY,,4,5.0,0.0,1,2024-05-06 09:00:00,2024-09-03 09:00:00,3,EXPIRED,2025-01-01 09:00:00,2025-01-01 09:00:00
+10,NET_SUMMER,Summer 2026 Gateway Upgrade Promo,10% off Gateway Pro upcoming promotion,BUNDLE,11,6,10.0,0.0,1,2026-05-16 09:00:00,2026-08-14 09:00:00,2,SCHEDULED,2025-01-01 09:00:00,2025-01-01 09:00:00

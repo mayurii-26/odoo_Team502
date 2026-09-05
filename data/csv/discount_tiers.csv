@@ -1,0 +1,4 @@
+id,name,min_discount,max_discount,approval_required,approval_level,description,status,created_at,updated_at
+1,Bronze,0.0,5.0,False,,Standard representative discretionary discount,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+2,Silver,5.0,10.0,True,Sales Manager,Mid-range discount requiring Sales Manager approval,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+3,Gold,10.0,15.0,True,Finance/Operations,Deep discount requiring Finance/Operations executive approval,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00

@@ -1,0 +1,7 @@
+id,name,description,parent_category_id,status,created_at,updated_at
+1,Laptops,High performance business and workstation laptops,,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+2,Monitors,Ultra-sharp business and professional monitors,,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+3,Accessories,Ergonomic and productivity accessories,,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+4,Services,"Professional deployment, installation and migration services",,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+5,Support & Care,Warranty extensions and priority support plans,,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+6,Networking,"Enterprise gateways, routers and security hardware",,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00

@@ -1,0 +1,25 @@
+id,sku,name,description,category_id,product_family,product_type,tier,parent_product_id,unit_price,cost_price,margin_amount,margin_percent,is_subscription,subscription_plan_id,is_active,is_sellable,is_service,created_at,updated_at
+1,LP-14,Laptop Pro 14,14-inch professional business laptop with Core i7,1,Laptop Pro,PHYSICAL,1,,1200.0,840.0,360.0,30.0,False,,True,True,False,2025-01-01 09:00:00,2025-01-01 09:00:00
+2,LP-16,Laptop Pro 16,16-inch high performance laptop with Core i9 and 32GB RAM,1,Laptop Pro,PHYSICAL,2,1,1550.0,1020.0,530.0,34.19,False,,True,True,False,2025-01-01 09:00:00,2025-01-01 09:00:00
+3,LP-18,Laptop Pro 18,18-inch flagship mobile workstation with RTX GPU,1,Laptop Pro,PHYSICAL,3,2,2100.0,1350.0,750.0,35.71,False,,True,True,False,2025-01-01 09:00:00,2025-01-01 09:00:00
+4,MB-24,Monitor Basic 24,24-inch Full HD IPS desktop monitor,2,Business Monitor,PHYSICAL,1,,220.0,150.0,70.0,31.82,False,,True,True,False,2025-01-01 09:00:00,2025-01-01 09:00:00
+5,MP-27,Monitor Pro 27,27-inch QHD professional color-accurate monitor,2,Business Monitor,PHYSICAL,2,4,380.0,240.0,140.0,36.84,False,,True,True,False,2025-01-01 09:00:00,2025-01-01 09:00:00
+6,MU-32,Monitor Ultra 32,32-inch 4K UHD curved HDR monitor,2,Business Monitor,PHYSICAL,3,5,650.0,400.0,250.0,38.46,False,,True,True,False,2025-01-01 09:00:00,2025-01-01 09:00:00
+7,BC-1Y,Basic Care 1yr,1-year standard warranty and email support,5,Support Plan,SUBSCRIPTION,1,,120.0,40.0,80.0,66.67,True,PLAN-BC1,True,True,True,2025-01-01 09:00:00,2025-01-01 09:00:00
+8,PC-2Y,Premium Care 2yr,2-year 24/7 priority support with accidental damage coverage,5,Support Plan,SUBSCRIPTION,2,7,250.0,75.0,175.0,70.0,True,PLAN-PC2,True,True,True,2025-01-01 09:00:00,2025-01-01 09:00:00
+9,EC-3Y,Enterprise Care 3yr,3-year mission-critical support with 4-hour onsite SLA,5,Support Plan,SUBSCRIPTION,3,8,450.0,120.0,330.0,73.33,True,PLAN-EC3,True,True,True,2025-01-01 09:00:00,2025-01-01 09:00:00
+10,GW-STD,Gateway Standard,Secure branch office VPN router and firewall,6,Network Gateway,PHYSICAL,1,,500.0,340.0,160.0,32.0,False,,True,True,False,2025-01-01 09:00:00,2025-01-01 09:00:00
+11,GW-PRO,Gateway Pro,High-throughput mid-market security gateway,6,Network Gateway,PHYSICAL,2,10,850.0,530.0,320.0,37.65,False,,True,True,False,2025-01-01 09:00:00,2025-01-01 09:00:00
+12,GW-ENT,Gateway Enterprise,Redundant carrier-grade enterprise security appliance,6,Network Gateway,PHYSICAL,3,11,1400.0,820.0,580.0,41.43,False,,True,True,False,2025-01-01 09:00:00,2025-01-01 09:00:00
+13,ACC-WM,Wireless Mouse,Ergonomic rechargeable multi-device wireless mouse,3,Accessories,PHYSICAL,,,45.0,18.0,27.0,60.0,False,,True,True,False,2025-01-01 09:00:00,2025-01-01 09:00:00
+14,ACC-MK,Mechanical Keyboard,Low-profile tactile mechanical keyboard with backlight,3,Accessories,PHYSICAL,,,95.0,45.0,50.0,52.63,False,,True,True,False,2025-01-01 09:00:00,2025-01-01 09:00:00
+15,ACC-DS,Docking Station,Universal Thunderbolt 4 dual 4K display dock,3,Accessories,PHYSICAL,,,180.0,95.0,85.0,47.22,False,,True,True,False,2025-01-01 09:00:00,2025-01-01 09:00:00
+16,ACC-LB,Laptop Bag,Water-resistant padded travel laptop messenger bag,3,Accessories,PHYSICAL,,,65.0,25.0,40.0,61.54,False,,True,True,False,2025-01-01 09:00:00,2025-01-01 09:00:00
+17,ACC-WC,Ultra HD Webcam,4K auto-framing noise-cancelling conference webcam,3,Accessories,PHYSICAL,,,110.0,55.0,55.0,50.0,False,,True,True,False,2025-01-01 09:00:00,2025-01-01 09:00:00
+18,ACC-PA,Power Adapter 100W,Compact GaN dual USB-C fast power adapter,3,Accessories,PHYSICAL,,,75.0,30.0,45.0,60.0,False,,True,True,False,2025-01-01 09:00:00,2025-01-01 09:00:00
+19,SRV-SET,Onsite Setup Service,Professional white-glove hardware deployment and configuration,4,Services,SERVICE,,,450.0,220.0,230.0,51.11,False,,True,True,True,2025-01-01 09:00:00,2025-01-01 09:00:00
+20,SRV-DM,Data Migration,Secure legacy system user data and profile migration service,4,Services,SERVICE,,,600.0,280.0,320.0,53.33,False,,True,True,True,2025-01-01 09:00:00,2025-01-01 09:00:00
+21,SRV-NET,Network Setup,"Onsite network configuration, VLAN design and firewall setup",4,Services,SERVICE,,,750.0,350.0,400.0,53.33,False,,True,True,True,2025-01-01 09:00:00,2025-01-01 09:00:00
+22,SUP-EW,Extended Warranty,1-year extended parts and labor replacement warranty,5,Support & Care,SERVICE,,,180.0,60.0,120.0,66.67,False,,True,True,True,2025-01-01 09:00:00,2025-01-01 09:00:00
+23,SUB-CB,Cloud Backup 1yr,Automated daily cloud workstation backup subscription,5,Support & Care,SUBSCRIPTION,,,150.0,40.0,110.0,73.33,True,PLAN-CB1,True,True,True,2025-01-01 09:00:00,2025-01-01 09:00:00
+24,SUB-EPS,Endpoint Security,Managed enterprise anti-malware and EDR subscription,5,Support & Care,SUBSCRIPTION,,,200.0,60.0,140.0,70.0,True,PLAN-EPS1,True,True,True,2025-01-01 09:00:00,2025-01-01 09:00:00

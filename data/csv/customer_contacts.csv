@@ -1,0 +1,41 @@
+id,customer_id,name,email,phone,job_title,department,is_primary,portal_enabled,status,created_at,updated_at
+1,1,James Smith,kavita.rao@acme.demo,+1-555-0101,Procurement Manager,Procurement,True,True,ACTIVE,2025-01-02 09:00:00,2025-01-02 09:00:00
+2,2,Sarah Johnson,sameer.joshi@novasystems.demo,+1-555-0102,IT Manager,IT,True,True,ACTIVE,2025-01-03 09:00:00,2025-01-03 09:00:00
+3,3,Michael Williams,michael.williams@cust3.demo,+1-555-0103,Finance Manager,Finance,True,False,ACTIVE,2025-01-04 09:00:00,2025-01-04 09:00:00
+4,4,Emily Brown,emily.brown@cust4.demo,+1-555-0104,Operations Manager,Operations,True,False,ACTIVE,2025-01-05 09:00:00,2025-01-05 09:00:00
+5,5,David Jones,david.jones@cust5.demo,+1-555-0105,CEO,Operations,True,False,ACTIVE,2025-01-06 09:00:00,2025-01-06 09:00:00
+6,6,Jessica Miller,jessica.miller@cust6.demo,+1-555-0106,CFO,Finance,True,True,ACTIVE,2025-01-07 09:00:00,2025-01-07 09:00:00
+7,7,Robert Davis,robert.davis@cust7.demo,+1-555-0107,CTO,IT,True,True,ACTIVE,2025-01-08 09:00:00,2025-01-08 09:00:00
+8,8,Ashley Wilson,ashley.wilson@cust8.demo,+1-555-0108,Administrative Manager,Operations,True,False,ACTIVE,2025-01-09 09:00:00,2025-01-09 09:00:00
+9,9,William Taylor,william.taylor@cust9.demo,+1-555-0109,Procurement Manager,Procurement,True,False,ACTIVE,2025-01-10 09:00:00,2025-01-10 09:00:00
+10,10,Amanda Anderson,amanda.anderson@cust10.demo,+1-555-0110,IT Manager,IT,True,True,ACTIVE,2025-01-11 09:00:00,2025-01-11 09:00:00
+11,11,James Smith,james.smith@cust11.demo,+1-555-0111,Finance Manager,Finance,True,False,ACTIVE,2025-01-12 09:00:00,2025-01-12 09:00:00
+12,12,Sarah Johnson,sarah.johnson@cust12.demo,+1-555-0112,Operations Manager,Operations,True,False,ACTIVE,2025-01-13 09:00:00,2025-01-13 09:00:00
+13,13,Michael Williams,michael.williams@cust13.demo,+1-555-0113,CEO,Operations,True,False,ACTIVE,2025-01-14 09:00:00,2025-01-14 09:00:00
+14,14,Emily Brown,emily.brown@cust14.demo,+1-555-0114,CFO,Finance,True,False,ACTIVE,2025-01-15 09:00:00,2025-01-15 09:00:00
+15,15,David Jones,david.jones@cust15.demo,+1-555-0115,CTO,IT,True,True,ACTIVE,2025-01-16 09:00:00,2025-01-16 09:00:00
+16,16,Jessica Miller,jessica.miller@cust16.demo,+1-555-0116,Administrative Manager,Operations,True,False,ACTIVE,2025-01-17 09:00:00,2025-01-17 09:00:00
+17,17,Robert Davis,robert.davis@cust17.demo,+1-555-0117,Procurement Manager,Procurement,True,False,ACTIVE,2025-01-18 09:00:00,2025-01-18 09:00:00
+18,18,Ashley Wilson,ashley.wilson@cust18.demo,+1-555-0118,IT Manager,IT,True,False,ACTIVE,2025-01-19 09:00:00,2025-01-19 09:00:00
+19,19,William Taylor,william.taylor@cust19.demo,+1-555-0119,Finance Manager,Finance,True,False,ACTIVE,2025-01-20 09:00:00,2025-01-20 09:00:00
+20,20,Amanda Anderson,amanda.anderson@cust20.demo,+1-555-0120,Operations Manager,Operations,True,False,ACTIVE,2025-01-21 09:00:00,2025-01-21 09:00:00
+21,21,James Smith,james.smith@cust21.demo,+1-555-0121,CEO,Operations,True,False,ACTIVE,2025-01-22 09:00:00,2025-01-22 09:00:00
+22,22,Sarah Johnson,sarah.johnson@cust22.demo,+1-555-0122,CFO,Finance,True,False,ACTIVE,2025-01-23 09:00:00,2025-01-23 09:00:00
+23,23,Michael Williams,michael.williams@cust23.demo,+1-555-0123,CTO,IT,True,False,ACTIVE,2025-01-24 09:00:00,2025-01-24 09:00:00
+24,24,Emily Brown,emily.brown@cust24.demo,+1-555-0124,Administrative Manager,Operations,True,False,ACTIVE,2025-01-25 09:00:00,2025-01-25 09:00:00
+25,25,David Jones,david.jones@cust25.demo,+1-555-0125,Procurement Manager,Procurement,True,False,ACTIVE,2025-01-26 09:00:00,2025-01-26 09:00:00
+26,26,Jessica Miller,jessica.miller@cust26.demo,+1-555-0126,IT Manager,IT,True,False,ACTIVE,2025-01-27 09:00:00,2025-01-27 09:00:00
+27,27,Robert Davis,robert.davis@cust27.demo,+1-555-0127,Finance Manager,Finance,True,False,ACTIVE,2025-01-28 09:00:00,2025-01-28 09:00:00
+28,28,Ashley Wilson,ashley.wilson@cust28.demo,+1-555-0128,Operations Manager,Operations,True,False,ACTIVE,2025-01-29 09:00:00,2025-01-29 09:00:00
+29,29,William Taylor,william.taylor@cust29.demo,+1-555-0129,CEO,Operations,True,False,ACTIVE,2025-01-30 09:00:00,2025-01-30 09:00:00
+30,30,Amanda Anderson,amanda.anderson@cust30.demo,+1-555-0130,CFO,Finance,True,False,ACTIVE,2025-01-31 09:00:00,2025-01-31 09:00:00
+31,31,James Smith,james.smith@cust31.demo,+1-555-0131,CTO,IT,True,False,ACTIVE,2025-02-01 09:00:00,2025-02-01 09:00:00
+32,32,Sarah Johnson,sarah.johnson@cust32.demo,+1-555-0132,Administrative Manager,Operations,True,False,ACTIVE,2025-02-02 09:00:00,2025-02-02 09:00:00
+33,33,Michael Williams,michael.williams@cust33.demo,+1-555-0133,Procurement Manager,Procurement,False,False,ACTIVE,2025-02-03 09:00:00,2025-02-03 09:00:00
+34,34,Emily Brown,emily.brown@cust34.demo,+1-555-0134,IT Manager,IT,True,False,ACTIVE,2025-02-04 09:00:00,2025-02-04 09:00:00
+35,35,David Jones,david.jones@cust35.demo,+1-555-0135,Finance Manager,Finance,False,False,ACTIVE,2025-02-05 09:00:00,2025-02-05 09:00:00
+36,36,Jessica Miller,jessica.miller@cust36.demo,+1-555-0136,Operations Manager,Operations,True,False,ACTIVE,2025-02-06 09:00:00,2025-02-06 09:00:00
+37,37,Robert Davis,robert.davis@cust37.demo,+1-555-0137,CEO,Operations,False,False,ACTIVE,2025-02-07 09:00:00,2025-02-07 09:00:00
+38,38,Ashley Wilson,ashley.wilson@cust38.demo,+1-555-0138,CFO,Finance,True,False,ACTIVE,2025-02-08 09:00:00,2025-02-08 09:00:00
+39,39,William Taylor,william.taylor@cust39.demo,+1-555-0139,CTO,IT,False,False,ACTIVE,2025-02-09 09:00:00,2025-02-09 09:00:00
+40,40,Amanda Anderson,amanda.anderson@cust40.demo,+1-555-0140,Administrative Manager,Operations,True,False,ACTIVE,2025-02-10 09:00:00,2025-02-10 09:00:00

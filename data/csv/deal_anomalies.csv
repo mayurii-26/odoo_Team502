@@ -1,0 +1,16 @@
+id,quotation_id,anomaly_type,severity,detected_at,description,expected_value,actual_value,impact_amount,status,resolved_at,resolution_note,created_at,updated_at
+1,1,HIGH_DISCOUNT,HIGH,2025-12-18 09:00:00,Services discount of 18% exceeds authorized 10% limit,10.0,18.0,81.0,OPEN,,,2025-12-18 09:00:00,2025-12-18 09:00:00
+2,2,MARGIN_DROP,MEDIUM,2025-12-19 09:00:00,Quote gross margin dropped below 22% floor,25.0,20.5,450.0,ACKNOWLEDGED,,,2025-12-19 09:00:00,2025-12-19 09:00:00
+3,5,UNUSUAL_DISCOUNT_PATTERN,HIGH,2025-12-20 09:00:00,Multiple discretionary discounts applied in sequence,5.0,22.0,320.0,OPEN,,,2025-12-20 09:00:00,2025-12-20 09:00:00
+4,8,CUSTOMER_NEGOTIATION,MEDIUM,2025-12-21 09:00:00,Customer countered with 22% discount,10.0,22.0,580.0,OPEN,,,2025-12-21 09:00:00,2025-12-21 09:00:00
+5,12,FULFILLMENT_DELAY,MEDIUM,2025-12-22 09:00:00,Delivery date pushed by 5 days due to stock transit,2.0,7.0,0.0,RESOLVED,2025-12-27 09:00:00,Adjusted pricing in line with governance policy,2025-12-22 09:00:00,2025-12-22 09:00:00
+6,15,LOW_STOCK,LOW,2025-12-23 09:00:00,Inventory buffer dropped below reorder threshold,10.0,4.0,0.0,RESOLVED,2025-12-28 09:00:00,Adjusted pricing in line with governance policy,2025-12-23 09:00:00,2025-12-23 09:00:00
+7,18,PAYMENT_DELAY,HIGH,2025-12-24 09:00:00,Customer payment overdue past net-30 terms,30.0,52.0,1250.0,OPEN,,,2025-12-24 09:00:00,2025-12-24 09:00:00
+8,20,REVENUE_DROP,LOW,2025-12-25 09:00:00,Deal size decreased after line item removal,4500.0,3200.0,1300.0,ACKNOWLEDGED,,,2025-12-25 09:00:00,2025-12-25 09:00:00
+9,25,HIGH_DISCOUNT,CRITICAL,2025-12-26 09:00:00,Hardware line discount exceeded 25% boundary,15.0,26.0,950.0,OPEN,,,2025-12-26 09:00:00,2025-12-26 09:00:00
+10,28,FULFILLMENT_DELAY,HIGH,2025-12-27 09:00:00,Backorder line awaiting factory replenishment,5.0,15.0,0.0,OPEN,,,2025-12-27 09:00:00,2025-12-27 09:00:00
+11,33,MARGIN_DROP,MEDIUM,2025-12-28 09:00:00,Bundle configuration eroded margin by 4.2%,30.0,25.8,280.0,RESOLVED,2026-01-02 09:00:00,Adjusted pricing in line with governance policy,2025-12-28 09:00:00,2025-12-28 09:00:00
+12,35,UNUSUAL_DISCOUNT_PATTERN,LOW,2025-12-29 09:00:00,Consecutive discounts on low-margin SKUs,5.0,12.0,150.0,ACKNOWLEDGED,,,2025-12-29 09:00:00,2025-12-29 09:00:00
+13,40,LOW_STOCK,MEDIUM,2025-12-30 09:00:00,Regional warehouse depleted of 16-inch models,20.0,2.0,0.0,RESOLVED,2026-01-04 09:00:00,Adjusted pricing in line with governance policy,2025-12-30 09:00:00,2025-12-30 09:00:00
+14,44,PAYMENT_DELAY,HIGH,2025-12-31 09:00:00,Second overdue notice issued to accounts payable,30.0,65.0,3400.0,OPEN,,,2025-12-31 09:00:00,2025-12-31 09:00:00
+15,50,HIGH_DISCOUNT,HIGH,2026-01-01 09:00:00,Special non-standard discount applied to enterprise customer,15.0,22.0,680.0,OPEN,,,2026-01-01 09:00:00,2026-01-01 09:00:00

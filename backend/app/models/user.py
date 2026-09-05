@@ -1,18 +1,16 @@
-# ============================================================
-# DealFlow360 — User ORM Model
-# ============================================================
-# Table: users
-# Fields:
-#   id, email, hashed_password, full_name, role, is_active
-#   company_id (FK), team, created_at, updated_at, last_login
-#
-# Roles (enum): admin | sales_rep | sales_manager | finance | customer
-#
-# Invite fields:
-#   invite_token, invite_expires_at, invite_accepted_at
-#
-# Relationships:
-#   company -> Company
-#   quotations -> Quotation (created_by)
-#   approvals -> Approval (approver)
-# ============================================================
+from datetime import datetime
+from sqlalchemy import Column, Integer, String, DateTime
+from app.core.database import Base
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    role = Column(String(50), nullable=False)
+    status = Column(String(50), nullable=False, default="ACTIVE")
+    last_login_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

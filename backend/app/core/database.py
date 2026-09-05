@@ -1,27 +1,37 @@
 # ============================================================
-# DealFlow360 — Database Connection (SQLAlchemy + asyncpg)
+# DealFlow360 - PostgreSQL Database Connection (SQLAlchemy)
 # ============================================================
-# Responsibilities:
-#   - Create async SQLAlchemy engine
-#   - Provide async session factory
-#   - Base class for all ORM models
-# ============================================================
+import os
+from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
-# TODO: implement when starting backend development
-#
-# from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-# from sqlalchemy.orm import DeclarativeBase, sessionmaker
-# from app.core.config import settings
-#
-# engine = create_async_engine(settings.DATABASE_URL, echo=settings.DEBUG)
-#
-# AsyncSessionLocal = sessionmaker(
-#     engine, class_=AsyncSession, expire_on_commit=False
-# )
-#
-# class Base(DeclarativeBase):
-#     pass
-#
-# async def get_db():
-#     async with AsyncSessionLocal() as session:
-#         yield session
+# Load environment variables from .env
+load_dotenv()
+
+# PostgreSQL Database URL
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://postgres:postgres@localhost:5432/dealflow360"
+)
+
+# Standardize postgres:// to postgresql:// for SQLAlchemy
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+connect_args = {}
+if DATABASE_URL.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
+
+engine = create_engine(DATABASE_URL, connect_args=connect_args, pool_pre_ping=True)
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

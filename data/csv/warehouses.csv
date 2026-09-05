@@ -1,0 +1,4 @@
+id,warehouse_code,name,location,city,state,country,manager_name,capacity,status,created_at,updated_at
+1,WH-A,Mumbai Central Warehouse,"Industrial Zone, Andheri",Mumbai,Maharashtra,India,Anand Kulkarni,15000,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+2,WH-B,Bangalore Distribution Center,Electronic City Phase 1,Bangalore,Karnataka,India,Sunita Nair,12000,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
+3,WH-C,Delhi Fulfillment Center,Okhla Industrial Area Phase 3,Delhi,Delhi,India,Rakesh Verma,10000,ACTIVE,2025-01-01 09:00:00,2025-01-01 09:00:00
