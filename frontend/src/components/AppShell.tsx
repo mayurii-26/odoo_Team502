@@ -38,6 +38,7 @@ import GovernanceModule from './GovernanceModule'
 import UsersModule from './UsersModule'
 import ReportsModule from './ReportsModule'
 import AdminModule from './AdminModule'
+import TeamMessagesModule from './TeamMessagesModule'
 
 /* ── Minimalist Clean SVG Icons ───────────────────────────── */
 function LayoutDashboardIcon() {
@@ -217,6 +218,9 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
   const role = user.role || 'sales_rep'
   const isAdmin = role === 'admin'
   const isCustomer = role === 'customer'
+  const isFinance = role === 'finance'
+  const isSalesManager = role === 'sales_manager'
+  const isSalesRep = role === 'sales_rep'
 
   function mapBackendStatusToFrontend(backendStatus: string): QuotationStatus {
     const s = (backendStatus || '').toUpperCase()
@@ -374,24 +378,42 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
     quotations.find(q => q.id === selectedQuotationId) || quotations[0]
 
   const moduleTitles: Record<ActiveModule, string> = {
-    dashboard: 'Dashboard',
-    quotations: 'Quotations',
+    dashboard: isCustomer
+      ? 'Customer Portal Overview'
+      : isAdmin
+      ? 'Root Admin Command Center'
+      : isFinance
+      ? 'Finance & Ledger Operations'
+      : isSalesManager
+      ? 'Sales Management & Approvals'
+      : 'Sales Dashboard',
+    quotations: 'Quotations & Deals',
     builder: `Quotation Builder (${selectedQuotationId})`,
-    approvals: 'Approvals Hub',
+    approvals: isFinance
+      ? 'Financial Approval Requests'
+      : isSalesManager
+      ? 'Manager Approval Requests'
+      : 'Approvals Hub',
     customer_portal: 'Customer Portal',
-    fulfillment: 'Fulfillment & Stock',
-    subscriptions: 'Subscriptions',
-    invoices: 'Invoices',
-    billing: 'Billing',
-    deal_health: 'Deal Health',
-    catalog: 'Product Master',
+    fulfillment: 'Fulfillment & Warehouse Stock',
+    subscriptions: 'Recurring Subscriptions',
+    invoices: 'Invoices & Billing Ledger',
+    billing: 'Billing & Invoices',
+    deal_health: 'Deal Health & Risk Monitoring',
+    catalog: 'Product Master Catalog',
     governance: 'Governance Rules',
-    users: 'Team & Users',
+    users: 'Team & User Management',
     reports: 'Reports & Analytics',
-    messages: 'Customer Messages',
-    profile: 'Customer Profile',
+    messages: isCustomer
+      ? 'Customer Messages'
+      : isFinance
+      ? 'Finance Direct Messages'
+      : isSalesManager
+      ? 'Manager Direct Messages'
+      : 'Team Messages',
+    profile: 'Customer Account Profile',
     admin_access: 'Role Access & Provisioning',
-    admin_messages: 'Message Anyone',
+    admin_messages: 'Message Anyone Console',
     admin_directory: 'All Users & Directory',
   }
 
@@ -399,7 +421,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
     admin: 'Administrator',
     sales_rep: 'Sales Rep',
     sales_manager: 'Sales Manager',
-    finance: 'Finance',
+    finance: 'Financial Officer',
     customer: 'Customer',
   }
 
@@ -407,7 +429,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
 
   return (
     <div className={styles.shell}>
-      {/* ── Left Clean Enterprise Sidebar (Chinmay B2B Layout) ─── */}
+      {/* ── Left Clean Enterprise Sidebar ────────────────────────── */}
       <aside className={styles.sidebar}>
         {/* Header Branding */}
         <div className={styles.sidebarHeader}>
@@ -439,8 +461,10 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
 
         {/* Grouped Navigation Links (Dynamically Adapting to User Role) */}
         <div className={styles.navScroll}>
-          {/* ─── Role: Customer Navigation ─── */}
-          {isCustomer ? (
+          {/* ────────────────────────────────────────────────────────
+              1. ROLE: CUSTOMER
+             ──────────────────────────────────────────────────────── */}
+          {isCustomer && (
             <div className={styles.navGroup}>
               <span className={styles.groupLabel}>Customer Portal</span>
               <button
@@ -483,8 +507,130 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
                 </div>
               </button>
             </div>
-          ) : isAdmin ? (
-            /* ─── Role: Admin Navigation ─── */
+          )}
+
+          {/* ────────────────────────────────────────────────────────
+              2. ROLE: FINANCIAL OFFICER (Finance)
+              Requirement: Approval request tab, fulfilment, invoices, messages
+             ──────────────────────────────────────────────────────── */}
+          {isFinance && (
+            <div className={styles.navGroup}>
+              <span className={styles.groupLabel}>Finance Operations</span>
+              <button
+                className={`${styles.navLink} ${activeModule === 'dashboard' ? styles.navLinkActive : ''}`}
+                onClick={() => handleNavigateModule('dashboard')}
+              >
+                <div className={styles.navLinkContent}>
+                  <span className={styles.navIconWrap}><LayoutDashboardIcon /></span>
+                  <span>Finance Dashboard</span>
+                </div>
+              </button>
+
+              <button
+                className={`${styles.navLink} ${activeModule === 'approvals' ? styles.navLinkActive : ''}`}
+                onClick={() => handleNavigateModule('approvals')}
+              >
+                <div className={styles.navLinkContent}>
+                  <span className={styles.navIconWrap}><CheckSquareIcon /></span>
+                  <span>Approval Requests</span>
+                </div>
+                {pendingApprovalsCount > 0 && (
+                  <span className={`${styles.navBadge} ${styles.navBadgeActive}`}>
+                    {pendingApprovalsCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                className={`${styles.navLink} ${activeModule === 'fulfillment' ? styles.navLinkActive : ''}`}
+                onClick={() => handleNavigateModule('fulfillment')}
+              >
+                <div className={styles.navLinkContent}>
+                  <span className={styles.navIconWrap}><PackageIcon /></span>
+                  <span>Fulfillment</span>
+                </div>
+              </button>
+
+              <button
+                className={`${styles.navLink} ${activeModule === 'invoices' || activeModule === 'billing' ? styles.navLinkActive : ''}`}
+                onClick={() => handleNavigateModule('invoices')}
+              >
+                <div className={styles.navLinkContent}>
+                  <span className={styles.navIconWrap}><CreditCardIcon /></span>
+                  <span>Invoices</span>
+                </div>
+              </button>
+
+              <button
+                className={`${styles.navLink} ${activeModule === 'messages' ? styles.navLinkActive : ''}`}
+                onClick={() => handleNavigateModule('messages')}
+              >
+                <div className={styles.navLinkContent}>
+                  <span className={styles.navIconWrap}><MessageSquareIcon /></span>
+                  <span>Messages</span>
+                </div>
+              </button>
+            </div>
+          )}
+
+          {/* ────────────────────────────────────────────────────────
+              3. ROLE: SALES MANAGER
+              Requirement: Approval request, deal health, message
+             ──────────────────────────────────────────────────────── */}
+          {isSalesManager && (
+            <div className={styles.navGroup}>
+              <span className={styles.groupLabel}>Sales Management</span>
+              <button
+                className={`${styles.navLink} ${activeModule === 'dashboard' ? styles.navLinkActive : ''}`}
+                onClick={() => handleNavigateModule('dashboard')}
+              >
+                <div className={styles.navLinkContent}>
+                  <span className={styles.navIconWrap}><LayoutDashboardIcon /></span>
+                  <span>Manager Dashboard</span>
+                </div>
+              </button>
+
+              <button
+                className={`${styles.navLink} ${activeModule === 'approvals' ? styles.navLinkActive : ''}`}
+                onClick={() => handleNavigateModule('approvals')}
+              >
+                <div className={styles.navLinkContent}>
+                  <span className={styles.navIconWrap}><CheckSquareIcon /></span>
+                  <span>Approval Requests</span>
+                </div>
+                {pendingApprovalsCount > 0 && (
+                  <span className={`${styles.navBadge} ${styles.navBadgeActive}`}>
+                    {pendingApprovalsCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                className={`${styles.navLink} ${activeModule === 'deal_health' ? styles.navLinkActive : ''}`}
+                onClick={() => handleNavigateModule('deal_health')}
+              >
+                <div className={styles.navLinkContent}>
+                  <span className={styles.navIconWrap}><ActivityIcon /></span>
+                  <span>Deal Health</span>
+                </div>
+              </button>
+
+              <button
+                className={`${styles.navLink} ${activeModule === 'messages' ? styles.navLinkActive : ''}`}
+                onClick={() => handleNavigateModule('messages')}
+              >
+                <div className={styles.navLinkContent}>
+                  <span className={styles.navIconWrap}><MessageSquareIcon /></span>
+                  <span>Messages</span>
+                </div>
+              </button>
+            </div>
+          )}
+
+          {/* ────────────────────────────────────────────────────────
+              4. ROLE: ADMINISTRATOR
+             ──────────────────────────────────────────────────────── */}
+          {isAdmin && (
             <>
               <div className={styles.navGroup}>
                 <span className={styles.groupLabel}>Administration</span>
@@ -576,8 +722,12 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
                 </button>
               </div>
             </>
-          ) : (
-            /* ─── Role: Sales Representative / Manager / Finance (Chinmay Sales Module) ─── */
+          )}
+
+          {/* ────────────────────────────────────────────────────────
+              5. ROLE: SALES REPRESENTATIVE (Default Full Sales Suite)
+             ──────────────────────────────────────────────────────── */}
+          {isSalesRep && (
             <>
               {/* Section 1: Sales Operations */}
               <div className={styles.navGroup}>
@@ -731,10 +881,10 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
               title="Switch user perspective"
             >
               <option value="sales_rep">Sales Representative</option>
+              <option value="finance">Financial Officer</option>
+              <option value="sales_manager">Sales Manager</option>
               <option value="admin">Administrator</option>
               <option value="customer">Customer (Acme Corp)</option>
-              <option value="sales_manager">Sales Manager</option>
-              <option value="finance">Finance</option>
             </select>
 
             <button
@@ -762,7 +912,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
           )}
 
           {/* Customer Portal Modules (from Local Stash) */}
-          {(activeModule === 'customer_portal' || activeModule === 'messages' || activeModule === 'profile') && (
+          {(activeModule === 'customer_portal' || (activeModule === 'messages' && isCustomer) || activeModule === 'profile') && (
             <CustomerPortalModule
               quotation={selectedQuote}
               customerTab={
@@ -773,6 +923,16 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
                   : 'quotation'
               }
               onUpdateQuotation={handleUpdateQuotation}
+              onNavigate={handleNavigateModule}
+              onShowToast={showToast}
+            />
+          )}
+
+          {/* Team Messaging Module for Financial Officer and Sales Manager */}
+          {activeModule === 'messages' && (isFinance || isSalesManager) && (
+            <TeamMessagesModule
+              role={user.role}
+              quotations={quotations}
               onNavigate={handleNavigateModule}
               onShowToast={showToast}
             />
@@ -802,27 +962,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             />
           )}
 
-          {/* Sales Representative Modules (pushed by Chinmay) */}
-          {activeModule === 'quotations' && (
-            <QuotationsListModule
-              quotations={quotations}
-              onSelectQuotation={setSelectedQuotationId}
-              onNavigate={handleNavigateModule}
-              onUpdateQuotation={handleUpdateQuotation}
-              onShowToast={showToast}
-            />
-          )}
-
-          {activeModule === 'builder' && (
-            <QuotationBuilderModule
-              quotation={selectedQuote}
-              products={products}
-              onUpdateQuotation={handleUpdateQuotation}
-              onNavigate={handleNavigateModule}
-              onShowToast={showToast}
-            />
-          )}
-
+          {/* Approval Requests Module (shared across Sales Manager, Finance, and Reps) */}
           {activeModule === 'approvals' && (
             <ApprovalsModule
               quotations={quotations}
@@ -833,6 +973,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             />
           )}
 
+          {/* Fulfillment Module (shared across Finance and Sales Reps) */}
           {activeModule === 'fulfillment' && (
             <FulfillmentModule
               quotation={selectedQuote}
@@ -844,14 +985,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             />
           )}
 
-          {activeModule === 'subscriptions' && (
-            <SubscriptionsModule
-              subscriptions={subscriptions}
-              onNavigate={handleNavigateModule}
-              onShowToast={showToast}
-            />
-          )}
-
+          {/* Invoices Module (shared across Finance and Sales Reps) */}
           {(activeModule === 'invoices' || activeModule === 'billing') && (
             <InvoicesModule
               quotation={selectedQuote}
@@ -862,6 +996,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             />
           )}
 
+          {/* Deal Health Module (shared across Sales Manager and Reps) */}
           {activeModule === 'deal_health' && (
             <DealHealthModule
               quotations={quotations}
@@ -871,6 +1006,38 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             />
           )}
 
+          {/* Quotations List Module (Kanban view) */}
+          {activeModule === 'quotations' && (
+            <QuotationsListModule
+              quotations={quotations}
+              onSelectQuotation={setSelectedQuotationId}
+              onNavigate={handleNavigateModule}
+              onUpdateQuotation={handleUpdateQuotation}
+              onShowToast={showToast}
+            />
+          )}
+
+          {/* Quotation Builder */}
+          {activeModule === 'builder' && (
+            <QuotationBuilderModule
+              quotation={selectedQuote}
+              products={products}
+              onUpdateQuotation={handleUpdateQuotation}
+              onNavigate={handleNavigateModule}
+              onShowToast={showToast}
+            />
+          )}
+
+          {/* Subscriptions Module */}
+          {activeModule === 'subscriptions' && (
+            <SubscriptionsModule
+              subscriptions={subscriptions}
+              onNavigate={handleNavigateModule}
+              onShowToast={showToast}
+            />
+          )}
+
+          {/* Product Catalog */}
           {activeModule === 'catalog' && (
             <ProductCatalogModule
               products={products}
@@ -879,6 +1046,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             />
           )}
 
+          {/* Governance Rules */}
           {activeModule === 'governance' && (
             <GovernanceModule
               governance={governance}
@@ -887,6 +1055,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             />
           )}
 
+          {/* Team Users Management */}
           {activeModule === 'users' && (
             <UsersModule
               users={users}
@@ -895,6 +1064,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             />
           )}
 
+          {/* Reports & Analytics */}
           {activeModule === 'reports' && (
             <ReportsModule
               onNavigate={handleNavigateModule}

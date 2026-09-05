@@ -33,6 +33,22 @@ export const DEMO_ACCOUNTS = [
     companyName: 'Acme Corp',
     label: 'Customer',
   },
+  {
+    email: 'manager@dealflow360.com',
+    password: 'password123',
+    fullName: 'Alex Rivera',
+    role: 'sales_manager' as const,
+    companyName: 'DealFlow360 Sales Ops',
+    label: 'Sales Manager',
+  },
+  {
+    email: 'finance@dealflow360.com',
+    password: 'password123',
+    fullName: 'David Miller',
+    role: 'finance' as const,
+    companyName: 'DealFlow360 Finance',
+    label: 'Financial Officer',
+  },
 ]
 
 /* ── DealFlow360 Official Brand Logo ──────────────────────────────── */
@@ -170,7 +186,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [activeRole, setActiveRole] = useState<'admin' | 'sales_rep' | 'customer'>('sales_rep')
+  const [activeRole, setActiveRole] = useState<UserRole>('sales_rep')
 
   // Signup Form states
   const [suName, setSuName] = useState('')
@@ -267,7 +283,7 @@ export default function LoginPage() {
 
   // "Change" button action: cycles through demo accounts
   function handleChangeEmail() {
-    const roles: Array<'sales_rep' | 'customer' | 'admin'> = ['sales_rep', 'customer', 'admin']
+    const roles: UserRole[] = ['sales_rep', 'finance', 'sales_manager', 'admin', 'customer']
     const nextIdx = (roles.indexOf(activeRole) + 1) % roles.length
     const nextRole = roles[nextIdx]
     const nextAcc = DEMO_ACCOUNTS.find(a => a.role === nextRole) || DEMO_ACCOUNTS[0]
