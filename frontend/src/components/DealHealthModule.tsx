@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react'
 import styles from './DealHealthWireframe.module.css'
-import { ActiveModule } from './types'
+import { Quotation, ActiveModule } from './types'
 
 interface DealHealthProps {
+  quotations?: Quotation[]
   onNavigate: (module: ActiveModule) => void
   onSelectQuotation: (id: string) => void
   onShowToast: (msg: string) => void
@@ -19,28 +20,47 @@ interface DealIssue {
 }
 
 export default function DealHealthModule({
+  quotations = [],
   onNavigate,
   onSelectQuotation,
   onShowToast,
 }: DealHealthProps) {
   const [selectedDealId, setSelectedDealId] = useState<string>('deal-1')
 
-  const [dealIssues, setDealIssues] = useState<DealIssue[]>([
-    {
-      id: 'deal-1',
-      deal: 'Zenith Co',
-      issue: 'Idle 9 days',
-      flagged: 'Aug 24',
-      action: 'Nudge sent',
-    },
-    {
-      id: 'deal-2',
-      deal: 'Delta LLC',
-      issue: 'Discount 22% vs avg 8%',
-      flagged: 'Aug 25',
-      action: 'Escalated to Manager',
-    },
-  ])
+  // Live Deal Health Issues computed from PostgreSQL Quotations
+  const [dealIssues, setDealIssues] = useState<DealIssue[]>(() => {
+    if (quotations && quotations.length > 0) {
+      const atRisk = quotations.filter(q => q.blendedRiskScore < 75 || q.status === 'Under Review')
+      if (atRisk.length > 0) {
+        return atRisk.slice(0, 6).map((q, idx) => ({
+          id: `deal-${idx + 1}`,
+          deal: `${q.customerName} (${q.id})`,
+          issue: q.blendedRiskScore < 60 ? `High Risk (Score: ${q.blendedRiskScore}/100)` : `Discount Under Review (${q.status})`,
+          flagged: q.createdAt || 'Recent',
+          action: q.status === 'Under Review' ? 'Escalated to Manager' : 'Review Required',
+        }))
+      }
+    }
+    return []
+  })
+
+  // Sync state if quotations prop updates from database
+  React.useEffect(() => {
+    if (quotations && quotations.length > 0) {
+      const atRisk = quotations.filter(q => q.blendedRiskScore < 75 || q.status === 'Under Review')
+      if (atRisk.length > 0) {
+        setDealIssues(
+          atRisk.slice(0, 6).map((q, idx) => ({
+            id: `deal-${idx + 1}`,
+            deal: `${q.customerName} (${q.id})`,
+            issue: q.blendedRiskScore < 60 ? `High Risk (Score: ${q.blendedRiskScore}/100)` : `Discount Under Review (${q.status})`,
+            flagged: q.createdAt || 'Recent',
+            action: q.status === 'Under Review' ? 'Escalated to Manager' : 'Review Required',
+          }))
+        )
+      }
+    }
+  }, [quotations])
 
   function handleEscalate() {
     const target = dealIssues.find(d => d.id === selectedDealId) || dealIssues[1]

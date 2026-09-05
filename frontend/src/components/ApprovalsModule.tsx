@@ -7,6 +7,7 @@ import { Quotation, ActiveModule } from './types'
 
 interface ApprovalsModuleProps {
   quotations: Quotation[]
+  approvals?: any[]
   onUpdateQuotation: (updated: Quotation) => void
   onNavigate: (module: ActiveModule) => void
   onShowToast: (msg: string) => void
@@ -24,6 +25,7 @@ interface ApprovalItem {
 
 export default function ApprovalsModule({
   quotations,
+  approvals = [],
   onUpdateQuotation,
   onNavigate,
   onShowToast,
@@ -43,36 +45,51 @@ export default function ApprovalsModule({
     { user: 'J. Rao', action: 'Resubmitted', date: 'Aug 22', note: 'Added margin note' },
   ])
 
-  // Items for Approvals (List) - Screen #5
-  const [approvalsList, setApprovalsList] = useState<ApprovalItem[]>([
-    {
-      id: 'appr-1',
-      quotation: 'Q-1042',
-      customer: 'Acme Corp',
-      blendedRisk: 'HIGH',
-      stage: 'Sales Manager',
-      assignedTo: 'M. Shah',
-      status: 'Pending',
-    },
-    {
-      id: 'appr-2',
-      quotation: 'Q-1039',
-      customer: 'Beta Industries',
-      blendedRisk: 'MEDIUM',
-      stage: 'Finance',
-      assignedTo: 'R. Iyer',
-      status: 'Pending',
-    },
-    {
-      id: 'appr-3',
-      quotation: 'Q-1035',
-      customer: 'Nova Retail',
-      blendedRisk: 'LOW',
-      stage: 'Auto-Approved',
-      assignedTo: '-',
-      status: 'Approved',
-    },
-  ])
+  // Items for Approvals (List) - Live PostgreSQL + Quotations
+  const [approvalsList, setApprovalsList] = useState<ApprovalItem[]>(() => {
+    if (approvals && approvals.length > 0) {
+      return approvals.map((a: any) => ({
+        id: `appr-${a.id}`,
+        quotation: a.quote_number || `Q-${a.quotation_id}`,
+        customer: a.customer_name || 'Enterprise Client',
+        blendedRisk: (a.discount_requested > 20 ? 'HIGH' : a.discount_requested > 10 ? 'MEDIUM' : 'LOW') as 'HIGH' | 'MEDIUM' | 'LOW',
+        stage: a.status === 'APPROVED' ? 'Approved' : 'Sales Manager',
+        assignedTo: a.requester_name || 'M. Shah',
+        status: (a.status === 'APPROVED' ? 'Approved' : 'Pending') as 'Pending' | 'Returned' | 'Approved',
+      }))
+    }
+    // Also include any quotations currently in Under Review status
+    const pendingQuotes = quotations.filter(q => q.status === 'Under Review' || q.status === 'Approved')
+    if (pendingQuotes.length > 0) {
+      return pendingQuotes.map((q, idx) => ({
+        id: `appr-${idx + 1}`,
+        quotation: q.id,
+        customer: q.customerName,
+        blendedRisk: (q.blendedRiskScore < 60 ? 'HIGH' : q.blendedRiskScore < 75 ? 'MEDIUM' : 'LOW') as 'HIGH' | 'MEDIUM' | 'LOW',
+        stage: q.status === 'Approved' ? 'Approved' : 'Sales Manager',
+        assignedTo: 'M. Shah',
+        status: (q.status === 'Approved' ? 'Approved' : 'Pending') as 'Pending' | 'Returned' | 'Approved',
+      }))
+    }
+    return []
+  })
+
+  // Sync state if approvals or quotations update
+  React.useEffect(() => {
+    if (approvals && approvals.length > 0) {
+      setApprovalsList(
+        approvals.map((a: any) => ({
+          id: `appr-${a.id}`,
+          quotation: a.quote_number || `Q-${a.quotation_id}`,
+          customer: a.customer_name || 'Enterprise Client',
+          blendedRisk: (a.discount_requested > 20 ? 'HIGH' : a.discount_requested > 10 ? 'MEDIUM' : 'LOW') as 'HIGH' | 'MEDIUM' | 'LOW',
+          stage: a.status === 'APPROVED' ? 'Approved' : 'Sales Manager',
+          assignedTo: a.requester_name || 'M. Shah',
+          status: (a.status === 'APPROVED' ? 'Approved' : 'Pending') as 'Pending' | 'Returned' | 'Approved',
+        }))
+      )
+    }
+  }, [approvals])
 
   function handleRowClick(quotationId: string) {
     setSelectedQuotation(quotationId)

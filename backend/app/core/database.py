@@ -15,8 +15,10 @@ DATABASE_URL = os.getenv(
     "postgresql://postgres:postgres@localhost:5432/dealflow360"
 )
 
-# Standardize postgres:// to postgresql:// for SQLAlchemy
-if DATABASE_URL.startswith("postgres://"):
+# Standardize URL for synchronous SQLAlchemy engine
+if DATABASE_URL.startswith("postgresql+asyncpg://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://", 1)
+elif DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 connect_args = {}

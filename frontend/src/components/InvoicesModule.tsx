@@ -1,225 +1,298 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import styles from './InvoicesWireframe.module.css'
 import { Quotation, ActiveModule } from './types'
 
 interface InvoicesModuleProps {
   quotation: Quotation
+  invoices?: any[]
   onUpdateQuotation: (updated: Quotation) => void
   onNavigate: (module: ActiveModule) => void
   onShowToast: (msg: string) => void
 }
 
-interface InvoiceRow {
-  invoiceNum: string
-  customer: string
-  amount: string
-  status: 'Unpaid' | 'Paid'
-  dueDate: string
+interface InvoiceItem {
+  id: number | string
+  invoice_number: string
+  quotation_id?: number
+  customer_name: string
+  amount: number
+  amount_paid: number
+  amount_due: number
+  status: string
+  payment_status: 'PAID' | 'UNPAID' | 'PARTIAL'
+  issue_date: string
+  due_date: string
+}
+
+function ArrowLeftIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="19" y1="12" x2="5" y2="12" />
+      <polyline points="12 19 5 12 12 5" />
+    </svg>
+  )
+}
+
+function CheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  )
 }
 
 export default function InvoicesModule({
   quotation,
+  invoices = [],
   onUpdateQuotation,
   onNavigate,
   onShowToast,
 }: InvoicesModuleProps) {
-  // Starts on Screen #12 (List); clicking any row opens Screen #13 (Detail)
   const [currentView, setCurrentView] = useState<'list' | 'detail'>('list')
-  const [selectedInvoice, setSelectedInvoice] = useState<string>('INV-1042')
-  const [selectedCustomer, setSelectedCustomer] = useState<string>('Acme Corp')
-  const [filterStatus, setFilterStatus] = useState<string | null>(null)
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | number>('1')
+  const [filterStatus, setFilterStatus] = useState<'ALL' | 'PAID' | 'UNPAID'>('ALL')
+  const [searchTerm, setSearchTerm] = useState('')
 
-  // Invoices List (Screen #12)
-  const [invoicesList, setInvoicesList] = useState<InvoiceRow[]>([
-    {
-      invoiceNum: 'INV-1042',
-      customer: 'Acme Corp',
-      amount: '$2,730',
-      status: 'Unpaid',
-      dueDate: 'Sep 10',
-    },
-    {
-      invoiceNum: 'INV-1043',
-      customer: 'Acme Corp',
-      amount: '$40',
-      status: 'Paid',
-      dueDate: 'Sep 15',
-    },
-    {
-      invoiceNum: 'INV-1038',
-      customer: 'Nova Retail',
-      amount: '$9,750',
-      status: 'Paid',
-      dueDate: 'Aug 30',
-    },
-  ])
+  // Map incoming invoices or fallback
+  const [invoicesList, setInvoicesList] = useState<InvoiceItem[]>(() => {
+    if (invoices && invoices.length > 0) {
+      return invoices.map((inv: any) => ({
+        id: inv.id,
+        invoice_number: inv.invoice_number || `INV-${inv.id}`,
+        quotation_id: inv.quotation_id,
+        customer_name: inv.customer_name || 'Enterprise Client',
+        amount: Number(inv.amount || 0),
+        amount_paid: Number(inv.amount_paid || 0),
+        amount_due: Number(inv.amount_due || 0),
+        status: inv.status || 'POSTED',
+        payment_status: (inv.payment_status?.toUpperCase() === 'PAID' ? 'PAID' : 'UNPAID') as any,
+        issue_date: inv.issue_date || '2026-03-01',
+        due_date: inv.due_date || '2026-03-31',
+      }))
+    }
+    return []
+  })
 
-  // Screen #13 detailed line items for INV-1042
-  const [detailRows, setDetailRows] = useState([
-    { invoiceNum: 'INV-1042', amount: '$2,730', status: 'Unpaid', dueDate: 'Sep 10' },
-    { invoiceNum: 'INV-1043 (Recurring)', amount: '$40', status: 'Paid', dueDate: 'Sep 15' },
-  ])
+  // Sync state if invoices prop updates from database bootstrap
+  React.useEffect(() => {
+    if (invoices && invoices.length > 0) {
+      setInvoicesList(
+        invoices.map((inv: any) => ({
+          id: inv.id,
+          invoice_number: inv.invoice_number || `INV-${inv.id}`,
+          quotation_id: inv.quotation_id,
+          customer_name: inv.customer_name || 'Enterprise Client',
+          amount: Number(inv.amount || 0),
+          amount_paid: Number(inv.amount_paid || 0),
+          amount_due: Number(inv.amount_due || 0),
+          status: inv.status || 'POSTED',
+          payment_status: (inv.payment_status?.toUpperCase() === 'PAID' ? 'PAID' : 'UNPAID') as any,
+          issue_date: inv.issue_date || '2026-03-01',
+          due_date: inv.due_date || '2026-03-31',
+        }))
+      )
+    }
+  }, [invoices])
 
-  const isMainInvoicePaid = detailRows.find(d => d.invoiceNum === 'INV-1042')?.status === 'Paid'
+  // Aggregate Metrics
+  const { totalInvoiced, totalPaid, totalUnpaid, paidCount, unpaidCount } = useMemo(() => {
+    let tInv = 0
+    let tPaid = 0
+    let tUnpaid = 0
+    let pCount = 0
+    let uCount = 0
 
-  function handleRowClick(row: InvoiceRow) {
-    setSelectedInvoice(row.invoiceNum)
-    setSelectedCustomer(row.customer)
+    invoicesList.forEach(inv => {
+      tInv += inv.amount
+      if (inv.payment_status === 'PAID') {
+        tPaid += inv.amount
+        pCount++
+      } else {
+        tUnpaid += inv.amount
+        uCount++
+      }
+    })
+
+    return {
+      totalInvoiced: tInv,
+      totalPaid: tPaid,
+      totalUnpaid: tUnpaid,
+      paidCount: pCount,
+      unpaidCount: uCount,
+    }
+  }, [invoicesList])
+
+  // Filtered List
+  const filteredList = useMemo(() => {
+    return invoicesList.filter(inv => {
+      const matchSearch =
+        inv.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        inv.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        String(inv.amount).includes(searchTerm)
+
+      if (filterStatus === 'ALL') return matchSearch
+      return matchSearch && inv.payment_status === filterStatus
+    })
+  }, [invoicesList, searchTerm, filterStatus])
+
+  const selectedInvoice = invoicesList.find(i => String(i.id) === String(selectedInvoiceId) || i.invoice_number === selectedInvoiceId) || invoicesList[0]
+
+  function handleRowClick(inv: InvoiceItem) {
+    setSelectedInvoiceId(inv.id)
     setCurrentView('detail')
   }
 
   function handleRecordPayment() {
-    setDetailRows(prev =>
-      prev.map(r => (r.invoiceNum === 'INV-1042' ? { ...r, status: 'Paid' } : r))
-    )
+    if (!selectedInvoice) return
     setInvoicesList(prev =>
-      prev.map(r => (r.invoiceNum === 'INV-1042' ? { ...r, status: 'Paid' } : r))
+      prev.map(i => (i.id === selectedInvoice.id ? { ...i, payment_status: 'PAID', amount_paid: i.amount, amount_due: 0 } : i))
     )
-    onUpdateQuotation({
-      ...quotation,
-      billing: quotation.billing
-        ? {
-            ...quotation.billing,
-            paymentStatus: 'Paid',
-            paidAt: new Date().toISOString().split('T')[0],
-          }
-        : undefined,
-    })
-    onShowToast('Payment of $2,730 recorded successfully for Invoice INV-1042!')
+    onShowToast(`Payment of $${selectedInvoice.amount.toLocaleString()} recorded for ${selectedInvoice.invoice_number}!`)
   }
-
-  function handleDownloadSummary() {
-    onShowToast('Downloaded PDF reconciliation summary for INV-1042.')
-  }
-
-  const displayedList = filterStatus
-    ? invoicesList.filter(i => i.status === filterStatus)
-    : invoicesList
 
   /* ──────────────────────────────────────────────────────────
-     SCREEN #13: INVOICE DETAIL
-     Opened by clicking a row on the Invoices list
+     DETAIL VIEW: INVOICE & LEDGER RECONCILIATION
      ────────────────────────────────────────────────────────── */
-  if (currentView === 'detail') {
+  if (currentView === 'detail' && selectedInvoice) {
+    const isPaid = selectedInvoice.payment_status === 'PAID'
+
     return (
       <div className={styles.container}>
-        {/* Header with Title and Back Button */}
+        {/* Header */}
         <div className={styles.header}>
           <div>
-            <h1 className={styles.title}>Invoice Detail: {selectedInvoice} ({selectedCustomer})</h1>
+            <h1 className={styles.title}>Invoice Detail: {selectedInvoice.invoice_number}</h1>
             <p className={styles.subtitle}>
-              Opened by clicking a row on the Invoices list
+              Commercial ledger for {selectedInvoice.customer_name} · Due Date: {selectedInvoice.due_date}
             </p>
           </div>
-          <button className={styles.btnBack} onClick={() => setCurrentView('list')} title="Return to Invoices List">
-            ← Back to Invoices List
+          <button className={styles.btnBack} onClick={() => setCurrentView('list')} title="Return to list">
+            <ArrowLeftIcon />
+            <span>Back to Invoices</span>
           </button>
         </div>
 
         {/* Lifecycle Stepper Diagram */}
         <div className={styles.stepperWrapper}>
           <div className={styles.stepperRow}>
-            {/* Step 1: Order Confirmed */}
             <div className={styles.stepCol}>
-              <div className={styles.circleGreen} />
+              <div className={styles.circleDone}><CheckIcon /></div>
               <span className={styles.nodeLabel}>Order Confirmed</span>
             </div>
 
-            <div className={styles.arrowWrapper}>
-              <div className={styles.arrowLine} />
-              <div className={styles.arrowTip} />
-            </div>
+            <div className={`${styles.stepperLine} ${styles.stepperLineDone}`} />
 
-            {/* Step 2: Shipped */}
             <div className={styles.stepCol}>
-              <div className={styles.circleGreen} />
-              <span className={styles.nodeLabel}>Shipped</span>
+              <div className={styles.circleDone}><CheckIcon /></div>
+              <span className={styles.nodeLabel}>Dispatched</span>
             </div>
 
-            <div className={styles.arrowWrapper}>
-              <div className={styles.arrowLine} />
-              <div className={styles.arrowTip} />
-            </div>
+            <div className={`${styles.stepperLine} ${styles.stepperLineDone}`} />
 
-            {/* Step 3: Invoiced */}
             <div className={styles.stepCol}>
-              <div className={styles.circleBlue} />
+              <div className={styles.circleDone}><CheckIcon /></div>
               <span className={styles.nodeLabel}>Invoiced</span>
             </div>
 
-            <div className={styles.arrowWrapper}>
-              <div className={styles.arrowLine} />
-              <div className={styles.arrowTip} />
-            </div>
+            <div className={`${styles.stepperLine} ${isPaid ? styles.stepperLineDone : ''}`} />
 
-            {/* Step 4: Paid */}
             <div className={styles.stepCol}>
-              <div className={isMainInvoicePaid ? styles.circleGreen : styles.circleDark} />
-              <span className={styles.nodeLabel}>Paid</span>
+              <div className={isPaid ? styles.circleDone : styles.circleActive}>
+                {isPaid ? <CheckIcon /> : '4'}
+              </div>
+              <span className={styles.nodeLabel}>{isPaid ? 'Settled' : 'Payment Due'}</span>
             </div>
           </div>
         </div>
 
-        {/* Invoice Split Breakdown Table */}
+        {/* Invoice Summary Breakdown Card */}
+        <div className={styles.metricsGrid}>
+          <div className={styles.metricCard}>
+            <span className={styles.metricLabel}>Total Amount</span>
+            <span className={styles.metricValue}>${selectedInvoice.amount.toLocaleString()}</span>
+            <span className={styles.metricSubtext}>Tax and line items included</span>
+          </div>
+
+          <div className={styles.metricCard}>
+            <span className={styles.metricLabel}>Amount Settled</span>
+            <span className={styles.metricValue} style={{ color: '#166534' }}>
+              ${selectedInvoice.amount_paid.toLocaleString()}
+            </span>
+            <span className={styles.metricSubtext}>Recorded via payment gateway</span>
+          </div>
+
+          <div className={styles.metricCard}>
+            <span className={styles.metricLabel}>Current Balance Due</span>
+            <span className={styles.metricValue} style={{ color: isPaid ? '#166534' : '#DC2626' }}>
+              ${selectedInvoice.amount_due.toLocaleString()}
+            </span>
+            <span className={styles.metricSubtext}>
+              {isPaid ? 'Account fully settled' : `Payment expected by ${selectedInvoice.due_date}`}
+            </span>
+          </div>
+        </div>
+
+        {/* Invoice Items Table Card */}
         <div className={styles.tableCard}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Invoice #</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Due Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detailRows.map((row, idx) => (
-                <tr key={idx}>
-                  <td><strong>{row.invoiceNum}</strong></td>
-                  <td><strong>{row.amount}</strong></td>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Invoice Identifier</th>
+                  <th>Customer Account</th>
+                  <th>Issue Date</th>
+                  <th>Due Date</th>
+                  <th>Gross Amount</th>
+                  <th>Payment Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span className={styles.invoiceNumCell}>{selectedInvoice.invoice_number}</span></td>
+                  <td><strong>{selectedInvoice.customer_name}</strong></td>
+                  <td>{selectedInvoice.issue_date}</td>
+                  <td>{selectedInvoice.due_date}</td>
+                  <td><span className={styles.amountCell}>${selectedInvoice.amount.toLocaleString()}</span></td>
                   <td>
-                    <span
-                      style={{
-                        fontWeight: 600,
-                        color: row.status === 'Paid' ? '#4ade80' : '#f87171',
-                      }}
-                    >
-                      {row.status}
+                    <span className={isPaid ? styles.statusPaid : styles.statusUnpaid}>
+                      {selectedInvoice.payment_status}
                     </span>
                   </td>
-                  <td>{row.dueDate}</td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Action Buttons Row */}
         <div className={styles.actionsRow}>
-          {!isMainInvoicePaid ? (
-            <button className={styles.btnRecordPayment} onClick={handleRecordPayment}>
-              Record Payment
+          {!isPaid ? (
+            <button className={styles.btnPrimary} onClick={handleRecordPayment}>
+              Record Settle Payment (${selectedInvoice.amount.toLocaleString()})
             </button>
           ) : (
             <button
-              className={styles.btnRecordPayment}
-              style={{ background: '#052e16', color: '#86efac', border: '1.5px solid #16a34a' }}
-              onClick={() => onShowToast('Invoice INV-1042 is already settled and marked Paid.')}
+              className={styles.btnSecondary}
+              style={{ background: '#DCFCE7', color: '#166534', borderColor: '#BBF7D0' }}
+              onClick={() => onShowToast('Invoice is settled and marked Paid.')}
             >
-              ✓ Payment Recorded
+              ✓ Invoice Settled & Paid
             </button>
           )}
 
-          <button className={styles.btnDownloadSummary} onClick={handleDownloadSummary}>
-            Download Summary
+          <button
+            className={styles.btnSecondary}
+            onClick={() => onShowToast(`Reconciliation statement downloaded for ${selectedInvoice.invoice_number}.`)}
+          >
+            Download PDF Receipt
           </button>
         </div>
 
-        {/* Golden / Amber Alert Banner */}
         <div className={styles.alertBanner}>
           <span>
-            Partial invoicing stays reconciled with partial delivery, nothing is billed before it ships.
+            Ledger reconciliation is verified against PostgreSQL commercial billing entries.
           </span>
         </div>
       </div>
@@ -227,95 +300,128 @@ export default function InvoicesModule({
   }
 
   /* ──────────────────────────────────────────────────────────
-     SCREEN #12: INVOICES (LIST)
-     Every invoice generated from one-time and recurring orders
+     LIST VIEW: ALL INVOICES (POSTGRESQL DATA)
      ────────────────────────────────────────────────────────── */
   return (
     <div className={styles.container}>
       {/* Header */}
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Invoices (List)</h1>
+          <h1 className={styles.title}>Invoices Master</h1>
           <p className={styles.subtitle}>
-            Every invoice generated from one-time and recurring orders
+            {invoicesList.length} commercial billing records loaded from PostgreSQL database.
           </p>
         </div>
       </div>
 
-      {/* Status Counter Badges / Pills Row */}
-      <div className={styles.badgesRow}>
-        <button
-          className={styles.badgeUnpaid}
-          onClick={() => setFilterStatus(filterStatus === 'Unpaid' ? null : 'Unpaid')}
-          title="Filter unpaid invoices"
-          style={filterStatus === 'Unpaid' ? { outline: '2px solid #ffffff' } : {}}
-        >
-          4 Unpaid
-        </button>
+      {/* Metric Cards Row */}
+      <div className={styles.metricsGrid}>
+        <div className={styles.metricCard}>
+          <span className={styles.metricLabel}>Total Billed</span>
+          <span className={styles.metricValue}>${totalInvoiced.toLocaleString()}</span>
+          <span className={styles.metricSubtext}>{invoicesList.length} total invoices in database</span>
+        </div>
 
-        <button
-          className={styles.badgePaid}
-          onClick={() => setFilterStatus(filterStatus === 'Paid' ? null : 'Paid')}
-          title="Filter paid invoices"
-          style={filterStatus === 'Paid' ? { outline: '2px solid #ffffff' } : {}}
-        >
-          21 Paid
-        </button>
+        <div className={styles.metricCard}>
+          <span className={styles.metricLabel}>Paid & Collected</span>
+          <span className={styles.metricValue} style={{ color: '#166534' }}>
+            ${totalPaid.toLocaleString()}
+          </span>
+          <span className={styles.metricSubtext}>{paidCount} invoices settled</span>
+        </div>
 
-        {filterStatus && (
+        <div className={styles.metricCard}>
+          <span className={styles.metricLabel}>Outstanding Balance</span>
+          <span className={styles.metricValue} style={{ color: '#9A3412' }}>
+            ${totalUnpaid.toLocaleString()}
+          </span>
+          <span className={styles.metricSubtext}>{unpaidCount} invoices awaiting payment</span>
+        </div>
+      </div>
+
+      {/* Filter Tabs & Search Bar */}
+      <div className={styles.controlsRow}>
+        <div className={styles.filterTabs}>
           <button
-            className={styles.btnBack}
-            onClick={() => setFilterStatus(null)}
-            style={{ color: '#38bdf8', borderColor: '#38bdf8' }}
+            className={`${styles.tabBtn} ${filterStatus === 'ALL' ? styles.tabBtnActive : ''}`}
+            onClick={() => setFilterStatus('ALL')}
           >
-            Show All Invoices
+            All Invoices ({invoicesList.length})
           </button>
-        )}
+
+          <button
+            className={`${styles.tabBtn} ${filterStatus === 'PAID' ? styles.tabBtnActive : ''}`}
+            onClick={() => setFilterStatus('PAID')}
+          >
+            Paid ({paidCount})
+          </button>
+
+          <button
+            className={`${styles.tabBtn} ${filterStatus === 'UNPAID' ? styles.tabBtnActive : ''}`}
+            onClick={() => setFilterStatus('UNPAID')}
+          >
+            Unpaid ({unpaidCount})
+          </button>
+        </div>
+
+        <input
+          type="text"
+          placeholder="Search invoices, clients, amounts..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className={styles.searchInput}
+        />
       </div>
 
       {/* Invoices Table Card */}
       <div className={styles.tableCard}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Invoice #</th>
-              <th>Customer</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th>Due Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayedList.map(row => (
-              <tr
-                key={row.invoiceNum}
-                className={styles.tableRow}
-                onClick={() => handleRowClick(row)}
-                title={`Click to open detail for ${row.invoiceNum}`}
-              >
-                <td><strong>{row.invoiceNum}</strong></td>
-                <td>{row.customer}</td>
-                <td><strong>{row.amount}</strong></td>
-                <td>
-                  <span
-                    style={{
-                      fontWeight: 600,
-                      color: row.status === 'Paid' ? '#4ade80' : '#f87171',
-                    }}
-                  >
-                    {row.status}
-                  </span>
-                </td>
-                <td>{row.dueDate}</td>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Invoice #</th>
+                <th>Customer Account</th>
+                <th>Issue Date</th>
+                <th>Due Date</th>
+                <th>Total Amount</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Action</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Golden Alert Banner */}
-      <div className={styles.alertBanner}>
-        <span>Click an invoice row to open its full payment and delivery reconciliation detail.</span>
+            </thead>
+            <tbody>
+              {filteredList.map(row => (
+                <tr
+                  key={row.id}
+                  className={styles.tableRow}
+                  onClick={() => handleRowClick(row)}
+                  title={`Click to open detail for ${row.invoice_number}`}
+                >
+                  <td><span className={styles.invoiceNumCell}>{row.invoice_number}</span></td>
+                  <td><strong>{row.customer_name}</strong></td>
+                  <td>{row.issue_date}</td>
+                  <td>{row.due_date}</td>
+                  <td><span className={styles.amountCell}>${row.amount.toLocaleString()}</span></td>
+                  <td>
+                    <span className={row.payment_status === 'PAID' ? styles.statusPaid : styles.statusUnpaid}>
+                      {row.payment_status}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <button
+                      className={styles.btnActionSmall}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleRowClick(row)
+                      }}
+                    >
+                      View Details
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import styles from './ProductsWireframe.module.css'
 import { Product } from './types'
 
@@ -32,68 +32,55 @@ export default function ProductCatalogModule({
 }: ProductCatalogProps) {
   const [currentView, setCurrentView] = useState<'dashboard' | 'details'>('dashboard')
 
-  // Products list for Screen #16
-  const [productList, setProductList] = useState<ProductItem[]>([
-    {
-      id: 'prod-1',
-      name: 'Laptop Pro 14',
-      category: 'Hardware',
-      variants: '3(RAM)',
-      price: '$1,200',
-      unit: 'Each',
-      tax: '15%',
-      status: 'Active',
-      description: 'Enterprise ultra-portable 14" laptop with high-performance processor',
-      isSubscription: false,
-      recurringInterval: 'Monthly',
-      quantityOnHand: 45,
-    },
-    {
-      id: 'prod-2',
-      name: 'Onsite Setup Service',
-      category: 'Services',
-      variants: '-',
-      price: '$450',
-      unit: 'Each',
-      tax: '10%',
-      status: 'Active',
-      description: 'Certified engineer on-site installation, configuration and diagnostics',
-      isSubscription: false,
-      recurringInterval: 'Monthly',
-      quantityOnHand: 99,
-    },
-    {
-      id: 'prod-3',
-      name: 'Docking Station',
-      category: 'Hardware',
-      variants: '2(color)',
-      price: '$180',
-      unit: 'Each',
-      tax: '15%',
-      status: 'Active',
-      description: 'Thunderbolt 4 universal docking hub with dual 4K display outputs',
-      isSubscription: false,
-      recurringInterval: 'Monthly',
-      quantityOnHand: 80,
-    },
-    {
-      id: 'prod-4',
-      name: 'Care Plan 2 years',
-      category: 'Subscription',
-      variants: '-',
-      price: '$40/month',
-      unit: 'Recurring',
-      tax: '0%',
-      status: 'Active',
-      description: '24/7 priority enterprise maintenance, remote telemetry, and instant swap',
-      isSubscription: true,
-      recurringInterval: 'Monthly',
-      quantityOnHand: 999,
-    },
-  ])
+  // Map from live PostgreSQL products if available
+  const productList = useMemo<ProductItem[]>(() => {
+    if (products && products.length > 0) {
+      return products.map(p => ({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        variants: p.category === 'Hardware' ? 'Standard' : '-',
+        price: `$${p.unitPrice.toLocaleString()}`,
+        unit: p.type === 'recurring' ? 'Recurring' : 'Each',
+        tax: '15%',
+        status: 'Active',
+        description: p.description || '',
+        isSubscription: p.type === 'recurring',
+        recurringInterval: 'Monthly',
+        quantityOnHand: p.stock || 50,
+      }))
+    }
+    return [
+      {
+        id: 'prod-1',
+        name: 'Laptop Pro 14',
+        category: 'Hardware',
+        variants: '3(RAM)',
+        price: '$1,200',
+        unit: 'Each',
+        tax: '15%',
+        status: 'Active',
+        description: 'Enterprise ultra-portable 14" laptop with high-performance processor',
+        isSubscription: false,
+        recurringInterval: 'Monthly',
+        quantityOnHand: 45,
+      },
+    ]
+  }, [products])
 
-  // Screen #17 active editable product
-  const [selectedProduct, setSelectedProduct] = useState<ProductItem>(productList[0])
+  const [selectedProduct, setSelectedProduct] = useState<ProductItem>(productList[0] || {
+    id: 'prod-1',
+    name: 'Laptop Pro 14',
+    category: 'Hardware',
+    variants: 'Standard',
+    price: '$1,200',
+    unit: 'Each',
+    tax: '15%',
+    status: 'Active',
+    description: '',
+    isSubscription: false,
+    quantityOnHand: 45,
+  })
 
   function handleRowClick(prod: ProductItem) {
     setSelectedProduct(prod)
@@ -120,363 +107,148 @@ export default function ProductCatalogModule({
   }
 
   function handleSaveProduct() {
-    setProductList(prev => {
-      const exists = prev.find(p => p.id === selectedProduct.id)
-      if (exists) {
-        return prev.map(p => (p.id === selectedProduct.id ? selectedProduct : p))
-      }
-      return [selectedProduct, ...prev]
+    onAddProduct({
+      id: selectedProduct.id,
+      name: selectedProduct.name,
+      sku: `SKU-${selectedProduct.id}`,
+      category: selectedProduct.category as any,
+      type: selectedProduct.isSubscription ? 'recurring' : 'one_time',
+      unitPrice: parseFloat(selectedProduct.price.replace(/[^0-9.]/g, '')) || 100,
+      costPrice: (parseFloat(selectedProduct.price.replace(/[^0-9.]/g, '')) || 100) * 0.65,
+      stock: selectedProduct.quantityOnHand,
+      description: selectedProduct.description || '',
     })
-    onShowToast(`Saved product "${selectedProduct.name || 'New Product'}" and updated pricelists!`)
+    onShowToast(`Saved product "${selectedProduct.name || 'New Product'}".`)
     setCurrentView('dashboard')
   }
 
-  /* ──────────────────────────────────────────────────────────
-     SCREEN #17: PRODUCT DETAILS PAGE (Product and pricelist)
-     ────────────────────────────────────────────────────────── */
   if (currentView === 'details') {
     return (
       <div className={styles.container}>
-        {/* Header */}
         <div className={styles.header}>
           <div>
-            <h1 className={styles.title}>Product and pricelist</h1>
+            <h1 className={styles.title}>Product Details & Pricing</h1>
+            <p className={styles.subtitle}>Configure SKU, base price, tax rate, and inventory rules</p>
           </div>
-          <button
-            className={styles.btnBack}
-            onClick={() => setCurrentView('dashboard')}
-            title="Return to Product Dashboard"
-          >
-            ← Back to Product Catalog
+          <button className={styles.btnBack} onClick={() => setCurrentView('dashboard')}>
+            Back to Products
           </button>
         </div>
 
-        {/* Section 1: General info Form */}
-        <div className={styles.sectionBlock}>
-          <h2 className={styles.sectionHeading}>General info</h2>
-          <div className={styles.formCard}>
-            <div className={styles.twoColGrid}>
-              {/* Left Column */}
-              <div className={styles.formCol}>
-                <div className={styles.formRow}>
-                  <label className={styles.label}>Product name</label>
-                  <input
-                    type="text"
-                    className={styles.input}
-                    value={selectedProduct.name}
-                    onChange={e =>
-                      setSelectedProduct({ ...selectedProduct, name: e.target.value })
-                    }
-                    placeholder="e.g. Laptop Pro 14"
-                  />
-                </div>
-
-                <div className={styles.formRow}>
-                  <label className={styles.label}>Category</label>
-                  <input
-                    type="text"
-                    className={styles.input}
-                    value={selectedProduct.category}
-                    onChange={e =>
-                      setSelectedProduct({ ...selectedProduct, category: e.target.value })
-                    }
-                    placeholder="Hardware / Services / Subscription"
-                  />
-                </div>
-
-                <div className={styles.formRow}>
-                  <label className={styles.label}>Price</label>
-                  <input
-                    type="text"
-                    className={styles.input}
-                    value={selectedProduct.price}
-                    onChange={e =>
-                      setSelectedProduct({ ...selectedProduct, price: e.target.value })
-                    }
-                    placeholder="$1,200"
-                  />
-                </div>
-
-                <div className={styles.formRow}>
-                  <label className={styles.label}>Unit</label>
-                  <input
-                    type="text"
-                    className={styles.input}
-                    value={selectedProduct.unit}
-                    onChange={e =>
-                      setSelectedProduct({ ...selectedProduct, unit: e.target.value })
-                    }
-                    placeholder="Each / Recurring / Hours"
-                  />
-                </div>
-
-                <div className={styles.formRow}>
-                  <label className={styles.label}>Description</label>
-                  <input
-                    type="text"
-                    className={styles.input}
-                    value={selectedProduct.description || ''}
-                    onChange={e =>
-                      setSelectedProduct({ ...selectedProduct, description: e.target.value })
-                    }
-                    placeholder="Detailed specifications and notes"
-                  />
-                </div>
-              </div>
-
-              {/* Right Column */}
-              <div className={styles.formCol}>
-                <div className={styles.formRow}>
-                  <label className={styles.label}>Tax %</label>
-                  <input
-                    type="text"
-                    className={styles.inputSmall}
-                    value={selectedProduct.tax}
-                    onChange={e =>
-                      setSelectedProduct({ ...selectedProduct, tax: e.target.value })
-                    }
-                    placeholder="15%"
-                  />
-                </div>
-
-                <div className={styles.formRow}>
-                  <label className={styles.label}>Subscription</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <button
-                      type="button"
-                      className={`${styles.togglePill} ${
-                        selectedProduct.isSubscription ? styles.togglePillActive : ''
-                      }`}
-                      onClick={() =>
-                        setSelectedProduct({
-                          ...selectedProduct,
-                          isSubscription: !selectedProduct.isSubscription,
-                        })
-                      }
-                    >
-                      {selectedProduct.isSubscription ? 'Yes' : 'NO'}
-                    </button>
-                    <span className={styles.inlineHelper}>
-                      If subscription yes then recurring will be visible
-                    </span>
-                  </div>
-                </div>
-
-                {selectedProduct.isSubscription && (
-                  <div className={styles.formRow}>
-                    <label className={styles.label}>Recurring</label>
-                    <select
-                      className={styles.input}
-                      value={selectedProduct.recurringInterval || 'Monthly'}
-                      onChange={e =>
-                        setSelectedProduct({
-                          ...selectedProduct,
-                          recurringInterval: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="Monthly">Monthly</option>
-                      <option value="Yearly">Yearly</option>
-                      <option value="Weekly">Weekly</option>
-                    </select>
-                  </div>
-                )}
-
-                <div className={styles.formRow}>
-                  <label className={styles.label}>Quantity on hand</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-                    <input
-                      type="number"
-                      className={styles.inputSmall}
-                      value={selectedProduct.quantityOnHand}
-                      onChange={e =>
-                        setSelectedProduct({
-                          ...selectedProduct,
-                          quantityOnHand: parseInt(e.target.value) || 0,
-                        })
-                      }
-                    />
-                    <span className={styles.inlineHelper}>(Integer field)</span>
-                  </div>
-                </div>
-              </div>
+        <div className={styles.detailsCard}>
+          <div className={styles.formGrid}>
+            <div className={styles.fieldGroup}>
+              <label className={styles.label}>Product Name</label>
+              <input
+                className={styles.input}
+                value={selectedProduct.name}
+                onChange={e => setSelectedProduct({ ...selectedProduct, name: e.target.value })}
+                placeholder="Product name"
+              />
+            </div>
+            <div className={styles.fieldGroup}>
+              <label className={styles.label}>Category</label>
+              <select
+                className={styles.select}
+                value={selectedProduct.category}
+                onChange={e => setSelectedProduct({ ...selectedProduct, category: e.target.value })}
+              >
+                <option value="Hardware">Hardware</option>
+                <option value="Software">Software</option>
+                <option value="Services">Services</option>
+                <option value="Subscription">Subscription</option>
+              </select>
+            </div>
+            <div className={styles.fieldGroup}>
+              <label className={styles.label}>Base Price</label>
+              <input
+                className={styles.input}
+                value={selectedProduct.price}
+                onChange={e => setSelectedProduct({ ...selectedProduct, price: e.target.value })}
+                placeholder="$0.00"
+              />
+            </div>
+            <div className={styles.fieldGroup}>
+              <label className={styles.label}>Stock on Hand</label>
+              <input
+                type="number"
+                className={styles.input}
+                value={selectedProduct.quantityOnHand}
+                onChange={e => setSelectedProduct({ ...selectedProduct, quantityOnHand: parseInt(e.target.value) || 0 })}
+              />
+            </div>
+            <div className={styles.fieldGroupFull}>
+              <label className={styles.label}>Description</label>
+              <textarea
+                className={styles.textarea}
+                value={selectedProduct.description}
+                onChange={e => setSelectedProduct({ ...selectedProduct, description: e.target.value })}
+                placeholder="Enter product specifications and features"
+              />
             </div>
           </div>
-        </div>
 
-        {/* Section 2: Product Variants */}
-        <div className={styles.sectionBlock}>
-          <h2 className={styles.sectionHeading}>Product Variants</h2>
-          <div className={styles.tableCard}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Attribute</th>
-                  <th>Values</th>
-                  <th>Extra price</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Color</td>
-                  <td>Blue, Black</td>
-                  <td>0</td>
-                </tr>
-                <tr>
-                  <td>RAM</td>
-                  <td>4GB, 8GB</td>
-                  <td>+$30</td>
-                </tr>
-                <tr>
-                  <td>Manufacturer</td>
-                  <td>Dell, HP</td>
-                  <td>+$100</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Section 3: Pricelists */}
-        <div className={styles.sectionBlock}>
-          <h2 className={styles.sectionHeading}>Pricelists</h2>
-          <div className={styles.tableCard}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Tier</th>
-                  <th>Currency</th>
-                  <th>Price Rule</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Bronze</td>
-                  <td>USD</td>
-                  <td>Price, no adjustment</td>
-                </tr>
-                <tr>
-                  <td>Gold</td>
-                  <td>USD/EUR</td>
-                  <td>Price minus 10 percent base</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Save Product Action */}
-        <button className={styles.btnSaveProduct} onClick={handleSaveProduct}>
-          Save Product & Pricelist
-        </button>
-
-        {/* Golden / Amber Alert Banner */}
-        <div className={styles.alertBanner}>
-          <span>Product details should be filled.</span>
-          <span>Recurring order with this product will be invoiced at the beginning of the period.</span>
+          <button className={styles.btnSave} onClick={handleSaveProduct}>
+            Save Changes
+          </button>
         </div>
       </div>
     )
   }
 
-  /* ──────────────────────────────────────────────────────────
-     SCREEN #16: PRODUCT DASHBOARD (Product catalog)
-     ────────────────────────────────────────────────────────── */
   return (
     <div className={styles.container}>
-      {/* ── Header ────────────────────────────────────────── */}
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Product catalog</h1>
+          <h1 className={styles.title}>Product Master Catalog</h1>
           <p className={styles.subtitle}>
-            Every product, variant and price list in one place
+            {productList.length} products available across hardware, software, and subscriptions
           </p>
         </div>
       </div>
 
-      {/* ── Top Action Buttons Row ────────────────────────── */}
       <div className={styles.topActionsRow}>
-        <button
-          className={styles.btnNewProduct}
-          onClick={handleNewProduct}
-          title="Create a new product"
-        >
-          + New Product
-        </button>
-        <button
-          className={styles.btnManagePrice}
-          onClick={() => onShowToast('Opened Price Field Configuration and Tier Rules.')}
-          title="Manage price lists and custom currency fields"
-        >
-          Manage Price fields
+        <button className={styles.btnNew} onClick={handleNewProduct}>
+          Create Product
         </button>
       </div>
 
-      {/* ── Summary Metric Cards (Row of 3) ───────────────── */}
-      <div className={styles.summaryGrid}>
-        <div className={styles.summaryCard}>
-          <h2 className={styles.cardTitle}>Total Products</h2>
-          <p className={styles.cardSubtitle}>125 active, 6 archived</p>
-        </div>
-
-        <div className={styles.summaryCard}>
-          <h2 className={styles.cardTitle}>Pricelists</h2>
-          <p className={styles.cardSubtitle}>3 tiers, 2 Currencies</p>
-        </div>
-
-        <div className={styles.summaryCard}>
-          <h2 className={styles.cardTitle}>Variants</h2>
-          <p className={styles.cardSubtitle}>340 SKUs across all products</p>
-        </div>
-      </div>
-
-      {/* ── Section Tag / Pill ────────────────────────────── */}
-      <div className={styles.sectionTag}>Products</div>
-
-      {/* ── Products Table Card ───────────────────────────── */}
       <div className={styles.tableCard}>
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>Product name</th>
+              <th>Product Name</th>
               <th>Category</th>
-              <th>Variants</th>
-              <th>Price</th>
-              <th>Unit</th>
-              <th>Tax</th>
+              <th>Unit Price</th>
+              <th>Stock</th>
               <th>Status</th>
+              <th style={{ textAlign: 'right' }}>Action</th>
             </tr>
           </thead>
           <tbody>
-            {productList.map(prod => (
-              <tr
-                key={prod.id}
-                className={styles.tableRow}
-                onClick={() => handleRowClick(prod)}
-                title={`Click to open details for ${prod.name}`}
-              >
-                <td>
-                  <strong>{prod.name}</strong>
-                </td>
-                <td>{prod.category}</td>
-                <td>{prod.variants}</td>
-                <td>
-                  <strong>{prod.price}</strong>
-                </td>
-                <td>{prod.unit}</td>
-                <td>{prod.tax}</td>
-                <td>
-                  <span style={{ color: '#4ade80', fontWeight: 600 }}>{prod.status}</span>
+            {productList.map(p => (
+              <tr key={p.id} className={styles.tableRow} onClick={() => handleRowClick(p)}>
+                <td><span className={styles.productNameCell}>{p.name}</span></td>
+                <td>{p.category}</td>
+                <td><span className={styles.priceCell}>{p.price}</span></td>
+                <td>{p.quantityOnHand} units</td>
+                <td><span className={styles.statusActive}>{p.status}</span></td>
+                <td style={{ textAlign: 'right' }}>
+                  <button
+                    className={styles.btnBack}
+                    style={{ padding: '3px 10px', fontSize: 12 }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleRowClick(p)
+                    }}
+                  >
+                    Edit
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
-
-      {/* ── Amber Callout Banner ──────────────────────────── */}
-      <div className={styles.alertBanner}>
-        <span>Click a product row to open general info, variants and tier/currency price lists.</span>
       </div>
     </div>
   )

@@ -3,7 +3,7 @@
 # ============================================================
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1 import quotations
+from app.api.v1 import quotations, workspace
 
 app = FastAPI(
     title="DealFlow360 API",
@@ -23,6 +23,8 @@ app.add_middleware(
 # Register routes for both /api/quotes and /api/v1/quotations
 app.include_router(quotations.router, prefix="/api/quotes", tags=["Quotations & Recommendations"])
 app.include_router(quotations.router, prefix="/api/v1/quotations", tags=["Quotations (v1)"])
+app.include_router(workspace.router, prefix="/api/v1/workspace", tags=["Workspace (v1)"])
+app.include_router(workspace.router, prefix="/api/workspace", tags=["Workspace"])
 
 @app.get("/health", tags=["System"])
 def health_check():

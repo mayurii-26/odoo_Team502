@@ -1,22 +1,17 @@
 /* ===================================================
    InvoicesWireframe.module.css
-   Claymorphism Theme (Screens #12 & #13)
-   Using Palette:
-   - Deep Navy:       #001D52
-   - Cornflower Blue: #70A2FF
-   - Baby Blue Ice:   #ADCAFF
-   - Lavender:        #D6E4FF
+   Clean Enterprise Design System (DealFlow360)
    =================================================== */
 
 .container {
   width: 100%;
   max-width: 1200px;
-  margin: 0;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  color: #001D52;
+  font-family: var(--font-jakarta), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #0F172A;
 }
 
 /* ── Header ────────────────────────────────────────────── */
@@ -24,332 +19,374 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 .title {
-  font-size: 26px;
-  font-weight: 800;
-  color: #001D52;
-  letter-spacing: -0.4px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0F172A;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
 .subtitle {
-  font-size: 14px;
-  color: #3b5a8c;
+  font-size: 13.5px;
+  color: #64748B;
   margin: 4px 0 0;
-  font-weight: 500;
 }
 
-/* Clay Back Button */
 .btnBack {
-  background: #ffffff;
-  color: #001D52;
-  border: 1.5px solid #ADCAFF;
-  border-radius: 12px;
-  padding: 7px 18px;
-  font-size: 13.5px;
+  background: #FFFFFF;
+  color: #334155;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
-  white-space: nowrap;
-  box-shadow: 3px 5px 12px rgba(0, 29, 82, 0.06),
-              inset 2px 2px 4px #ffffff,
-              inset -2px -2px 4px rgba(173, 202, 255, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .btnBack:hover {
-  border-color: #70A2FF;
-  transform: translateY(-1px);
-  box-shadow: 4px 8px 16px rgba(0, 29, 82, 0.1),
-              inset 2px 2px 4px #ffffff,
-              inset -2px -2px 4px rgba(112, 162, 255, 0.25);
+  background: #F8FAFC;
+  border-color: #94A3B8;
+  color: #0F172A;
 }
 
-/* ── Status Counter Badges / Clay Pills (Screen #12) ────── */
-.badgesRow {
+/* ── Metric Summary Cards ──────────────────────────────── */
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.metricCard {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.metricLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metricValue {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0F172A;
+  letter-spacing: -0.02em;
+}
+
+.metricSubtext {
+  font-size: 12px;
+  color: #64748B;
+}
+
+/* ── Filter Tabs & Search Bar ──────────────────────────── */
+.controlsRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.filterTabs {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-top: 2px;
-  flex-wrap: wrap;
+  gap: 6px;
+  background: #F1F5F9;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
 }
 
-.badgeUnpaid {
-  background: #FFD6D6;
-  color: #9E1010;
-  border: 1.5px solid #FFA3A3;
-  border-radius: 14px;
-  padding: 8px 20px;
-  font-size: 13.5px;
-  font-weight: 700;
+.tabBtn {
+  background: transparent;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748B;
   cursor: pointer;
   transition: all 0.15s ease;
-  box-shadow: 3px 5px 12px rgba(158, 16, 16, 0.15),
-              inset 2px 2px 4px rgba(255, 255, 255, 0.8),
-              inset -2px -2px 4px rgba(158, 16, 16, 0.15);
 }
 
-.badgeUnpaid:hover {
-  transform: translateY(-2px);
-  box-shadow: 5px 8px 16px rgba(158, 16, 16, 0.22),
-              inset 2px 2px 4px rgba(255, 255, 255, 0.9);
+.tabBtnActive {
+  background: #FFFFFF;
+  color: #0F172A;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-.badgePaid {
-  background: #D2F5DC;
-  color: #0C6B2F;
-  border: 1.5px solid #8BE6A4;
-  border-radius: 14px;
-  padding: 8px 20px;
-  font-size: 13.5px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  box-shadow: 3px 5px 12px rgba(12, 107, 47, 0.15),
-              inset 2px 2px 4px rgba(255, 255, 255, 0.8),
-              inset -2px -2px 4px rgba(12, 107, 47, 0.15);
+.searchInput {
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  color: #0F172A;
+  outline: none;
+  min-width: 260px;
+  transition: border-color 0.15s ease;
 }
 
-.badgePaid:hover {
-  transform: translateY(-2px);
-  box-shadow: 5px 8px 16px rgba(12, 107, 47, 0.22),
-              inset 2px 2px 4px rgba(255, 255, 255, 0.9);
+.searchInput:focus {
+  border-color: #0284C7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
 }
 
-/* ── Invoices Table Clay Card (Screens #12 & #13) ───────── */
+/* ── Table Card ────────────────────────────────────────── */
 .tableCard {
-  background: #ffffff;
-  border: 1.5px solid rgba(173, 202, 255, 0.7);
-  border-radius: 20px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
   overflow: hidden;
-  box-shadow: 8px 14px 28px rgba(0, 29, 82, 0.08),
-              inset 4px 4px 8px #ffffff,
-              inset -4px -4px 8px rgba(173, 202, 255, 0.25);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.tableWrap {
+  width: 100%;
+  overflow-x: auto;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 13.5px;
   text-align: left;
 }
 
 .table th {
-  background: #EBF2FF;
-  padding: 14px 22px;
-  font-weight: 700;
-  color: #001D52;
-  border-bottom: 1.5px solid #ADCAFF;
-  font-size: 13px;
+  background: #F8FAFC;
+  padding: 12px 16px;
+  font-weight: 600;
+  color: #475569;
+  border-bottom: 1px solid #E2E8F0;
+  font-size: 12px;
+  letter-spacing: 0.02em;
   white-space: nowrap;
 }
 
 .table td {
-  padding: 16px 22px;
-  border-bottom: 1px solid #EBF2FF;
-  color: #001D52;
+  padding: 13px 16px;
+  border-bottom: 1px solid #F1F5F9;
+  color: #0F172A;
   vertical-align: middle;
-  font-weight: 500;
-}
-
-.table tr:last-child td {
-  border-bottom: none;
 }
 
 .tableRow {
   cursor: pointer;
-  transition: all 0.12s ease;
+  transition: background 0.12s ease;
 }
 
 .tableRow:hover {
-  background: #F4F8FF;
+  background: #F8FAFC;
 }
 
-/* ── Claymorphic Golden / Amber Alert Banner ───────────── */
-.alertBanner {
-  background: #FFF9E6;
-  border: 1.5px solid #FCD34D;
-  border-radius: 16px;
-  padding: 16px 22px;
-  color: #92400E;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  line-height: 1.45;
+.tableRow:last-child td {
+  border-bottom: none;
+}
+
+.invoiceNumCell {
+  font-weight: 700;
+  color: #0284C7;
+  font-family: monospace;
+  font-size: 13px;
+}
+
+.amountCell {
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.statusPaid {
+  font-size: 11.5px;
   font-weight: 600;
-  box-shadow: 4px 8px 18px rgba(217, 119, 6, 0.08),
-              inset 2px 2px 5px #ffffff,
-              inset -2px -2px 5px rgba(217, 119, 6, 0.12);
+  color: #166534;
+  background: #DCFCE7;
+  padding: 3px 9px;
+  border-radius: 4px;
+  display: inline-block;
 }
 
-/* ── Lifecycle Stepper Diagram (Screen #13) ────────────── */
+.statusUnpaid {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #9A3412;
+  background: #FFEDD5;
+  padding: 3px 9px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.btnActionSmall {
+  background: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  color: #334155;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnActionSmall:hover {
+  background: #0284C7;
+  border-color: #0284C7;
+  color: #FFFFFF;
+}
+
+/* ── Lifecycle Stepper ─────────────────────────────────── */
 .stepperWrapper {
-  background: #ffffff;
-  border: 1.5px solid rgba(173, 202, 255, 0.7);
-  border-radius: 20px;
-  padding: 28px 40px 22px;
-  margin: 4px 0;
-  overflow-x: auto;
-  box-shadow: 8px 14px 28px rgba(0, 29, 82, 0.08),
-              inset 4px 4px 8px #ffffff,
-              inset -4px -4px 8px rgba(173, 202, 255, 0.25);
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 24px 28px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .stepperRow {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  min-width: 600px;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .stepCol {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  z-index: 2;
-  flex-shrink: 0;
+  gap: 8px;
 }
 
-/* 3D Clay Spheres */
-.circleGreen {
-  width: 36px;
-  height: 36px;
+.circleDone {
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #86efac, #22c55e 60%, #15803d);
-  box-shadow: 4px 6px 14px rgba(22, 163, 74, 0.35),
-              inset -2px -2px 5px rgba(0, 0, 0, 0.25),
-              inset 2px 2px 5px rgba(255, 255, 255, 0.85);
-  transition: all 0.25s ease;
+  background: #DCFCE7;
+  border: 2px solid #22C55E;
+  color: #166534;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
 }
 
-.circleBlue {
-  width: 36px;
-  height: 36px;
+.circleActive {
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #ADCAFF, #70A2FF 65%, #001D52);
-  box-shadow: 4px 6px 14px rgba(112, 162, 255, 0.45),
-              inset -2px -2px 5px rgba(0, 29, 82, 0.3),
-              inset 2px 2px 5px rgba(255, 255, 255, 0.85);
-  transition: all 0.25s ease;
+  background: #E0F2FE;
+  border: 2px solid #0284C7;
+  color: #0369A1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
 }
 
-.circleDark {
-  width: 36px;
-  height: 36px;
+.circlePending {
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #ffffff, #D6E4FF 70%, #ADCAFF);
-  box-shadow: 2px 4px 8px rgba(0, 29, 82, 0.1),
-              inset -2px -2px 4px rgba(0, 29, 82, 0.12),
-              inset 2px 2px 4px #ffffff;
-  transition: all 0.25s ease;
+  background: #F1F5F9;
+  border: 2px solid #CBD5E1;
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
 }
 
 .nodeLabel {
-  font-size: 13.5px;
-  color: #001D52;
-  font-weight: 700;
-  white-space: nowrap;
-  text-align: center;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #475569;
 }
 
-.arrowWrapper {
-  display: flex;
-  align-items: center;
+.stepperLine {
   flex: 1;
-  max-width: 140px;
-  margin: 17px 12px 0;
-  align-self: flex-start;
+  height: 2px;
+  background: #E2E8F0;
+  margin: 0 12px -20px;
 }
 
-.arrowLine {
-  flex: 1;
-  height: 3px;
-  background: #ADCAFF;
-  border-radius: 2px;
+.stepperLineDone {
+  background: #22C55E;
 }
 
-.arrowTip {
-  width: 0;
-  height: 0;
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-  border-left: 8px solid #70A2FF;
-}
-
-/* ── Action Buttons Row (Screen #13) ───────────────────── */
+/* ── Detail Actions ────────────────────────────────────── */
 .actionsRow {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-top: 4px;
-  flex-wrap: wrap;
+  gap: 12px;
 }
 
-.btnRecordPayment {
-  background: #22c55e;
-  color: #ffffff;
-  border: 1.5px solid #86efac;
-  border-radius: 14px;
-  padding: 10px 24px;
-  font-size: 14px;
-  font-weight: 700;
+.btnPrimary {
+  background: #0284C7;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  box-shadow: 4px 8px 18px rgba(34, 197, 94, 0.35),
-              inset 2px 2px 4px rgba(255, 255, 255, 0.6),
-              inset -2px -2px 4px rgba(0, 0, 0, 0.2);
+  transition: background 0.15s ease;
 }
 
-.btnRecordPayment:hover {
-  background: #16a34a;
-  transform: translateY(-2px);
-  box-shadow: 6px 12px 22px rgba(34, 197, 94, 0.45);
+.btnPrimary:hover {
+  background: #0369A1;
 }
 
-.btnDownloadSummary {
-  background: #ffffff;
-  color: #001D52;
-  border: 1.5px solid #ADCAFF;
-  border-radius: 14px;
-  padding: 10px 24px;
-  font-size: 14px;
+.btnSecondary {
+  background: #FFFFFF;
+  color: #334155;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
-  box-shadow: 3px 6px 14px rgba(0, 29, 82, 0.06),
-              inset 2px 2px 4px #ffffff,
-              inset -2px -2px 4px rgba(173, 202, 255, 0.25);
 }
 
-.btnDownloadSummary:hover {
-  border-color: #70A2FF;
-  background: #F4F8FF;
-  transform: translateY(-2px);
-  box-shadow: 5px 10px 18px rgba(0, 29, 82, 0.1);
+.btnSecondary:hover {
+  background: #F8FAFC;
 }
 
-/* ── Responsive adjustments ────────────────────────────── */
-@media (max-width: 768px) {
-  .tableCard {
-    overflow-x: auto;
-  }
-  .stepperWrapper {
-    padding: 20px 16px;
-  }
-  .actionsRow {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .btnRecordPayment,
-  .btnDownloadSummary {
-    text-align: center;
-    justify-content: center;
-  }
+.alertBanner {
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #166534;
+  font-size: 13px;
+  font-weight: 500;
 }

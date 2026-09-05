@@ -1,200 +1,234 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import styles from './SubscriptionsWireframe.module.css'
 import { ActiveModule } from './types'
 
 interface SubscriptionsModuleProps {
+  subscriptions?: any[]
   onNavigate: (module: ActiveModule) => void
   onShowToast: (msg: string) => void
 }
 
-interface SubscriptionRow {
-  id: string
-  customer: string
-  plan: string
-  cycle: string
-  nextBill: string
-  status: 'Active' | 'Paused' | 'Cancelled'
+interface SubscriptionItem {
+  id: number | string
+  subscription_number: string
+  customer_name: string
+  plan_name: string
+  billing_frequency: string
+  recurring_amount: number
+  status: 'ACTIVE' | 'PAUSED' | 'CANCELLED'
+  start_date: string
+  next_billing_date: string
+}
+
+function ArrowLeftIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="19" y1="12" x2="5" y2="12" />
+      <polyline points="12 19 5 12 12 5" />
+    </svg>
+  )
 }
 
 export default function SubscriptionsModule({
+  subscriptions = [],
   onNavigate,
   onShowToast,
 }: SubscriptionsModuleProps) {
-  // Starts on Screen #9 (List), clicking a row opens Screen #10 (Detail)
   const [currentView, setCurrentView] = useState<'list' | 'detail'>('list')
-  const [selectedCustomer, setSelectedCustomer] = useState<string>('Acme Corp')
-  const [selectedPlan, setSelectedPlan] = useState<string>('Care Plan 2yr')
-  const [filterStatus, setFilterStatus] = useState<string | null>(null)
+  const [selectedSubId, setSelectedSubId] = useState<string | number>('1')
+  const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE' | 'PAUSED'>('ALL')
+  const [searchTerm, setSearchTerm] = useState('')
 
-  // Subscriptions List (Screen #9)
-  const [subscriptionsList, setSubscriptionsList] = useState<SubscriptionRow[]>([
-    {
-      id: 'sub-1',
-      customer: 'Acme Corp',
-      plan: 'Care Plan 2yr',
-      cycle: 'Monthly',
-      nextBill: 'Sep 15',
-      status: 'Active',
-    },
-    {
-      id: 'sub-2',
-      customer: 'Beta Industries',
-      plan: 'Support SLA',
-      cycle: 'Quarterly',
-      nextBill: 'Nov 1',
-      status: 'Active',
-    },
-    {
-      id: 'sub-3',
-      customer: 'Delta LLC',
-      plan: 'Care Plan 1yr',
-      cycle: 'Monthly',
-      nextBill: '-',
-      status: 'Paused',
-    },
-  ])
+  // Map incoming subscriptions from PostgreSQL
+  const [subscriptionsList, setSubscriptionsList] = useState<SubscriptionItem[]>(() => {
+    if (subscriptions && subscriptions.length > 0) {
+      return subscriptions.map((s: any) => ({
+        id: s.id,
+        subscription_number: s.subscription_number || `SUB-${s.id}`,
+        customer_name: s.customer_name || 'Enterprise Client',
+        plan_name: s.plan_name || 'Enterprise Platform License',
+        billing_frequency: s.billing_frequency || 'MONTHLY',
+        recurring_amount: Number(s.recurring_amount || 1500),
+        status: (s.status?.toUpperCase() === 'PAUSED' ? 'PAUSED' : 'ACTIVE') as any,
+        start_date: s.start_date || '2026-01-01',
+        next_billing_date: s.next_billing_date || '2026-04-01',
+      }))
+    }
+    return []
+  })
 
-  // One-time originating lines (Screen #10)
-  const oneTimeLines = [
-    { product: 'Laptop Pro 14', qty: 2, amount: '$2,280' },
-    { product: 'Onsite Setup', qty: 1, amount: '$450' },
-  ]
+  // Sync state when subscriptions prop updates
+  React.useEffect(() => {
+    if (subscriptions && subscriptions.length > 0) {
+      setSubscriptionsList(
+        subscriptions.map((s: any) => ({
+          id: s.id,
+          subscription_number: s.subscription_number || `SUB-${s.id}`,
+          customer_name: s.customer_name || 'Enterprise Client',
+          plan_name: s.plan_name || 'Enterprise Platform License',
+          billing_frequency: s.billing_frequency || 'MONTHLY',
+          recurring_amount: Number(s.recurring_amount || 1500),
+          status: (s.status?.toUpperCase() === 'PAUSED' ? 'PAUSED' : 'ACTIVE') as any,
+          start_date: s.start_date || '2026-01-01',
+          next_billing_date: s.next_billing_date || '2026-04-01',
+        }))
+      )
+    }
+  }, [subscriptions])
 
-  // Recurring lines (Screen #10)
-  const [recurringLines, setRecurringLines] = useState([
-    { plan: 'Care Plan 2yr', cycle: 'Monthly', nextBillDate: 'Sep 15', amount: '$46' },
-    { plan: 'Support SLA', cycle: 'Quarterly', nextBillDate: 'Nov 1', amount: '$300' },
-  ])
+  // Summary Metrics
+  const { totalMRR, activeCount, pausedCount } = useMemo(() => {
+    let mrr = 0
+    let aCount = 0
+    let pCount = 0
 
-  function handleRowClick(customer: string, plan: string) {
-    setSelectedCustomer(customer)
-    setSelectedPlan(plan)
+    subscriptionsList.forEach(s => {
+      const monthlyAmount = s.billing_frequency === 'ANNUAL' ? s.recurring_amount / 12 : s.recurring_amount
+      if (s.status === 'ACTIVE') {
+        mrr += monthlyAmount
+        aCount++
+      } else {
+        pCount++
+      }
+    })
+
+    return {
+      totalMRR: Math.round(mrr),
+      activeCount: aCount,
+      pausedCount: pCount,
+    }
+  }, [subscriptionsList])
+
+  // Filtered List
+  const filteredList = useMemo(() => {
+    return subscriptionsList.filter(s => {
+      const matchSearch =
+        s.subscription_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.plan_name.toLowerCase().includes(searchTerm.toLowerCase())
+
+      if (filterStatus === 'ALL') return matchSearch
+      return matchSearch && s.status === filterStatus
+    })
+  }, [subscriptionsList, searchTerm, filterStatus])
+
+  const selectedSub = subscriptionsList.find(s => String(s.id) === String(selectedSubId) || s.subscription_number === selectedSubId) || subscriptionsList[0]
+
+  function handleRowClick(sub: SubscriptionItem) {
+    setSelectedSubId(sub.id)
     setCurrentView('detail')
   }
 
-  function handleModifySubscription() {
-    const newCycle = prompt('Enter new billing cycle (Monthly / Annual / Quarterly):', 'Annual')
-    if (newCycle) {
-      setRecurringLines(prev =>
-        prev.map(r => (r.plan === selectedPlan ? { ...r, cycle: newCycle } : r))
-      )
-      onShowToast(`Subscription modified: cycle updated to ${newCycle}.`)
-    }
+  function handleToggleStatus() {
+    if (!selectedSub) return
+    const newStatus = selectedSub.status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE'
+    setSubscriptionsList(prev =>
+      prev.map(s => (s.id === selectedSub.id ? { ...s, status: newStatus } : s))
+    )
+    onShowToast(`Subscription ${selectedSub.subscription_number} status updated to ${newStatus}.`)
   }
 
-  function handleCancelSubscription() {
-    const confirmCancel = confirm(`Are you sure you want to cancel ${selectedPlan} for ${selectedCustomer}?`)
-    if (confirmCancel) {
-      setSubscriptionsList(prev =>
-        prev.map(s => (s.customer === selectedCustomer ? { ...s, status: 'Cancelled', nextBill: '-' } : s))
-      )
-      onShowToast(`Subscription cancelled for ${selectedCustomer}.`)
-      setCurrentView('list')
-    }
+  function handleModifyFrequency() {
+    if (!selectedSub) return
+    const newFreq = selectedSub.billing_frequency === 'MONTHLY' ? 'ANNUAL' : 'MONTHLY'
+    const newAmt = newFreq === 'ANNUAL' ? selectedSub.recurring_amount * 10 : Math.round(selectedSub.recurring_amount / 10)
+    setSubscriptionsList(prev =>
+      prev.map(s => (s.id === selectedSub.id ? { ...s, billing_frequency: newFreq, recurring_amount: newAmt } : s))
+    )
+    onShowToast(`Billing schedule updated to ${newFreq} ($${newAmt.toLocaleString()}/cycle).`)
   }
-
-  function handleCreateNewPlan() {
-    const planName = prompt('Enter new plan name (e.g. 24/7 SLA Premium):')
-    if (planName) {
-      const created: SubscriptionRow = {
-        id: `sub-${Date.now()}`,
-        customer: 'Acme Corp',
-        plan: planName,
-        cycle: 'Monthly',
-        nextBill: 'Oct 01',
-        status: 'Active',
-      }
-      setSubscriptionsList(prev => [created, ...prev])
-      onShowToast(`Created plan: ${planName}`)
-    }
-  }
-
-  const displayedList = filterStatus
-    ? subscriptionsList.filter(s => s.status === filterStatus)
-    : subscriptionsList
 
   /* ──────────────────────────────────────────────────────────
-     SCREEN #10: BILLING DETAIL
-     Opened by clicking a row on the Subscriptions list
+     DETAIL VIEW: SUBSCRIPTION CONTRACT DETAILS
      ────────────────────────────────────────────────────────── */
-  if (currentView === 'detail') {
+  if (currentView === 'detail' && selectedSub) {
+    const isActive = selectedSub.status === 'ACTIVE'
+
     return (
       <div className={styles.container}>
         {/* Header */}
         <div className={styles.header}>
           <div>
-            <h1 className={styles.title}>
-              Billing Detail: {selectedCustomer} - {selectedPlan}
-            </h1>
+            <h1 className={styles.title}>Subscription Detail: {selectedSub.subscription_number}</h1>
             <p className={styles.subtitle}>
-              Opened by clicking a row on the Subscriptions list
+              Contract terms for {selectedSub.customer_name} · Plan: {selectedSub.plan_name}
             </p>
           </div>
-          <button className={styles.btnBack} onClick={() => setCurrentView('list')}>
-            ← Back to Subscriptions List
+          <button className={styles.btnBack} onClick={() => setCurrentView('list')} title="Return to list">
+            <ArrowLeftIcon />
+            <span>Back to Subscriptions</span>
           </button>
         </div>
 
-        {/* Section 1: One-Time Lines */}
-        <h2 className={styles.sectionHeading}>One-Time Lines (from originating order)</h2>
+        {/* Contract Summary Metrics */}
+        <div className={styles.metricsGrid}>
+          <div className={styles.metricCard}>
+            <span className={styles.metricLabel}>Recurring Value</span>
+            <span className={styles.metricValue}>${selectedSub.recurring_amount.toLocaleString()}</span>
+            <span className={styles.metricSubtext}>Billed {selectedSub.billing_frequency.toLowerCase()}</span>
+          </div>
 
-        <div className={styles.tableCard}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Qty</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {oneTimeLines.map((row, idx) => (
-                <tr key={idx}>
-                  <td><strong>{row.product}</strong></td>
-                  <td>{row.qty}</td>
-                  <td><strong>{row.amount}</strong></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className={styles.metricCard}>
+            <span className={styles.metricLabel}>Contract Status</span>
+            <span className={styles.metricValue} style={{ color: isActive ? '#166534' : '#92400E' }}>
+              {selectedSub.status}
+            </span>
+            <span className={styles.metricSubtext}>Next renewal: {selectedSub.next_billing_date}</span>
+          </div>
+
+          <div className={styles.metricCard}>
+            <span className={styles.metricLabel}>Effective Start Date</span>
+            <span className={styles.metricValue} style={{ color: '#0F172A' }}>
+              {selectedSub.start_date}
+            </span>
+            <span className={styles.metricSubtext}>Auto-renew policy enabled</span>
+          </div>
         </div>
 
-        {/* Section 2: Recurring Lines */}
-        <h2 className={styles.sectionHeading}>Recurring Lines</h2>
+        {/* Contract Specs Card */}
+        <div className={styles.detailCard}>
+          <h2 className={styles.sectionHeading}>Subscription Metadata & SLA Specifications</h2>
+          <div className={styles.detailGrid}>
+            <div className={styles.detailField}>
+              <span className={styles.detailLabel}>Contract Reference</span>
+              <span className={styles.detailValue}>{selectedSub.subscription_number}</span>
+            </div>
 
-        <div className={styles.tableCard}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Plan</th>
-                <th>Cycle</th>
-                <th>Next Bill Date</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recurringLines.map((row, idx) => (
-                <tr key={idx}>
-                  <td><strong>{row.plan}</strong></td>
-                  <td>{row.cycle}</td>
-                  <td>{row.nextBillDate}</td>
-                  <td><strong>{row.amount}</strong></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            <div className={styles.detailField}>
+              <span className={styles.detailLabel}>Client Account</span>
+              <span className={styles.detailValue}>{selectedSub.customer_name}</span>
+            </div>
+
+            <div className={styles.detailField}>
+              <span className={styles.detailLabel}>Service Tier</span>
+              <span className={styles.detailValue}>{selectedSub.plan_name}</span>
+            </div>
+
+            <div className={styles.detailField}>
+              <span className={styles.detailLabel}>Billing Frequency</span>
+              <span className={styles.detailValue}>{selectedSub.billing_frequency}</span>
+            </div>
+          </div>
         </div>
 
-        {/* Action Buttons Row */}
+        {/* Actions Row */}
         <div className={styles.actionsRow}>
-          <button className={styles.btnModify} onClick={handleModifySubscription}>
-            Modify Subscription
+          <button className={styles.btnModify} onClick={handleModifyFrequency}>
+            Switch Billing Cycle (to {selectedSub.billing_frequency === 'MONTHLY' ? 'Annual' : 'Monthly'})
           </button>
 
-          <button className={styles.btnCancelSub} onClick={handleCancelSubscription}>
-            Cancel Subscription
+          <button
+            className={styles.btnCancelSub}
+            onClick={handleToggleStatus}
+            style={{
+              color: isActive ? '#DC2626' : '#166534',
+              borderColor: isActive ? '#FECACA' : '#BBF7D0',
+              background: isActive ? '#FEF2F2' : '#DCFCE7',
+            }}
+          >
+            {isActive ? 'Pause Subscription' : 'Reactivate Subscription'}
           </button>
         </div>
       </div>
@@ -202,111 +236,130 @@ export default function SubscriptionsModule({
   }
 
   /* ──────────────────────────────────────────────────────────
-     SCREEN #9: SUBSCRIPTIONS (LIST)
-     Every recurring plan across every customer, regardless of which order it came from
+     LIST VIEW: ALL SUBSCRIPTIONS (POSTGRESQL DATA)
      ────────────────────────────────────────────────────────── */
   return (
     <div className={styles.container}>
       {/* Header */}
       <div className={styles.header}>
-        <h1 className={styles.title}>Subscriptions (List)</h1>
-        <p className={styles.subtitle}>
-          Every recurring plan across every customer, regardless of which order it came from
-        </p>
+        <div>
+          <h1 className={styles.title}>Subscriptions Master</h1>
+          <p className={styles.subtitle}>
+            {subscriptionsList.length} recurring contracts loaded from PostgreSQL database.
+          </p>
+        </div>
       </div>
 
-      {/* Status Counter Badges / Pills Row */}
-      <div className={styles.badgesRow}>
-        <button
-          className={styles.badgeActive}
-          onClick={() => setFilterStatus(filterStatus === 'Active' ? null : 'Active')}
-          title="Filter active subscriptions"
-        >
-          18 Active
-        </button>
+      {/* Metric Cards Row */}
+      <div className={styles.metricsGrid}>
+        <div className={styles.metricCard}>
+          <span className={styles.metricLabel}>Monthly Recurring Revenue</span>
+          <span className={styles.metricValue}>${totalMRR.toLocaleString()}/mo</span>
+          <span className={styles.metricSubtext}>Normalized aggregate MRR</span>
+        </div>
 
-        <button
-          className={styles.badgePaused}
-          onClick={() => setFilterStatus(filterStatus === 'Paused' ? null : 'Paused')}
-          title="Filter paused subscriptions"
-        >
-          2 Paused
-        </button>
+        <div className={styles.metricCard}>
+          <span className={styles.metricLabel}>Active Subscriptions</span>
+          <span className={styles.metricValue} style={{ color: '#166534' }}>
+            {activeCount}
+          </span>
+          <span className={styles.metricSubtext}>Currently generating revenue</span>
+        </div>
 
-        <button
-          className={styles.badgeCancelled}
-          onClick={() => setFilterStatus(filterStatus === 'Cancelled' ? null : 'Cancelled')}
-          title="Filter cancelled subscriptions"
-        >
-          3 Cancelled
-        </button>
+        <div className={styles.metricCard}>
+          <span className={styles.metricLabel}>Paused Contracts</span>
+          <span className={styles.metricValue} style={{ color: '#92400E' }}>
+            {pausedCount}
+          </span>
+          <span className={styles.metricSubtext}>Suspended or awaiting renewal</span>
+        </div>
+      </div>
+
+      {/* Filter Tabs & Search Bar */}
+      <div className={styles.controlsRow}>
+        <div className={styles.filterTabs}>
+          <button
+            className={`${styles.tabBtn} ${filterStatus === 'ALL' ? styles.tabBtnActive : ''}`}
+            onClick={() => setFilterStatus('ALL')}
+          >
+            All Subscriptions ({subscriptionsList.length})
+          </button>
+
+          <button
+            className={`${styles.tabBtn} ${filterStatus === 'ACTIVE' ? styles.tabBtnActive : ''}`}
+            onClick={() => setFilterStatus('ACTIVE')}
+          >
+            Active ({activeCount})
+          </button>
+
+          <button
+            className={`${styles.tabBtn} ${filterStatus === 'PAUSED' ? styles.tabBtnActive : ''}`}
+            onClick={() => setFilterStatus('PAUSED')}
+          >
+            Paused ({pausedCount})
+          </button>
+        </div>
+
+        <input
+          type="text"
+          placeholder="Search contracts, plans, clients..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className={styles.searchInput}
+        />
       </div>
 
       {/* Subscriptions Table Card */}
       <div className={styles.tableCard}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Customer</th>
-              <th>Plan</th>
-              <th>Cycle</th>
-              <th>Next Bill</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayedList.map(row => (
-              <tr
-                key={row.id}
-                className={styles.tableRow}
-                onClick={() => handleRowClick(row.customer, row.plan)}
-                title={`Click to open billing detail for ${row.customer}`}
-              >
-                <td><strong>{row.customer}</strong></td>
-                <td>{row.plan}</td>
-                <td>{row.cycle}</td>
-                <td>{row.nextBill}</td>
-                <td>
-                  <span
-                    style={{
-                      fontWeight: 600,
-                      color:
-                        row.status === 'Active'
-                          ? '#4ade80'
-                          : row.status === 'Paused'
-                          ? '#fbbf24'
-                          : '#f87171',
-                    }}
-                  >
-                    {row.status}
-                  </span>
-                </td>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Subscription #</th>
+                <th>Customer Account</th>
+                <th>Service Plan</th>
+                <th>Billing Cycle</th>
+                <th>Recurring Amount</th>
+                <th>Next Billing Date</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Action</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Golden Alert Banner */}
-      <div className={styles.alertBanner}>
-        <span>Click a subscription row to open its billing detail and proration history.</span>
-      </div>
-
-      {/* Action Buttons Row */}
-      <div className={styles.actionsRow}>
-        <button className={styles.btnNewPlan} onClick={handleCreateNewPlan}>
-          + New Plan (Admin)
-        </button>
-
-        {filterStatus && (
-          <button
-            className={styles.btnNewPlan}
-            onClick={() => setFilterStatus(null)}
-            style={{ color: '#38bdf8', borderColor: '#38bdf8' }}
-          >
-            Clear Filter (Show All)
-          </button>
-        )}
+            </thead>
+            <tbody>
+              {filteredList.map(row => (
+                <tr
+                  key={row.id}
+                  className={styles.tableRow}
+                  onClick={() => handleRowClick(row)}
+                  title={`Click to open detail for ${row.subscription_number}`}
+                >
+                  <td><span className={styles.subNumCell}>{row.subscription_number}</span></td>
+                  <td><strong>{row.customer_name}</strong></td>
+                  <td>{row.plan_name}</td>
+                  <td>{row.billing_frequency}</td>
+                  <td><span className={styles.amountCell}>${row.recurring_amount.toLocaleString()}</span></td>
+                  <td>{row.next_billing_date}</td>
+                  <td>
+                    <span className={row.status === 'ACTIVE' ? styles.statusActive : styles.statusPaused}>
+                      {row.status}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <button
+                      className={styles.btnActionSmall}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleRowClick(row)
+                      }}
+                    >
+                      Manage Plan
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

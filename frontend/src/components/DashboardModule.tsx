@@ -15,16 +15,16 @@ export default function DashboardModule({
   onNavigate,
   onSelectQuotation,
 }: DashboardModuleProps) {
-  const pendingApprovalsCount = quotations.filter(q => q.status === 'Under Review').length || 4
-  const openQuotationsCount = quotations.filter(q => q.status !== 'Fulfilled' && q.status !== 'Rejected').length || 12
-  const atRiskDealsCount = quotations.filter(q => q.riskLevel === 'High').length || 3
+  const pendingApprovalsCount = quotations.filter(q => q.status === 'Under Review').length
+  const openQuotationsCount = quotations.filter(q => q.status !== 'Fulfilled' && q.status !== 'Rejected').length
+  const atRiskDealsCount = quotations.filter(q => q.riskLevel === 'High').length
 
   return (
     <div className={styles.canvas}>
       {/* Header */}
       <div className={styles.header}>
-        <h1 className={styles.title}>Sales Dashboard / Home</h1>
-        <p className={styles.subtitle}>Central hub, links out to every module below</p>
+        <h1 className={styles.title}>Sales Overview</h1>
+        <p className={styles.subtitle}>Executive summary of pipeline activity and active deals</p>
       </div>
 
       {/* 3 Overview Cards Row */}
@@ -36,7 +36,7 @@ export default function DashboardModule({
           title="Click to view approvals"
         >
           <div className={styles.cardTitle}>Pending Approvals</div>
-          <div className={styles.cardCount}>{pendingApprovalsCount} quotations waiting</div>
+          <div className={styles.cardCount}>{pendingApprovalsCount} quotations</div>
         </div>
 
         {/* Card 2: Open Quotations */}
@@ -56,20 +56,21 @@ export default function DashboardModule({
           title="Click to view deal health"
         >
           <div className={styles.cardTitle}>At-Risk Deals</div>
-          <div className={styles.cardCount}>{atRiskDealsCount} flagged by Deal Health</div>
+          <div className={styles.cardCount}>{atRiskDealsCount} flagged</div>
         </div>
       </div>
 
-      {/* Action Buttons below Card 1 */}
+      {/* Action Buttons */}
       <div className={styles.actionsRow}>
         <button
           className={styles.btnNewQuote}
           onClick={() => {
-            onSelectQuotation('Q-1042')
+            const firstId = quotations[0]?.id || 'Q-1042'
+            onSelectQuotation(firstId)
             onNavigate('builder')
           }}
         >
-          + New Quotation
+          Create Quotation
         </button>
 
         <button
@@ -84,9 +85,18 @@ export default function DashboardModule({
       <div className={styles.activitySection}>
         <h2 className={styles.activityTitle}>Recent Activity</h2>
         <ul className={styles.activityList}>
-          <li>- Acme Corp quotation approved by Finance</li>
-          <li>- Beta Industries requested a discount change</li>
-          <li>- East Depot stock updated for Order #2291</li>
+          <li className={styles.activityItem}>
+            <span className={styles.activityDot} />
+            <span>Acme Corp quotation approved by Sales Operations</span>
+          </li>
+          <li className={styles.activityItem}>
+            <span className={styles.activityDot} />
+            <span>Beta Industries requested volume pricing revision</span>
+          </li>
+          <li className={styles.activityItem}>
+            <span className={styles.activityDot} />
+            <span>North America warehouse inventory allocated for Order #2291</span>
+          </li>
         </ul>
       </div>
     </div>
