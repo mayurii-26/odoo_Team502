@@ -1206,3 +1206,386 @@
   font-weight: 500;
   cursor: pointer;
 }
+
+/* ── Tailored Recommendation Cards (Upsell & Cross-Sell) ── */
+.recSectionBlock {
+  margin-top: 14px;
+}
+
+.recSectionTitle {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #0F172A;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recSectionBadgeUpsell {
+  background: #DCFCE7;
+  color: #166534;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #86EFAC;
+}
+
+.recSectionBadgeCross {
+  background: #EEF2FF;
+  color: #3730A3;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #C7D2FE;
+}
+
+.recCard {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.recCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.08);
+  border-color: #93C5FD;
+}
+
+.recCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.recProductName {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.3;
+}
+
+.recProductPrice {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0284C7;
+  white-space: nowrap;
+}
+
+.recScoreBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #0369A1;
+  background: #F0F9FF;
+  border: 1px solid #BAE6FD;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.recWhyBox {
+  background: #F8FAFC;
+  border: 1px solid #F1F5F9;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.recWhyTitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.recWhyList {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 12px;
+  color: #334155;
+  line-height: 1.45;
+}
+
+.recWhyList li {
+  margin-bottom: 2px;
+}
+
+.recMarginImpactBox {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.recMarginLabel {
+  font-weight: 600;
+  color: #166534;
+}
+
+.recMarginValue {
+  font-weight: 700;
+  color: #15803D;
+  font-size: 13px;
+}
+
+.recBtnAdd {
+  background: #0284C7;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.15s ease;
+  width: 100%;
+}
+
+.recBtnAdd:hover {
+  background: #0369A1;
+}
+
+.recBtnAdd:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.recBtnAttached {
+  background: #ECFDF5;
+  color: #065F46;
+  border: 1.5px solid #10B981;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+.recBtnAttached:hover {
+  background: #FEE2E2;
+  color: #991B1B;
+  border-color: #F87171;
+}
+
+.recBtnAttached:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.noRecsMessage {
+  padding: 20px;
+  text-align: center;
+  background: #F8FAFC;
+  border: 1px dashed #CBD5E1;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #64748B;
+}
+
+/* ── Attached Recommendations (Customer Optional Add-ons) Panel ───────── */
+.attachedRecsSection {
+  background: #F0F9FF;
+  border: 1.5px solid #BAE6FD;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.06);
+}
+
+.attachedRecsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.attachedRecsTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.attachedRecsBadge {
+  background: #0284C7;
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 3px 9px;
+  border-radius: 9999px;
+}
+
+.attachedRecsSubtitle {
+  font-size: 12.5px;
+  color: #0369A1;
+  font-weight: 500;
+}
+
+.attachedRecsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.attachedRecCard {
+  background: #FFFFFF;
+  border: 1px solid #E0F2FE;
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.attachedRecTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.attachedRecName {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.attachedRecPrice {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0284C7;
+  white-space: nowrap;
+}
+
+.attachedRecTypeBadge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.attachedRecTypeUpsell {
+  background: #ECFDF5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+}
+
+.attachedRecTypeCross {
+  background: #EEF2FF;
+  color: #3730A3;
+  border: 1px solid #C7D2FE;
+}
+
+.attachedRecReason {
+  font-size: 11.5px;
+  color: #64748B;
+  line-height: 1.4;
+  background: #F8FAFC;
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+
+.attachedRecFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed #E2E8F0;
+}
+
+.attachedRecStatusPending {
+  font-size: 11px;
+  font-weight: 600;
+  color: #B45309;
+  background: #FEF3C7;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.attachedRecStatusAccepted {
+  font-size: 11px;
+  font-weight: 700;
+  color: #15803D;
+  background: #DCFCE7;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.attachedRecRemoveBtn {
+  background: transparent;
+  border: 1px solid #CBD5E1;
+  color: #64748B;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.attachedRecRemoveBtn:hover {
+  background: #FEE2E2;
+  color: #DC2626;
+  border-color: #FCA5A5;
+}
+
+.attachedRecsSummaryBar {
+  background: #E0F2FE;
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12.5px;
+  color: #0369A1;
+}
+
+.attachedRecsPotentialTotal {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #075985;
+}
+
+

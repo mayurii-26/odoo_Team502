@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import styles from './AdminModule.module.css'
-import { DirectoryUser, UserRole, RecommendationWeights, UserAccount, WorkflowAuditEntry } from './types'
+import { DirectoryUser, UserRole, RecommendationWeights, UserAccount, WorkflowAuditEntry, UserSession } from './types'
+import ChatModule from './ChatModule'
 import {
   fetchRecommendationWeights,
   saveRecommendationWeights,
@@ -19,6 +20,7 @@ interface AdminModuleProps {
   users?: UserAccount[]
   auditLogs?: WorkflowAuditEntry[]
   onUserProvisioned?: (user: UserAccount) => void
+  currentUser?: UserSession
 }
 
 const DEFAULT_WEIGHTS: RecommendationWeights = {
@@ -68,7 +70,9 @@ export default function AdminModule({
   users,
   auditLogs = [],
   onUserProvisioned,
+  currentUser,
 }: AdminModuleProps) {
+  const [messageMode, setMessageMode] = useState<'chat' | 'broadcast'>('chat')
   // Audit Trail filtering state
   const [auditSearch, setAuditSearch] = useState('')
   const [auditRoleFilter, setAuditRoleFilter] = useState('all')
@@ -173,7 +177,15 @@ export default function AdminModule({
   const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all')
 
   // Tab 4: Recommendation Scoring Weights State
-  const [weights, setWeights] = useState<RecommendationWeights>(DEFAULT_WEIGHTS)
+  const [weights, setWeights] = useState<RecommendationWeights>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('dealflow_recommendation_weights')
+        if (saved) return JSON.parse(saved)
+      } catch {}
+    }
+    return DEFAULT_WEIGHTS
+  })
   const [loadingWeights, setLoadingWeights] = useState(false)
   const [savingWeights, setSavingWeights] = useState(false)
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null)
@@ -187,6 +199,9 @@ export default function AdminModule({
         const data = await fetchRecommendationWeights()
         if (data && isMounted) {
           setWeights(data)
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('dealflow_recommendation_weights', JSON.stringify(data))
+          }
         }
       } catch (err) {
         console.warn('Could not load database recommendation weights:', err)
@@ -226,6 +241,9 @@ export default function AdminModule({
 
   function handleResetWeights() {
     setWeights(DEFAULT_WEIGHTS)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('dealflow_recommendation_weights', JSON.stringify(DEFAULT_WEIGHTS))
+    }
     setSaveSuccessMsg(null)
     setWeightsError(null)
     onShowToast('Reset scoring weights to baseline defaults.')
@@ -243,6 +261,9 @@ export default function AdminModule({
     setWeightsError(null)
     setSaveSuccessMsg(null)
     try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('dealflow_recommendation_weights', JSON.stringify(weights))
+      }
       const res = await saveRecommendationWeights(weights)
       if (res.success) {
         setSaveSuccessMsg('Recommendation weights successfully saved to PostgreSQL database! Live scoring recalculated.')
@@ -655,11 +676,66 @@ export default function AdminModule({
       )}
 
       {/* ============================================================
-          TAB 2: MESSAGE TO ANYONE
+          TAB 2: MESSAGE TO ANYONE / REAL-TIME CHAT
           "message to anyone"
          ============================================================ */}
       {adminTab === 'messages' && (
-        <>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Mode Switcher */}
+          <div style={{ display: 'flex', gap: '8px', background: 'var(--surface-bg, #f1f5f9)', padding: '6px', borderRadius: '10px', width: 'fit-content' }}>
+            <button
+              type="button"
+              onClick={() => setMessageMode('chat')}
+              style={{
+                padding: '8px 18px',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '13px',
+                background: messageMode === 'chat' ? '#001D52' : 'transparent',
+                color: messageMode === 'chat' ? '#ffffff' : '#64748b',
+                boxShadow: messageMode === 'chat' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              💬 WhatsApp Live Chat
+            </button>
+            <button
+              type="button"
+              onClick={() => setMessageMode('broadcast')}
+              style={{
+                padding: '8px 18px',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '13px',
+                background: messageMode === 'broadcast' ? '#001D52' : 'transparent',
+                color: messageMode === 'broadcast' ? '#ffffff' : '#64748b',
+                boxShadow: messageMode === 'broadcast' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              📢 Direct Message &amp; Broadcast Dispatch
+            </button>
+          </div>
+
+          {messageMode === 'chat' ? (
+            <ChatModule
+              currentUser={
+                currentUser || {
+                  id: 'admin-1',
+                  fullName: 'System Administrator',
+                  email: 'admin@dealflow360.com',
+                  role: 'admin',
+                }
+              }
+              users={users}
+              onShowToast={onShowToast}
+            />
+          ) : (
+            <>
           <div className={styles.clayCard}>
             <div className={styles.cardHeader}>
               <div>
@@ -851,6 +927,8 @@ export default function AdminModule({
           </div>
         </>
       )}
+    </div>
+  )}
 
       {/* ============================================================
           TAB 3: ALL CUSTOMERS AND USER LIST

@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react'
 import styles from './SubscriptionsWireframe.module.css'
 import { ActiveModule } from './types'
+import { useCurrency } from '@/context/CurrencyContext'
 
 interface SubscriptionsModuleProps {
   subscriptions?: any[]
@@ -36,6 +37,7 @@ export default function SubscriptionsModule({
   onNavigate,
   onShowToast,
 }: SubscriptionsModuleProps) {
+  const { formatPrice } = useCurrency()
   const [currentView, setCurrentView] = useState<'list' | 'detail'>('list')
   const [selectedSubId, setSelectedSubId] = useState<string | number>('1')
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE' | 'PAUSED'>('ALL')
@@ -137,7 +139,7 @@ export default function SubscriptionsModule({
     setSubscriptionsList(prev =>
       prev.map(s => (s.id === selectedSub.id ? { ...s, billing_frequency: newFreq, recurring_amount: newAmt } : s))
     )
-    onShowToast(`Billing schedule updated to ${newFreq} ($${newAmt.toLocaleString()}/cycle).`)
+    onShowToast(`Billing schedule updated to ${newFreq} (${formatPrice(newAmt)}/cycle).`)
   }
 
   /* ──────────────────────────────────────────────────────────
@@ -166,7 +168,7 @@ export default function SubscriptionsModule({
         <div className={styles.metricsGrid}>
           <div className={styles.metricCard}>
             <span className={styles.metricLabel}>Recurring Value</span>
-            <span className={styles.metricValue}>${selectedSub.recurring_amount.toLocaleString()}</span>
+            <span className={styles.metricValue}>{formatPrice(selectedSub.recurring_amount)}</span>
             <span className={styles.metricSubtext}>Billed {selectedSub.billing_frequency.toLowerCase()}</span>
           </div>
 
@@ -254,7 +256,7 @@ export default function SubscriptionsModule({
       <div className={styles.metricsGrid}>
         <div className={styles.metricCard}>
           <span className={styles.metricLabel}>Monthly Recurring Revenue</span>
-          <span className={styles.metricValue}>${totalMRR.toLocaleString()}/mo</span>
+          <span className={styles.metricValue}>{formatPrice(totalMRR)}/mo</span>
           <span className={styles.metricSubtext}>Normalized aggregate MRR</span>
         </div>
 
@@ -337,7 +339,7 @@ export default function SubscriptionsModule({
                   <td><strong>{row.customer_name}</strong></td>
                   <td>{row.plan_name}</td>
                   <td>{row.billing_frequency}</td>
-                  <td><span className={styles.amountCell}>${row.recurring_amount.toLocaleString()}</span></td>
+                  <td><span className={styles.amountCell}>{formatPrice(row.recurring_amount)}</span></td>
                   <td>{row.next_billing_date}</td>
                   <td>
                     <span className={row.status === 'ACTIVE' ? styles.statusActive : styles.statusPaused}>

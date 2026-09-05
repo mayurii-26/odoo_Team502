@@ -5,6 +5,7 @@
 export type UserRole = 'admin' | 'sales_rep' | 'sales_manager' | 'finance' | 'customer' | 'user'
 
 export interface UserSession {
+  id?: number | string
   email: string
   fullName: string
   role: UserRole
@@ -33,6 +34,22 @@ export interface QuotationLineItem {
   costPrice: number
 }
 
+export interface QuotationRecommendedItem {
+  id: string
+  productId: string
+  name: string
+  category?: 'Hardware' | 'Software' | 'Services' | string
+  type: 'UPSELL' | 'CROSS_SELL'
+  unitPrice: number
+  costPrice: number
+  discountPct?: number
+  reason: string
+  score: number
+  marginImpact?: number
+  customerAccepted?: boolean
+  addedByRep?: boolean
+}
+
 export interface Quotation {
   id: string
   dealName: string
@@ -47,6 +64,7 @@ export interface Quotation {
   createdAt: string
   validUntil: string
   items: QuotationLineItem[]
+  recommendedItems?: QuotationRecommendedItem[]
   managerComment?: string
   customerComment?: string
   blendedRiskScore: number
@@ -102,6 +120,13 @@ export interface Product {
   costPrice: number
   stock: number
   description: string
+  productFamily?: string
+  tier?: number
+  upgradeFrom?: string[]
+  compatibleWith?: string[]
+  isPromoted?: boolean
+  promotionDiscountPct?: number
+  minMarginPercent?: number
 }
 
 export interface Warehouse {
@@ -205,4 +230,92 @@ export interface RecommendationWeights {
     stock_availability: number
   }
 }
+
+export interface Recommendation {
+  productId: string
+  productName: string
+  type: 'UPSELL' | 'CROSS_SELL'
+  score: number // 0 - 100
+  reasons: string[]
+  marginPerUnit: number
+  marginPercent: number
+  marginImpactPerQuotedUnit: number
+  marginImpactTotal: number
+  stockQuantity: number
+  isPromoted: boolean
+  price: number
+  costPrice: number
+  upgradeFromProductId?: string
+  upgradeFromProductName?: string
+  promotionDiscountPct?: number
+  category?: 'Hardware' | 'Software' | 'Services' | string
+}
+
+export interface HistoricalOrderLine {
+  productId: string
+  quantity: number
+  unitPrice: number
+}
+
+export interface HistoricalOrder {
+  id: string
+  customerId: string
+  customerName: string
+  orderDate: string
+  lines: HistoricalOrderLine[]
+}
+
+export interface RecommendationRequest {
+  customerId?: string
+  customerName?: string
+  quoteProductIds: string[]
+  quoteLines?: QuotationLineItem[]
+  products: Product[]
+  historicalOrders?: HistoricalOrder[]
+  warehouses?: Warehouse[]
+  weights?: RecommendationWeights
+}
+
+export interface RecommendationResponse {
+  upsell: Recommendation[]
+  crossSell: Recommendation[]
+}
+
+export interface ChatUser {
+  id: number
+  name: string
+  email: string
+  role: string
+  status?: string
+  reporting_manager?: string
+}
+
+export interface ChatMessage {
+  id: number
+  conversation_id: number
+  sender_id: number
+  receiver_id: number
+  message_type: 'text' | 'image' | 'pdf'
+  content?: string
+  file_url?: string
+  file_name?: string
+  file_size?: number
+  mime_type?: string
+  is_read: boolean
+  created_at: string
+  temp_id?: string
+}
+
+export interface ChatConversation {
+  id: number
+  user1_id: number
+  user2_id: number
+  last_message?: string
+  last_message_type?: string
+  last_message_at?: string
+  unread_count: number
+  recipient: ChatUser
+}
+
+
 

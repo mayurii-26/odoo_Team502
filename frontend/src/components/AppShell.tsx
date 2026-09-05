@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import styles from './AppShell.module.css'
 import {
   UserSession,
@@ -22,6 +22,7 @@ import {
   INITIAL_USERS,
 } from './mockData'
 import { fetchWorkspaceBootstrap, updateQuotationLive, recordWorkflowAuditLog } from '@/lib/api'
+import { useCurrency } from '@/context/CurrencyContext'
 
 /* ── Module Component Imports ─────────────────────────────── */
 import DashboardModule from './DashboardModule'
@@ -40,6 +41,7 @@ import UsersModule from './UsersModule'
 import ReportsModule from './ReportsModule'
 import AdminModule from './AdminModule'
 import TeamMessagesModule from './TeamMessagesModule'
+import ChatModule from './ChatModule'
 
 /* ── Minimalist Clean SVG Icons ───────────────────────────── */
 function LayoutDashboardIcon() {
@@ -238,6 +240,17 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
   const [isDbLoaded, setIsDbLoaded] = useState<boolean>(true)
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false)
 
+  // Global Currency Normalizer Context
+  const {
+    currency: activeCurrency,
+    setCurrency: setActiveCurrency,
+    rates: calcRates,
+    ratesSource,
+    currencies: supportedCurrencies,
+    currencyMeta,
+  } = useCurrency()
+
+
   // Role permissions
   const role = user.role || 'user'
   const isAdmin = role === 'admin'
@@ -405,6 +418,23 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
                 discountPct: dq.discount_percent || 0,
                 costPrice: (dq.total_amount || 1200) * 0.7,
               }
+            ],
+            recommendedItems: dq.recommended_items || dq.recommendedItems || [
+              {
+                id: 'rec-init-dock',
+                productId: 'prod-dock',
+                name: 'Docking Station',
+                category: 'Hardware',
+                type: 'CROSS_SELL',
+                unitPrice: 180,
+                costPrice: 100,
+                discountPct: 15,
+                reason: '76% co-purchase frequency with Laptop models • High hardware compatibility',
+                score: 76,
+                marginImpact: 53,
+                customerAccepted: false,
+                addedByRep: true,
+              },
             ],
           }))
           setQuotations(adaptedQuotes)
@@ -890,6 +920,16 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
                 </button>
 
                 <button
+                  className={`${styles.navLink} ${activeModule === 'messages' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('messages')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><MessageSquareIcon /></span>
+                    <span>Live Chat</span>
+                  </div>
+                </button>
+
+                <button
                   className={`${styles.navLink} ${activeModule === 'admin_directory' ? styles.navLinkActive : ''}`}
                   onClick={() => handleNavigateModule('admin_directory')}
                 >
@@ -1005,6 +1045,16 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
                     </span>
                   )}
                 </button>
+
+                <button
+                  className={`${styles.navLink} ${activeModule === 'messages' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('messages')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><MessageSquareIcon /></span>
+                    <span>Live Chat</span>
+                  </div>
+                </button>
               </div>
 
               {/* Section 2: Commerce & Execution */}
@@ -1117,6 +1167,33 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             <span className={styles.breadDivider}>/</span>
             <span className={styles.breadCurrent}>{moduleTitles[activeModule] || 'Workspace'}</span>
           </div>
+
+          <div className={styles.topBarRight}>
+            <div
+              className={styles.currencySelectorPill}
+              title="Active workspace display currency (converts all figures across all screens)"
+            >
+              <span className={styles.currencyFlag}>{currencyMeta.flag}</span>
+              <select
+                className={styles.currencySelect}
+                value={activeCurrency}
+                onChange={(e) => {
+                  const nextCurr = e.target.value
+                  setActiveCurrency(nextCurr)
+                  const sym = supportedCurrencies[nextCurr]?.symbol || nextCurr
+                  const rateVal = (calcRates[nextCurr] || 1).toFixed(nextCurr === 'JPY' ? 0 : 2)
+                  showToast(`Converted all screen currencies to ${nextCurr} (${sym}) • 1 USD = ${rateVal} ${nextCurr}`)
+                }}
+                aria-label="Screen display currency"
+              >
+                {Object.values(supportedCurrencies).map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.code} ({c.symbol})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </header>
 
         {/* Module Content Body */}
@@ -1150,12 +1227,11 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             />
           )}
 
-          {/* Team Messaging Module for Financial Officer and Sales Manager */}
-          {activeModule === 'messages' && (isFinance || isSalesManager) && (
-            <TeamMessagesModule
-              role={user.role}
-              quotations={quotations}
-              onNavigate={handleNavigateModule}
+          {/* Real-time WhatsApp Chat Module for Team and Admin Roles */}
+          {activeModule === 'messages' && !isCustomer && (
+            <ChatModule
+              currentUser={user}
+              users={users}
               onShowToast={showToast}
             />
           )}
@@ -1196,6 +1272,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
               users={users}
               auditLogs={auditLogs}
               onUserProvisioned={handleUserProvisioned}
+              currentUser={user}
             />
           )}
 
@@ -1321,6 +1398,8 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
           )}
         </main>
       </div>
+
+
 
       {/* Floating Toast Notification */}
       {toastMessage && (

@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react'
 import styles from './ProductsWireframe.module.css'
 import { Product } from './types'
+import { useCurrency } from '@/context/CurrencyContext'
 
 interface ProductCatalogProps {
   products: Product[]
@@ -30,6 +31,7 @@ export default function ProductCatalogModule({
   onAddProduct,
   onShowToast,
 }: ProductCatalogProps) {
+  const { formatPrice } = useCurrency()
   const [currentView, setCurrentView] = useState<'dashboard' | 'details'>('dashboard')
 
   // Map from live PostgreSQL products if available
@@ -40,7 +42,7 @@ export default function ProductCatalogModule({
         name: p.name,
         category: p.category,
         variants: p.category === 'Hardware' ? 'Standard' : '-',
-        price: `$${p.unitPrice.toLocaleString()}`,
+        price: formatPrice(p.unitPrice),
         unit: p.type === 'recurring' ? 'Recurring' : 'Each',
         tax: '15%',
         status: 'Active',

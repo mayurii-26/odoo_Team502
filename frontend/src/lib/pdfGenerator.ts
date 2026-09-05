@@ -714,6 +714,37 @@ export function exportQuotationPDF(quotation: Quotation) {
         </div>
       </div>
 
+      ${quotation.recommendedItems && quotation.recommendedItems.length > 0 ? `
+        <div class="table-section" style="margin-top: 14px; margin-bottom: 20px;">
+          <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Optional Recommendations &amp; Add-ons (Customer Option)</span>
+            <span style="font-size: 11px; font-weight: 500; color: #64748b;">Selected by Sales Rep • Not included in base total</span>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="text-center" style="width: 40px;">#</th>
+                <th>Suggested Product</th>
+                <th>Category / Type</th>
+                <th>Recommendation Rationale</th>
+                <th class="text-right">Unit Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${quotation.recommendedItems.map((rec, idx) => `
+                <tr>
+                  <td class="text-center" style="color: #64748b; font-weight: 600;">${idx + 1}</td>
+                  <td><div style="font-weight: 700; color: #001D52;">${rec.name}</div></td>
+                  <td><span class="tag-category">${rec.type === 'UPSELL' ? 'Upgrade' : 'Complement'}</span></td>
+                  <td style="font-size: 11.5px; color: #475569;">${rec.reason}</td>
+                  <td class="text-right" style="font-weight: 700; color: #001D52;">$${rec.unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      ` : ''}
+
       <!-- Terms and Conditions -->
       <div class="terms-card">
         <strong>Commercial Terms &amp; Conditions:</strong>

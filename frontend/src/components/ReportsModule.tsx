@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import styles from './ReportsWireframe.module.css'
 import { Quotation, ActiveModule } from './types'
 import { exportReportsPDF, exportReportsCSV } from '../lib/pdfGenerator'
+import { useCurrency } from '@/context/CurrencyContext'
 
 interface ReportsProps {
   reportsData?: any
@@ -17,6 +18,7 @@ export default function ReportsModule({
   quotations = [],
   onShowToast,
 }: ReportsProps) {
+  const { formatPrice } = useCurrency()
   const [period, setPeriod] = useState('this_month')
   const [salesTeam, setSalesTeam] = useState('all')
   const [approvalStatus, setApprovalStatus] = useState('all')
@@ -25,11 +27,11 @@ export default function ReportsModule({
   // Live PostgreSQL Analytics Values
   const quotesCount = quotations.length > 0 ? quotations.length : (reportsData?.total_quotes ?? null)
   const totalRevRaw = reportsData?.total_revenue ?? null
-  const totalRev = totalRevRaw != null ? `$${(totalRevRaw / 1000000).toFixed(2)}M` : null
+  const totalRev = totalRevRaw != null ? formatPrice(totalRevRaw, undefined, { compact: true }) : null
   const winRateRaw = reportsData?.win_rate ?? null
   const winRate = winRateRaw != null ? `${winRateRaw}%` : null
   const avgDealRaw = reportsData?.avg_deal_size ?? null
-  const avgDeal = avgDealRaw != null ? `$${avgDealRaw.toLocaleString()}` : null
+  const avgDeal = avgDealRaw != null ? formatPrice(avgDealRaw, undefined, { maximumFractionDigits: 0, minimumFractionDigits: 0 }) : null
 
   const quotesCreated = quotesCount != null ? `${quotesCount} deals in database` : 'Loading...'
 

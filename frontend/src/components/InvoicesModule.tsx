@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react'
 import styles from './InvoicesWireframe.module.css'
 import { Quotation, ActiveModule } from './types'
 import { exportInvoicePDF } from '../lib/pdfGenerator'
+import { useCurrency } from '@/context/CurrencyContext'
 
 interface InvoicesModuleProps {
   quotation: Quotation
@@ -51,6 +52,7 @@ export default function InvoicesModule({
   onNavigate,
   onShowToast,
 }: InvoicesModuleProps) {
+  const { formatPrice } = useCurrency()
   const [currentView, setCurrentView] = useState<'list' | 'detail'>('list')
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | number>('1')
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'PAID' | 'UNPAID'>('ALL')
@@ -150,7 +152,7 @@ export default function InvoicesModule({
     setInvoicesList(prev =>
       prev.map(i => (i.id === selectedInvoice.id ? { ...i, payment_status: 'PAID', amount_paid: i.amount, amount_due: 0 } : i))
     )
-    onShowToast(`Payment of $${selectedInvoice.amount.toLocaleString()} recorded for ${selectedInvoice.invoice_number}!`)
+    onShowToast(`Payment of ${formatPrice(selectedInvoice.amount)} recorded for ${selectedInvoice.invoice_number}!`)
   }
 
   /* ──────────────────────────────────────────────────────────
@@ -212,14 +214,14 @@ export default function InvoicesModule({
         <div className={styles.metricsGrid}>
           <div className={styles.metricCard}>
             <span className={styles.metricLabel}>Total Amount</span>
-            <span className={styles.metricValue}>${selectedInvoice.amount.toLocaleString()}</span>
+            <span className={styles.metricValue}>{formatPrice(selectedInvoice.amount)}</span>
             <span className={styles.metricSubtext}>Tax and line items included</span>
           </div>
 
           <div className={styles.metricCard}>
             <span className={styles.metricLabel}>Amount Settled</span>
             <span className={styles.metricValue} style={{ color: '#166534' }}>
-              ${selectedInvoice.amount_paid.toLocaleString()}
+              {formatPrice(selectedInvoice.amount_paid)}
             </span>
             <span className={styles.metricSubtext}>Recorded via payment gateway</span>
           </div>
@@ -227,7 +229,7 @@ export default function InvoicesModule({
           <div className={styles.metricCard}>
             <span className={styles.metricLabel}>Current Balance Due</span>
             <span className={styles.metricValue} style={{ color: isPaid ? '#166534' : '#DC2626' }}>
-              ${selectedInvoice.amount_due.toLocaleString()}
+              {formatPrice(selectedInvoice.amount_due)}
             </span>
             <span className={styles.metricSubtext}>
               {isPaid ? 'Account fully settled' : `Payment expected by ${selectedInvoice.due_date}`}
@@ -255,7 +257,7 @@ export default function InvoicesModule({
                   <td><strong>{selectedInvoice.customer_name}</strong></td>
                   <td>{selectedInvoice.issue_date}</td>
                   <td>{selectedInvoice.due_date}</td>
-                  <td><span className={styles.amountCell}>${selectedInvoice.amount.toLocaleString()}</span></td>
+                  <td><span className={styles.amountCell}>{formatPrice(selectedInvoice.amount)}</span></td>
                   <td>
                     <span className={isPaid ? styles.statusPaid : styles.statusUnpaid}>
                       {selectedInvoice.payment_status}
@@ -271,7 +273,7 @@ export default function InvoicesModule({
         <div className={styles.actionsRow}>
           {!isPaid ? (
             <button className={styles.btnPrimary} onClick={handleRecordPayment}>
-              Record Settle Payment (${selectedInvoice.amount.toLocaleString()})
+              Record Settle Payment ({formatPrice(selectedInvoice.amount)})
             </button>
           ) : (
             <button
@@ -322,14 +324,14 @@ export default function InvoicesModule({
       <div className={styles.metricsGrid}>
         <div className={styles.metricCard}>
           <span className={styles.metricLabel}>Total Billed</span>
-          <span className={styles.metricValue}>${totalInvoiced.toLocaleString()}</span>
+          <span className={styles.metricValue}>{formatPrice(totalInvoiced)}</span>
           <span className={styles.metricSubtext}>{invoicesList.length} total invoices in database</span>
         </div>
 
         <div className={styles.metricCard}>
           <span className={styles.metricLabel}>Paid & Collected</span>
           <span className={styles.metricValue} style={{ color: '#166534' }}>
-            ${totalPaid.toLocaleString()}
+            {formatPrice(totalPaid)}
           </span>
           <span className={styles.metricSubtext}>{paidCount} invoices settled</span>
         </div>
@@ -337,7 +339,7 @@ export default function InvoicesModule({
         <div className={styles.metricCard}>
           <span className={styles.metricLabel}>Outstanding Balance</span>
           <span className={styles.metricValue} style={{ color: '#9A3412' }}>
-            ${totalUnpaid.toLocaleString()}
+            {formatPrice(totalUnpaid)}
           </span>
           <span className={styles.metricSubtext}>{unpaidCount} invoices awaiting payment</span>
         </div>
@@ -404,7 +406,7 @@ export default function InvoicesModule({
                   <td><strong>{row.customer_name}</strong></td>
                   <td>{row.issue_date}</td>
                   <td>{row.due_date}</td>
-                  <td><span className={styles.amountCell}>${row.amount.toLocaleString()}</span></td>
+                  <td><span className={styles.amountCell}>{formatPrice(row.amount)}</span></td>
                   <td>
                     <span className={row.payment_status === 'PAID' ? styles.statusPaid : styles.statusUnpaid}>
                       {row.payment_status}

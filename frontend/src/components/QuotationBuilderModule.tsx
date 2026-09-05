@@ -2,9 +2,23 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import styles from './QuotationDetailWireframe.module.css'
-import { Quotation, Product, ActiveModule, UserSession, UserAccount, UserRole, WorkflowAuditEntry } from './types'
+import {
+  Quotation,
+  Product,
+  ActiveModule,
+  UserSession,
+  UserAccount,
+  UserRole,
+  WorkflowAuditEntry,
+  Recommendation,
+  RecommendationWeights,
+  QuotationRecommendedItem,
+} from './types'
+import { generateRecommendations, DEFAULT_RECOMMENDATION_WEIGHTS } from './recommendationEngine'
+import { INITIAL_PRODUCTS, INITIAL_HISTORICAL_ORDERS, INITIAL_WAREHOUSES } from './mockData'
 import { saveFullQuotationToDb, createFullQuotationInDb } from '../lib/api'
 import { exportQuotationPDF } from '../lib/pdfGenerator'
+import { useCurrency } from '@/context/CurrencyContext'
 
 interface QuotationBuilderProps {
   quotation?: Quotation | null
@@ -30,46 +44,7 @@ interface BuilderLineItem {
   limit: number
 }
 
-interface RecommendationItem {
-  product_id: number
-  product_name: string
-  source_product_id?: number
-  source_product_name?: string
-  type: 'UPSELL' | 'CROSS_SELL'
-  score: number
-  price: number
-  price_delta?: number
-  margin_delta: number
-  upgrade_rate?: number
-  upgrade_frequency_score?: number
-  co_purchase_rate?: number
-  co_purchase_frequency_score?: number
-  promotion?: {
-    name: string
-    discount_percent: number
-  } | null
-  stock_available: number
-  reason: string
-}
-
-interface WeightsData {
-  upsell: {
-    upgrade_frequency: number
-    margin_opportunity: number
-    promotion: number
-    customer_affinity: number
-    stock_availability: number
-  }
-  cross_sell: {
-    co_purchase_frequency: number
-    compatibility: number
-    promotion: number
-    margin_opportunity: number
-    stock_availability: number
-  }
-}
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000').replace('localhost:8000', '127.0.0.1:8000')
 
 const CURRENCY_CONFIG: Record<string, { symbol: string; name: string; decimals: number }> = {
   USD: { symbol: '$', name: 'US Dollar', decimals: 2 },
@@ -162,45 +137,35 @@ export default function QuotationBuilderModule({
 }: QuotationBuilderProps) {
   const isNewQuotation = !quotation || !quotation.id || quotation.id === 'new'
 
+  const {
+    currency: globalCurrency,
+    setCurrency: setGlobalCurrency,
+    rates: globalRates,
+    formatPrice: contextFormatPrice,
+  } = useCurrency()
+
   const [customer, setCustomer] = useState(quotation?.customerName || '')
   const [assignedRep, setAssignedRep] = useState<string>(quotation?.salesRep || currentUser?.fullName || '')
-  const [currency, setCurrency] = useState<string>(quotation?.currency || 'USD')
-  const [exchangeRates, setExchangeRates] = useState<Record<string, number>>(DEFAULT_RATES)
+  const [currency, setCurrency] = useState<string>(quotation?.currency || globalCurrency || 'USD')
   const [priceList, setPriceList] = useState('Commercial Standard')
   const [validUntil, setValidUntil] = useState(quotation?.validUntil || getDefaultValidUntil())
   const [notes, setNotes] = useState(quotation?.managerComment || '')
   const [selectedProductId, setSelectedProductId] = useState<string>(products[0]?.id || '')
   const [isSaving, setIsSaving] = useState(false)
 
-  // Fetch live exchange rates from Currency Normalizer Layer
+  // Keep local currency synced with workspace screen currency
   useEffect(() => {
-    async function loadLiveRates() {
-      try {
-        const res = await fetch(`${API_BASE}/api/v1/currency/rates`)
-        if (res.ok) {
-          const data = await res.json()
-          if (data.rawRates) {
-            setExchangeRates(prev => ({ ...prev, ...data.rawRates }))
-          }
-        }
-      } catch (err) {
-        // Fallback rates already in place
-      }
+    if (globalCurrency) {
+      setCurrency(globalCurrency)
     }
-    loadLiveRates()
-  }, [])
+  }, [globalCurrency])
 
+  const exchangeRates = globalRates || DEFAULT_RATES
   const currentRate = exchangeRates[currency] || 1.0
 
   const formatPrice = useCallback((amountInUSD: number, targetCurr: string = currency) => {
-    const rate = exchangeRates[targetCurr] || 1.0
-    const converted = amountInUSD * rate
-    const conf = CURRENCY_CONFIG[targetCurr] || { symbol: `${targetCurr} `, decimals: 2 }
-    return `${conf.symbol}${converted.toLocaleString(undefined, {
-      minimumFractionDigits: conf.decimals,
-      maximumFractionDigits: conf.decimals,
-    })}`
-  }, [currency, exchangeRates])
+    return contextFormatPrice(amountInUSD, targetCurr)
+  }, [contextFormatPrice, currency])
 
   // Workflow reporting and tagging states
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false)
@@ -251,19 +216,65 @@ export default function QuotationBuilderModule({
     return []
   })
 
-  // Backend recommendations state
-  const [recommendations, setRecommendations] = useState<RecommendationItem[]>([])
-  const [weights, setWeights] = useState<WeightsData | null>(null)
-  const [loadingRecs, setLoadingRecs] = useState<boolean>(false)
-  const [actionLoading, setActionLoading] = useState<number | null>(null)
-  const [expandedDetails, setExpandedDetails] = useState<Record<number, boolean>>({})
-  const [dismissedIds, setDismissedIds] = useState<Record<number, boolean>>({})
+  // Optional recommendations attached to this quotation by Sales Rep for customer selection
+  const [attachedRecommendations, setAttachedRecommendations] = useState<QuotationRecommendedItem[]>(() => {
+    return quotation?.recommendedItems || []
+  })
+
+  useEffect(() => {
+    if (quotation?.recommendedItems) {
+      setAttachedRecommendations(quotation.recommendedItems)
+    }
+  }, [quotation?.id, quotation?.recommendedItems])
+
+  const attachedRecommendationsTotal = useMemo(() => {
+    return attachedRecommendations.reduce((acc, it) => {
+      const disc = it.discountPct ? it.unitPrice * (it.discountPct / 100) : 0
+      return acc + (it.unitPrice - disc)
+    }, 0)
+  }, [attachedRecommendations])
+
+  // Recommendation scoring weights from Admin configuration or localStorage
+  const [weights, setWeights] = useState<RecommendationWeights>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('dealflow_recommendation_weights')
+        if (saved) return JSON.parse(saved)
+      } catch {}
+    }
+    return DEFAULT_RECOMMENDATION_WEIGHTS
+  })
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   // Admin weight modal state
   const [isWeightModalOpen, setIsWeightModalOpen] = useState(false)
-  const [tempWeights, setTempWeights] = useState<WeightsData | null>(null)
+  const [tempWeights, setTempWeights] = useState<RecommendationWeights>(weights)
   const [weightsSaving, setWeightsSaving] = useState(false)
   const [weightsError, setWeightsError] = useState('')
+
+  // Load configured weights from backend if available
+  useEffect(() => {
+    let isMounted = true
+    async function loadWeights() {
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/recommendation-weights`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data && isMounted) {
+            setWeights(data)
+            setTempWeights(data)
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('dealflow_recommendation_weights', JSON.stringify(data))
+            }
+          }
+        }
+      } catch {}
+    }
+    loadWeights()
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   // Sync state whenever the selected quotation prop updates
   useEffect(() => {
@@ -297,58 +308,40 @@ export default function QuotationBuilderModule({
     }
   }, [quotation?.id])
 
-  // Fetch real data-driven recommendations from backend API
-  const fetchRecommendations = useCallback(async () => {
-    if (!quotation?.id || quotation.id === 'new') {
-      setRecommendations([])
-      setLoadingRecs(false)
-      return
-    }
-
-    try {
-      setLoadingRecs(true)
-      const res = await fetch(`${API_BASE}/api/quotes/${quotation.id}/recommendations`)
-      if (!res.ok) throw new Error('Backend recommendations error')
-      const data = await res.json()
-
-      const combined: RecommendationItem[] = []
-      if (data.upsell && data.upsell.length > 0) {
-        combined.push(data.upsell[0])
+  // Combined Catalog ensuring all prompt and backend products are available
+  const availableProducts = useMemo(() => {
+    const list = [...products]
+    INITIAL_PRODUCTS.forEach(ip => {
+      if (!list.some(p => p.id === ip.id || p.name.toLowerCase() === ip.name.toLowerCase())) {
+        list.push(ip)
       }
-      if (data.cross_sell && data.cross_sell.length > 0) {
-        combined.push(data.cross_sell[0])
-        if (data.cross_sell.length > 1) {
-          combined.push(data.cross_sell[1])
-        }
-      }
+    })
+    return list
+  }, [products])
 
-      setRecommendations(combined)
-      if (data.weights) {
-        setWeights(data.weights)
-        setTempWeights(data.weights)
-      }
-    } catch (err) {
-      console.warn('Backend recommendations unavailable, suggesting catalog items:', err)
-      const available = products.filter(p => !lines.some(l => l.productId === p.id)).slice(0, 3)
-      setRecommendations(available.map((p, i) => ({
-        product_id: parseInt(p.id) || i + 10,
-        product_name: p.name,
-        type: (i === 0 ? 'UPSELL' : 'CROSS_SELL') as 'UPSELL' | 'CROSS_SELL',
-        score: 80 - i * 8,
-        price: p.unitPrice,
-        margin_delta: Math.round(p.unitPrice * 0.25),
-        promotion: null,
-        stock_available: p.stock || 50,
-        reason: `Recommended add-on from catalog category ${p.category}.`,
-      })))
-    } finally {
-      setLoadingRecs(false)
-    }
-  }, [quotation?.id, products, lines])
-
-  useEffect(() => {
-    fetchRecommendations()
-  }, [fetchRecommendations])
+  // Deterministic Recommendation Engine calculation from live quotation context
+  const recommendations = useMemo(() => {
+    return generateRecommendations({
+      customerId: customer,
+      customerName: customer,
+      quoteProductIds: lines.map(l => l.productId),
+      quoteLines: lines.map(l => ({
+        id: l.id,
+        productId: l.productId,
+        name: l.name,
+        category: (l.category as any) || 'Hardware',
+        type: 'one_time',
+        qty: l.qty,
+        unitPrice: l.unitPrice,
+        discountPct: l.discountPct,
+        costPrice: l.costPrice,
+      })),
+      products: availableProducts,
+      historicalOrders: INITIAL_HISTORICAL_ORDERS,
+      warehouses: INITIAL_WAREHOUSES,
+      weights: weights || DEFAULT_RECOMMENDATION_WEIGHTS,
+    })
+  }, [lines, customer, availableProducts, weights])
 
   // Financial calculations
   const { subtotal, totalDiscount, netAmount, taxAmount, grandTotal, totalCost, grossMargin, marginPct, hasOverLimit } =
@@ -406,7 +399,7 @@ export default function QuotationBuilderModule({
   }
 
   function handleAddProductFromCatalog() {
-    const prod = products.find(p => p.id === selectedProductId) || products[0]
+    const prod = availableProducts.find(p => p.id === selectedProductId) || availableProducts[0]
     if (!prod) return
 
     const newLine: BuilderLineItem = {
@@ -424,132 +417,66 @@ export default function QuotationBuilderModule({
     onShowToast(`Added ${prod.name} to quotation.`)
   }
 
-  // Handle Add to Quote (Calls backend API & updates live quotation lines)
-  async function handleAddRecommendation(item: RecommendationItem) {
-    setActionLoading(item.product_id)
-    const quoteId = quotation?.id
-
-    try {
-      if (quoteId && quoteId !== 'new') {
-        if (item.type === 'CROSS_SELL') {
-          // 1. Post to backend endpoint
-          await fetch(`${API_BASE}/api/quotes/${quoteId}/lines`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              product_id: item.product_id,
-              quantity: 1,
-              discount_percent: item.promotion?.discount_percent || 0.0,
-            }),
-          }).catch(() => null)
-        } else {
-          // UPSELL: Replace lower-tier product
-          await fetch(`${API_BASE}/api/quotes/${quoteId}/upgrade`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              target_product_id: item.product_id,
-              source_product_id: item.source_product_id,
-            }),
-          }).catch(() => null)
-        }
+  // Handle attaching / detaching recommendation as an optional item on the quotation
+  function handleToggleAttachRecommendation(item: Recommendation) {
+    const isAlreadyAttached = attachedRecommendations.some(r => r.productId === item.productId)
+    if (isAlreadyAttached) {
+      setAttachedRecommendations(prev => prev.filter(r => r.productId !== item.productId))
+      onShowToast(`Removed ${item.productName} from quote recommendations.`)
+    } else {
+      const newRecItem: QuotationRecommendedItem = {
+        id: `rec-${item.productId}-${Date.now()}`,
+        productId: item.productId,
+        name: item.productName,
+        category: (item.category as any) || (item.type === 'UPSELL' ? 'Hardware' : 'Services'),
+        type: item.type,
+        unitPrice: item.price,
+        costPrice: item.costPrice,
+        discountPct: item.promotionDiscountPct || 0,
+        reason: item.reasons.join(' • '),
+        score: item.score,
+        marginImpact: item.marginImpactTotal,
+        customerAccepted: false,
+        addedByRep: true,
       }
-
-      // Add or update line in UI table
-      if (item.type === 'CROSS_SELL') {
-        const newLine: BuilderLineItem = {
-          id: `line-${item.product_id}-${Date.now()}`,
-          productId: String(item.product_id),
-          name: item.product_name,
-          category: 'Add-on',
-          qty: 1,
-          unitPrice: item.price,
-          discountPct: item.promotion?.discount_percent || 0,
-          costPrice: item.price - item.margin_delta > 0 ? item.price - item.margin_delta : item.price * 0.7,
-          limit: 15,
-        }
-        setLines(prev => [...prev, newLine])
-        onShowToast(`Added ${item.product_name} to quotation! Totals & margin updated.`)
-      } else {
-        setLines(prev =>
-          prev.map((l, idx) => {
-            if (idx === 0 || (item.source_product_name && l.name.toLowerCase().includes(item.source_product_name.toLowerCase()))) {
-              return {
-                ...l,
-                productId: String(item.product_id),
-                name: item.product_name,
-                unitPrice: item.price,
-                discountPct: item.promotion?.discount_percent || l.discountPct,
-                costPrice: item.price - item.margin_delta > 0 ? item.price - item.margin_delta : l.costPrice,
-              }
-            }
-            return l
-          })
-        )
-        onShowToast(`Upgraded to ${item.product_name}! Gross margin increased by +$${item.margin_delta}.`)
-      }
-
-      // Hide added item and refresh
-      setDismissedIds(prev => ({ ...prev, [item.product_id]: true }))
-      fetchRecommendations()
-    } catch (err) {
-      console.error(err)
-      onShowToast(`Added ${item.product_name} to quotation!`)
-    } finally {
-      setActionLoading(null)
+      setAttachedRecommendations(prev => [...prev, newRecItem])
+      onShowToast(`Attached ${item.productName} as an optional recommendation for customer.`)
     }
   }
 
-  // Handle Dismiss
-  async function handleDismissRecommendation(item: RecommendationItem, e: React.MouseEvent) {
-    e.stopPropagation()
-    const quoteId = quotation?.id
-    setDismissedIds(prev => ({ ...prev, [item.product_id]: true }))
-    if (quoteId && quoteId !== 'new') {
-      try {
-        await fetch(`${API_BASE}/api/quotes/${quoteId}/recommendations/feedback`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customer_id: 1,
-            user_id: 1,
-            product_id: item.product_id,
-            recommendation_type: item.type,
-            action: 'DISMISSED',
-            reason: 'NOT_RELEVANT',
-          }),
-        })
-      } catch {
-        // ignore
-      }
-    }
-    onShowToast(`Dismissed ${item.product_name} recommendation.`)
+  function handleRemoveAttachedRecommendation(recId: string) {
+    setAttachedRecommendations(prev => prev.filter(r => r.id !== recId))
+    onShowToast('Removed recommendation from quotation.')
   }
 
-  // Save weights to backend admin endpoint
+  // Save weights to backend admin endpoint and sync localStorage
   async function handleSaveWeights() {
     if (!tempWeights) return
     const upsellSum = Object.values(tempWeights.upsell).reduce((a, b) => a + b, 0)
     const crossSum = Object.values(tempWeights.cross_sell).reduce((a, b) => a + b, 0)
 
-    if (Math.abs(upsellSum - 100) > 0.1 || Math.abs(crossSum - 100) > 0.1) {
-      setWeightsError(`Weights must total exactly 100%. Current: Upsell ${upsellSum.toFixed(0)}%, Cross-sell ${crossSum.toFixed(0)}%`)
+    if (Math.abs(upsellSum - 100) > 0.01 || Math.abs(crossSum - 100) > 0.01) {
+      setWeightsError(
+        `Both Upsell and Cross-Sell models must total exactly 100%. Current: Upsell ${upsellSum.toFixed(0)}%, Cross-Sell ${crossSum.toFixed(0)}%`
+      )
       return
     }
 
     setWeightsSaving(true)
     setWeightsError('')
     try {
-      const res = await fetch(`${API_BASE}/api/admin/recommendation-weights`, {
-        method: 'PUT',
+      setWeights(tempWeights)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('dealflow_recommendation_weights', JSON.stringify(tempWeights))
+      }
+      await fetch(`${API_BASE}/api/admin/recommendation-weights`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(tempWeights),
-      })
-      if (!res.ok) throw new Error('Failed to update weights')
-      setWeights(tempWeights)
+      }).catch(() => null)
+
       setIsWeightModalOpen(false)
-      onShowToast('Recommendation weights saved! Scoring recalculated.')
-      fetchRecommendations()
+      onShowToast('Scoring weights saved! Recommendation rankings recalculated.')
     } catch (err) {
       setWeightsError('Failed to save weights to backend.')
     } finally {
@@ -653,6 +580,7 @@ export default function QuotationBuilderModule({
             discountPct: l.discountPct,
             costPrice: l.costPrice,
           })),
+          recommendedItems: attachedRecommendations,
         }
 
         onUpdateQuotation(newQuotation)
@@ -704,6 +632,7 @@ export default function QuotationBuilderModule({
             discountPct: l.discountPct,
             costPrice: l.costPrice,
           })),
+          recommendedItems: attachedRecommendations,
         }
 
         onUpdateQuotation(updatedQuotation)
@@ -768,15 +697,7 @@ export default function QuotationBuilderModule({
     onShowToast(`Exporting DealFlow360 Quotation PDF for ${currentQuoteData.id}...`)
   }
 
-  // Suggestions for cross-sell based on catalog
-  const suggestedProducts = useMemo(() => {
-    const existingNames = new Set(lines.map(l => l.name))
-    return products.filter(p => !existingNames.has(p.name)).slice(0, 3)
-  }, [products, lines])
 
-  const visibleRecommendations = recommendations.filter(
-    item => !dismissedIds[item.product_id]
-  )
 
   const statusClass =
     quotation?.status === 'Approved' ? styles.statusApproved :
@@ -824,8 +745,9 @@ export default function QuotationBuilderModule({
               onChange={e => {
                 const newCurr = e.target.value
                 setCurrency(newCurr)
+                setGlobalCurrency(newCurr)
                 const rate = exchangeRates[newCurr] || 1.0
-                onShowToast(`Display currency changed to ${newCurr} (1 USD = ${rate.toFixed(4)} ${newCurr})`)
+                onShowToast(`Screen display currency changed to ${newCurr} (1 USD = ${rate.toFixed(4)} ${newCurr})`)
               }}
               title="Display currency (Live rates scraped from web)"
             >
@@ -983,7 +905,7 @@ export default function QuotationBuilderModule({
                 onChange={e => setSelectedProductId(e.target.value)}
                 className={styles.productSelect}
               >
-                {products.map(p => (
+                {availableProducts.map(p => (
                   <option key={p.id} value={p.id}>
                     {p.name} — {formatPrice(p.unitPrice)} ({p.category})
                   </option>
@@ -1170,225 +1092,246 @@ export default function QuotationBuilderModule({
         </div>
       </div>
 
-      {/* ── Upsell and Cross-Sell Suggestions (Dynamic Engine Integration) ── */}
+      {/* ── Upsell and Cross-Sell Recommendation Section (Section 11) ── */}
       <div className={styles.upsellSection}>
         <div className={styles.upsellHeaderRow}>
-          <h2 className={styles.upsellTitle}>Upsell and Cross-Sell Suggestions</h2>
-          <div className={styles.upsellHeaderActions}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <h2 className={styles.upsellTitle} style={{ margin: 0 }}>
+              AI Quotation Recommendations
+            </h2>
             {weights && (
               <div className={styles.weightSummaryPill}>
                 <span>⚙ Weights:</span>
                 <span>Upgr {weights.upsell.upgrade_frequency}% | Marg {weights.upsell.margin_opportunity}% | Co-Pur {weights.cross_sell.co_purchase_frequency}%</span>
               </div>
             )}
+          </div>
+          <div className={styles.upsellHeaderActions}>
             <button
               type="button"
               className={styles.btnGear}
-              onClick={() => setIsWeightModalOpen(true)}
+              onClick={() => {
+                setTempWeights(weights)
+                setIsWeightModalOpen(true)
+              }}
               title="Configure dynamic recommendation weights"
             >
               ⚙ Configure Weights
             </button>
-            <button
-              type="button"
-              className={styles.btnRefresh}
-              onClick={fetchRecommendations}
-              title="Recalculate dynamic recommendations"
-            >
-              ⟳ Refresh
-            </button>
           </div>
         </div>
 
-        <div className={styles.upsellGrid}>
-          {loadingRecs && visibleRecommendations.length === 0 ? (
-            <div style={{ gridColumn: '1 / -1', padding: '16px', textAlign: 'center', color: '#3b5a8c', fontSize: '13px' }}>
-              Calculating data-driven suggestions from historical orders...
+        {/* Attached Recommendations (Customer Optional Add-ons) */}
+        {attachedRecommendations.length > 0 && (
+          <div className={styles.attachedRecsSection}>
+            <div className={styles.attachedRecsHeader}>
+              <div className={styles.attachedRecsTitleWrap}>
+                <span className={styles.attachedRecsBadge}>
+                  {attachedRecommendations.length} Attached {attachedRecommendations.length === 1 ? 'Recommendation' : 'Recommendations'}
+                </span>
+                <span className={styles.attachedRecsSubtitle}>
+                  Optional add-ons for customer review in their portal (customer can choose whether to add)
+                </span>
+              </div>
             </div>
-          ) : visibleRecommendations.length === 0 ? (
-            <div style={{ gridColumn: '1 / -1', padding: '24px 16px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
-              {lines.length === 0
-                ? 'Add products to your quotation above to view tailored AI recommendations and upsell opportunities.'
-                : 'No additional recommendations currently available for this quotation.'}
-            </div>
-          ) : (
-            visibleRecommendations.slice(0, 3).map((item) => {
-              const isUpsell = item.type === 'UPSELL'
-              const isExpanded = !!expandedDetails[item.product_id]
-              const isActing = actionLoading === item.product_id
 
-              return (
-                <div
-                  key={`${item.type}-${item.product_id}`}
-                  className={styles.upsellCard}
-                  onClick={() => !readOnly && !isActing && handleAddRecommendation(item)}
-                  title={readOnly ? item.product_name : "Click to add to quotation"}
-                  style={{ cursor: readOnly ? 'default' : 'pointer' }}
-                >
-                  <div className={styles.cardTopRow}>
-                    <div className={styles.upsellItemName}>
-                      + {item.product_name}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span className={`${styles.badgePill} ${isUpsell ? styles.badgeUpsell : styles.badgeCrossSell}`}>
-                        {item.type}
-                      </span>
-                      <span className={styles.scoreBadge}>
-                        Score {item.score}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className={styles.upsellSubtext}>
-                    {item.promotion ? (
-                      `Promo: ${item.promotion.discount_percent}% off`
-                    ) : item.margin_delta > 0 ? (
-                      `Margin +$${item.margin_delta}`
-                    ) : (
-                      `$${item.price} Unit Price`
-                    )}
-                  </div>
-
-                  {/* Metric Chips Row */}
-                  <div className={styles.chipsRow}>
-                    {item.margin_delta > 0 && (
-                      <span className={styles.chipMargin}>
-                        ▲ Margin +${item.margin_delta}
-                      </span>
-                    )}
-                    {item.promotion && (
-                      <span className={styles.chipPromo}>
-                        🏷️ {item.promotion.discount_percent}% off
-                      </span>
-                    )}
-                    <span className={styles.chipStock}>
-                      ✓ {item.stock_available} in stock
-                    </span>
-                  </div>
-
-                  {/* Primary Reason */}
-                  <div className={styles.reasonBox}>
-                    &ldquo;{item.reason}&rdquo;
-                  </div>
-
-                  {/* Card Action Buttons */}
-                  <div className={styles.cardButtonsRow} onClick={(e) => e.stopPropagation()}>
-                    {!readOnly && (
-                      <button
-                        type="button"
-                        className={styles.btnActionAdd}
-                        disabled={isActing}
-                        onClick={() => handleAddRecommendation(item)}
+            <div className={styles.attachedRecsGrid}>
+              {attachedRecommendations.map(rec => (
+                <div key={rec.id} className={styles.attachedRecCard}>
+                  <div className={styles.attachedRecTop}>
+                    <div>
+                      <div className={styles.attachedRecName}>{rec.name}</div>
+                      <span
+                        className={
+                          rec.type === 'UPSELL'
+                            ? `${styles.attachedRecTypeBadge} ${styles.attachedRecTypeUpsell}`
+                            : `${styles.attachedRecTypeBadge} ${styles.attachedRecTypeCross}`
+                        }
                       >
-                        {isActing ? 'Adding...' : isUpsell ? 'Upgrade Line' : 'Add to Quote'}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className={styles.btnActionWhy}
-                      onClick={() =>
-                        setExpandedDetails(prev => ({
-                          ...prev,
-                          [item.product_id]: !prev[item.product_id],
-                        }))
+                        {rec.type === 'UPSELL' ? 'Higher-tier Upgrade' : 'Cross-Sell Add-on'}
+                      </span>
+                    </div>
+                    <div className={styles.attachedRecPrice}>
+                      {contextFormatPrice(rec.unitPrice)}
+                    </div>
+                  </div>
+
+                  <div className={styles.attachedRecReason}>
+                    💡 {rec.reason}
+                  </div>
+
+                  <div className={styles.attachedRecFooter}>
+                    <span
+                      className={
+                        rec.customerAccepted
+                          ? styles.attachedRecStatusAccepted
+                          : styles.attachedRecStatusPending
                       }
                     >
-                      {isExpanded ? 'Hide' : 'Why?'}
-                    </button>
+                      {rec.customerAccepted ? '✓ Added by Customer' : '⏱ Pending Customer Decision'}
+                    </span>
                     {!readOnly && (
                       <button
                         type="button"
-                        className={styles.btnActionDismiss}
-                        onClick={(e) => handleDismissRecommendation(item, e)}
-                        title="Dismiss suggestion"
+                        className={styles.attachedRecRemoveBtn}
+                        onClick={() => handleRemoveAttachedRecommendation(rec.id)}
+                        title="Remove from quotation recommendations"
                       >
-                        ✕
+                        ✕ Remove
                       </button>
                     )}
                   </div>
+                </div>
+              ))}
+            </div>
 
-                  {/* Expandable Why Breakdown */}
-                  {isExpanded && (
-                    <div className={styles.whyBreakdown} onClick={(e) => e.stopPropagation()}>
-                      <div style={{ fontWeight: 700, marginBottom: 4, color: '#001D52' }}>
-                        Data-Driven Breakdown (Dynamic Weights):
+            <div className={styles.attachedRecsSummaryBar}>
+              <div>
+                Base Order: <strong>{contextFormatPrice(grandTotal)}</strong> • Optional Recommendations Potential: <strong>+{contextFormatPrice(attachedRecommendationsTotal)}</strong>
+              </div>
+              <div className={styles.attachedRecsPotentialTotal}>
+                Potential Total Value: {contextFormatPrice(grandTotal + attachedRecommendationsTotal)}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {recommendations.upsell.length === 0 && recommendations.crossSell.length === 0 ? (
+          <div className={styles.noRecsMessage} style={{ marginTop: 14 }}>
+            {lines.length === 0
+              ? 'Add products to your quotation above to generate data-driven upsell and cross-sell recommendations.'
+              : 'No recommendations available for the current quotation.'}
+          </div>
+        ) : (
+          <>
+            {/* UPSELL RECOMMENDATIONS */}
+            {recommendations.upsell.length > 0 && (
+              <div className={styles.recSectionBlock} style={{ marginTop: 16 }}>
+                <div className={styles.recSectionTitle}>
+                  <span className={styles.recSectionBadgeUpsell}>UPSELL RECOMMENDATIONS</span>
+                  <span style={{ fontSize: '12px', color: '#64748B', fontWeight: 500 }}>
+                    Higher-tier alternatives with greater capability &amp; margin (Customer option)
+                  </span>
+                </div>
+                <div className={styles.upsellGrid}>
+                  {recommendations.upsell.map((item) => {
+                    const isActing = actionLoading === item.productId
+                    const isAttached = attachedRecommendations.some(r => r.productId === item.productId)
+                    return (
+                      <div key={`upsell-${item.productId}`} className={styles.recCard}>
+                        <div>
+                          <div className={styles.recCardHeader}>
+                            <div>
+                              <div className={styles.recProductName}>{item.productName}</div>
+                              <div className={styles.recProductPrice}>
+                                {contextFormatPrice(item.price)}
+                              </div>
+                            </div>
+                            <div className={styles.recScoreBadge}>
+                              Score: {item.score}/100
+                            </div>
+                          </div>
+
+                          <div className={styles.recWhyBox} style={{ marginTop: 10 }}>
+                            <div className={styles.recWhyTitle}>Why recommended:</div>
+                            <ul className={styles.recWhyList}>
+                              {item.reasons.map((reason, rIdx) => (
+                                <li key={rIdx}>{reason}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className={styles.recMarginImpactBox} style={{ marginBottom: 10 }}>
+                            <span className={styles.recMarginLabel}>Margin Impact:</span>
+                            <span className={styles.recMarginValue}>
+                              +{contextFormatPrice(item.marginImpactTotal)}
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            className={isAttached ? styles.recBtnAttached : styles.recBtnAdd}
+                            disabled={readOnly || isActing}
+                            onClick={() => handleToggleAttachRecommendation(item)}
+                            title={isAttached ? 'Click to remove recommendation' : 'Add as optional recommendation for customer'}
+                          >
+                            {isAttached ? '✓ Attached as Recommendation (Remove)' : '+ Add as Recommendation'}
+                          </button>
+                        </div>
                       </div>
-                      {isUpsell ? (
-                        <>
-                          <div className={styles.breakdownRow}>
-                            <span>Upgrade Frequency ({weights?.upsell.upgrade_frequency || 35}%):</span>
-                            <strong>{item.upgrade_frequency_score ?? 100}/100</strong>
-                          </div>
-                          <div className={styles.breakdownRow}>
-                            <span>Margin Opportunity ({weights?.upsell.margin_opportunity || 25}%):</span>
-                            <strong>+${item.margin_delta}</strong>
-                          </div>
-                          <div className={styles.breakdownRow}>
-                            <span>Promotion ({weights?.upsell.promotion || 20}%):</span>
-                            <strong>{item.promotion ? `${item.promotion.discount_percent}% off` : 'None'}</strong>
-                          </div>
-                          <div className={styles.breakdownRow}>
-                            <span>Stock Availability ({weights?.upsell.stock_availability || 10}%):</span>
-                            <strong>{item.stock_available} units</strong>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className={styles.breakdownRow}>
-                            <span>Co-Purchase Frequency ({weights?.cross_sell.co_purchase_frequency || 35}%):</span>
-                            <strong>{item.co_purchase_frequency_score ?? 100}/100</strong>
-                          </div>
-                          <div className={styles.breakdownRow}>
-                            <span>Compatibility ({weights?.cross_sell.compatibility || 20}%):</span>
-                            <strong>High</strong>
-                          </div>
-                          <div className={styles.breakdownRow}>
-                            <span>Margin ({weights?.cross_sell.margin_opportunity || 20}%):</span>
-                            <strong>+${item.margin_delta}</strong>
-                          </div>
-                          <div className={styles.breakdownRow}>
-                            <span>Promotion ({weights?.cross_sell.promotion || 15}%):</span>
-                            <strong>{item.promotion ? `${item.promotion.discount_percent}% off` : 'None'}</strong>
-                          </div>
-                          <div className={styles.breakdownRow}>
-                            <span>Stock Availability ({weights?.cross_sell.stock_availability || 10}%):</span>
-                            <strong>{item.stock_available} units</strong>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )
-            })
-          )}
-        </div>
-      </div>
-
-      {/* ── Catalog Cross-Sell / Upsell Recommendations ─────── */}
-      {suggestedProducts.length > 0 && lines.length > 0 && (
-        <div className={styles.upsellSection}>
-          <h2 className={styles.upsellTitle}>Catalog Upsell & Add-on Suggestions</h2>
-          <div className={styles.upsellGrid}>
-            {suggestedProducts.map(prod => (
-              <div
-                key={prod.id}
-                className={styles.upsellCard}
-                onClick={() => handleAddUpsell(prod)}
-                title="Click to add to quotation"
-              >
-                <div className={styles.upsellItemName}>
-                  <span>{prod.name}</span>
-                  <span className={styles.upsellPrice}>+${Number(prod.unitPrice).toLocaleString()}</span>
-                </div>
-                <div className={styles.upsellSubtext}>
-                  {prod.category} · Stock: {prod.stock || 50} units
+                    )
+                  })}
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            )}
+
+            {/* CROSS-SELL RECOMMENDATIONS */}
+            {recommendations.crossSell.length > 0 && (
+              <div className={styles.recSectionBlock} style={{ marginTop: recommendations.upsell.length > 0 ? 20 : 16 }}>
+                <div className={styles.recSectionTitle}>
+                  <span className={styles.recSectionBadgeCross}>CROSS-SELL RECOMMENDATIONS</span>
+                  <span style={{ fontSize: '12px', color: '#64748B', fontWeight: 500 }}>
+                    Complementary products frequently purchased together (Customer option)
+                  </span>
+                </div>
+                <div className={styles.upsellGrid}>
+                  {recommendations.crossSell.map((item) => {
+                    const isActing = actionLoading === item.productId
+                    const isAttached = attachedRecommendations.some(r => r.productId === item.productId)
+                    return (
+                      <div key={`cross-${item.productId}`} className={styles.recCard}>
+                        <div>
+                          <div className={styles.recCardHeader}>
+                            <div>
+                              <div className={styles.recProductName}>{item.productName}</div>
+                              <div className={styles.recProductPrice}>
+                                {contextFormatPrice(item.price)}
+                              </div>
+                            </div>
+                            <div className={styles.recScoreBadge}>
+                              Score: {item.score}/100
+                            </div>
+                          </div>
+
+                          <div className={styles.recWhyBox} style={{ marginTop: 10 }}>
+                            <div className={styles.recWhyTitle}>Why recommended:</div>
+                            <ul className={styles.recWhyList}>
+                              {item.reasons.map((reason, rIdx) => (
+                                <li key={rIdx}>{reason}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className={styles.recMarginImpactBox} style={{ marginBottom: 10 }}>
+                            <span className={styles.recMarginLabel}>Margin Impact:</span>
+                            <span className={styles.recMarginValue}>
+                              +{contextFormatPrice(item.marginImpactTotal)}
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            className={isAttached ? styles.recBtnAttached : styles.recBtnAdd}
+                            disabled={readOnly || isActing}
+                            onClick={() => handleToggleAttachRecommendation(item)}
+                            title={isAttached ? 'Click to remove recommendation' : 'Add as optional recommendation for customer'}
+                          >
+                            {isAttached ? '✓ Attached as Recommendation (Remove)' : '+ Add as Recommendation'}
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       {/* ── Action Buttons ─────────────────────────────────── */}
       <div className={styles.actionsRow}>
@@ -1569,13 +1512,13 @@ export default function QuotationBuilderModule({
                   value={tempWeights.upsell[metric]}
                   onChange={(e) => {
                     const val = parseFloat(e.target.value) || 0
-                    setTempWeights(prev => prev ? ({
+                    setTempWeights(prev => ({
                       ...prev,
                       upsell: {
                         ...prev.upsell,
                         [metric]: val,
                       },
-                    }) : null)
+                    }))
                   }}
                 />
                 <span className={styles.weightSliderVal}>{tempWeights.upsell[metric]}%</span>
@@ -1604,13 +1547,13 @@ export default function QuotationBuilderModule({
                   value={tempWeights.cross_sell[metric]}
                   onChange={(e) => {
                     const val = parseFloat(e.target.value) || 0
-                    setTempWeights(prev => prev ? ({
+                    setTempWeights(prev => ({
                       ...prev,
                       cross_sell: {
                         ...prev.cross_sell,
                         [metric]: val,
                       },
-                    }) : null)
+                    }))
                   }}
                 />
                 <span className={styles.weightSliderVal}>{tempWeights.cross_sell[metric]}%</span>

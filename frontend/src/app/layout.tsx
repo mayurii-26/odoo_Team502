@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Libre_Baskerville } from 'next/font/google'
 import './globals.css'
+import { CurrencyProvider } from '@/context/CurrencyContext'
 
 const libreBaskerville = Libre_Baskerville({
   weight: ['400', '700'],
@@ -15,6 +16,7 @@ export const metadata: Metadata = {
     'DealFlow360 is an intelligent, self-governing B2B sales operations platform. Manage deals from quotation to payment.',
 }
 
+
 export default function RootLayout({
   children,
 }: {
@@ -22,7 +24,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={libreBaskerville.variable}>
-      <body className={libreBaskerville.className}>{children}</body>
+      <body className={libreBaskerville.className}>
+        <CurrencyProvider>{children}</CurrencyProvider>
+      </body>
     </html>
   )
 }

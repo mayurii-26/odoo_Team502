@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react'
 import styles from './QuotationsWireframe.module.css'
 import { Quotation, QuotationStatus, ActiveModule } from './types'
 import { exportQuotationPDF } from '../lib/pdfGenerator'
+import { useCurrency } from '@/context/CurrencyContext'
 
 interface QuotationsListProps {
   quotations: Quotation[]
@@ -24,6 +25,7 @@ export default function QuotationsListModule({
   onShowToast,
   readOnly = false,
 }: QuotationsListProps) {
+  const { formatPrice } = useCurrency()
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban')
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
@@ -223,7 +225,7 @@ export default function QuotationsListModule({
                 <div className={styles.columnTitle}>
                   <span>{col.title}</span>
                   <span className={styles.columnCountBadge}>
-                    {dealsInCol.length} • ${Math.round(colTotal).toLocaleString()}
+                    {dealsInCol.length} • {formatPrice(colTotal, undefined, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}
                   </span>
                 </div>
                 <div className={styles.cardsContainer}>
@@ -245,7 +247,7 @@ export default function QuotationsListModule({
                         <div className={styles.dealCardHeader}>
                           <span className={styles.dealId}>{deal.id}</span>
                           <span className={styles.dealValue}>
-                            ${Math.round(totalVal).toLocaleString()}
+                            {formatPrice(totalVal, undefined, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}
                           </span>
                         </div>
                         <div className={styles.dealCustomer}>
@@ -297,7 +299,7 @@ export default function QuotationsListModule({
                     <td><span className={styles.dealId}>{d.id}</span></td>
                     <td><span className={styles.customerNameCell}>{d.customerName}</span></td>
                     <td>{d.salesRep}</td>
-                    <td><span className={styles.dealValue}>${Math.round(val).toLocaleString()}</span></td>
+                    <td><span className={styles.dealValue}>{formatPrice(val, undefined, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}</span></td>
                     <td>
                       <span className={
                         d.riskLevel === 'Low' ? styles.healthPillLow :

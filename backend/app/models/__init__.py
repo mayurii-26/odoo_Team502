@@ -11,6 +11,7 @@ from app.models.negotiation import Negotiation, NegotiationMessage
 from app.models.health import DealHealthSnapshot, DealAnomaly
 from app.models.audit import AuditLog
 from app.models.recommendation_config import RecommendationWeightConfig
+from app.models.chat import Conversation, ChatMessage
 
 __all__ = [
     "Base",
@@ -46,4 +47,6 @@ __all__ = [
     "DealAnomaly",
     "AuditLog",
     "RecommendationWeightConfig",
+    "Conversation",
+    "ChatMessage",
 ]

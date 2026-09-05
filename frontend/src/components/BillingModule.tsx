@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import styles from './AppShell.module.css'
 import { Quotation, ActiveModule } from './types'
 import { exportBillingStatementPDF } from '../lib/pdfGenerator'
+import { useCurrency } from '@/context/CurrencyContext'
 
 interface BillingModuleProps {
   quotation: Quotation
@@ -18,6 +19,7 @@ export default function BillingModule({
   onNavigate,
   onShowToast,
 }: BillingModuleProps) {
+  const { formatPrice } = useCurrency()
   const [paymentStatus, setPaymentStatus] = useState<string>(
     quotation.billing?.paymentStatus || 'Pending'
   )
@@ -72,7 +74,7 @@ export default function BillingModule({
       <div className={styles.gridMetrics}>
         <div className={styles.cardMetric}>
           <div className={styles.metricTitle}>One-Time Capital Charges</div>
-          <div className={styles.metricValue}>$78,900.00</div>
+          <div className={styles.metricValue}>{formatPrice(78900)}</div>
           <div className={`${styles.metricSubtext} ${styles.subtextInfo}`}>
             Hardware Gateways, Sensors & Onboarding
           </div>
@@ -80,7 +82,7 @@ export default function BillingModule({
 
         <div className={styles.cardMetric}>
           <div className={styles.metricTitle}>Annual Recurring Revenue (ARR)</div>
-          <div className={styles.metricValue}>$27,000.00 / yr</div>
+          <div className={styles.metricValue}>{formatPrice(27000)} / yr</div>
           <div className={`${styles.metricSubtext} ${styles.subtextSuccess}`}>
             DealFlow Enterprise SaaS License
           </div>
@@ -88,7 +90,7 @@ export default function BillingModule({
 
         <div className={styles.cardMetric}>
           <div className={styles.metricTitle}>Total Initial Invoice</div>
-          <div className={styles.metricValue}>$105,900.00</div>
+          <div className={styles.metricValue}>{formatPrice(105900)}</div>
           <div className={`${styles.metricSubtext} ${styles.subtextInfo}`}>
             Due Net-30 upon hardware arrival
           </div>
@@ -143,32 +145,32 @@ export default function BillingModule({
                 <td><span className={styles.badgeDraft}>Hardware</span></td>
                 <td>One-Time Immediate</td>
                 <td>40 units</td>
-                <td>$975.00</td>
-                <td style={{ textAlign: 'right' }}><strong>$39,000.00</strong></td>
+                <td>{formatPrice(975)}</td>
+                <td style={{ textAlign: 'right' }}><strong>{formatPrice(39000)}</strong></td>
               </tr>
               <tr>
                 <td><strong>Industrial IoT Telemetry Sensor</strong></td>
                 <td><span className={styles.badgeDraft}>Hardware</span></td>
                 <td>One-Time Immediate</td>
                 <td>200 units</td>
-                <td>$204.00</td>
-                <td style={{ textAlign: 'right' }}><strong>$40,800.00</strong></td>
+                <td>{formatPrice(204)}</td>
+                <td style={{ textAlign: 'right' }}><strong>{formatPrice(40800)}</strong></td>
               </tr>
               <tr>
                 <td><strong>Turnkey Enterprise Onboarding</strong></td>
                 <td><span className={styles.badgeDraft}>Services</span></td>
                 <td>Milestone Completion</td>
                 <td>1 package</td>
-                <td>$8,500.00</td>
-                <td style={{ textAlign: 'right' }}><strong>$8,500.00</strong></td>
+                <td>{formatPrice(8500)}</td>
+                <td style={{ textAlign: 'right' }}><strong>{formatPrice(8500)}</strong></td>
               </tr>
               <tr style={{ background: '#f8fafc' }}>
                 <td><strong>DealFlow Platform SaaS</strong></td>
                 <td><span className={styles.badgeApproved}>Software Subscription</span></td>
                 <td>Annual Prepaid (Recurring)</td>
                 <td>1 yr</td>
-                <td>$27,000.00</td>
-                <td style={{ textAlign: 'right' }}><strong>$27,000.00</strong></td>
+                <td>{formatPrice(27000)}</td>
+                <td style={{ textAlign: 'right' }}><strong>{formatPrice(27000)}</strong></td>
               </tr>
             </tbody>
           </table>

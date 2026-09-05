@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react'
 import styles from './CustomerPortalWireframe.module.css'
-import { Quotation, ActiveModule, UserSession } from './types'
+import { Quotation, ActiveModule, UserSession, QuotationLineItem, QuotationRecommendedItem } from './types'
 import { exportQuotationPDF } from '../lib/pdfGenerator'
+import { useCurrency } from '@/context/CurrencyContext'
+import ChatModule from './ChatModule'
 
 interface CustomerPortalProps {
   quotation: Quotation
@@ -30,9 +32,99 @@ export default function CustomerPortalModule({
   user,
   onRecordAudit,
 }: CustomerPortalProps) {
+  const { formatPrice } = useCurrency()
   const repName = quotation?.salesRep || 'Your Sales Rep'
   const repEmail = quotation?.salesRepEmail || ''
   const managerName = quotation?.reportingManager || ''
+
+  const proposalTotal = quotation?.items && quotation.items.length > 0
+    ? quotation.items.reduce((s, it) => s + it.qty * it.unitPrice * (1 - (it.discountPct || 0) / 100), 0)
+    : 0
+
+  // Optional recommendations attached by the Sales Representative
+  const [recommendedItems, setRecommendedItems] = useState<QuotationRecommendedItem[]>(() => {
+    return quotation?.recommendedItems || []
+  })
+
+  React.useEffect(() => {
+    if (quotation?.recommendedItems) {
+      setRecommendedItems(quotation.recommendedItems)
+    }
+  }, [quotation?.id, quotation?.recommendedItems])
+
+  function handleAddRecommendedToOrder(rec: QuotationRecommendedItem) {
+    const existingItems = quotation?.items || []
+    const isAlreadyInOrder = existingItems.some(it => it.productId === rec.productId)
+    if (isAlreadyInOrder) {
+      onShowToast(`${rec.name} is already in your order.`)
+      return
+    }
+
+    const newLineItem: QuotationLineItem = {
+      id: `line-${rec.productId}-${Date.now()}`,
+      productId: rec.productId,
+      name: rec.name,
+      category: (rec.category as any) || (rec.type === 'UPSELL' ? 'Hardware' : 'Services'),
+      type: 'one_time',
+      qty: 1,
+      unitPrice: rec.unitPrice,
+      discountPct: rec.discountPct || 0,
+      costPrice: rec.costPrice,
+    }
+
+    const updatedItems = [...existingItems, newLineItem]
+    const updatedRecs = (quotation.recommendedItems || recommendedItems).map(r =>
+      r.productId === rec.productId ? { ...r, customerAccepted: true } : r
+    )
+
+    setRecommendedItems(updatedRecs)
+
+    const updatedQuotation: Quotation = {
+      ...quotation,
+      items: updatedItems,
+      recommendedItems: updatedRecs,
+    }
+
+    onUpdateQuotation(updatedQuotation)
+
+    onRecordAudit?.({
+      user: customerDisplayName,
+      role: 'customer',
+      action: 'CUSTOMER_ACCEPTED',
+      quotationId: quotation.id,
+      details: `Customer added recommended add-on "${rec.name}" to quotation ${quotation.id}.`,
+    })
+
+    onShowToast(`Added ${rec.name} to your order! Proposal total updated.`)
+  }
+
+  function handleRemoveRecommendedFromOrder(rec: QuotationRecommendedItem) {
+    const existingItems = quotation?.items || []
+    const updatedItems = existingItems.filter(it => it.productId !== rec.productId)
+    const updatedRecs = (quotation.recommendedItems || recommendedItems).map(r =>
+      r.productId === rec.productId ? { ...r, customerAccepted: false } : r
+    )
+
+    setRecommendedItems(updatedRecs)
+
+    const updatedQuotation: Quotation = {
+      ...quotation,
+      items: updatedItems,
+      recommendedItems: updatedRecs,
+    }
+
+    onUpdateQuotation(updatedQuotation)
+
+    onRecordAudit?.({
+      user: customerDisplayName,
+      role: 'customer',
+      action: 'CUSTOMER_PROPOSAL',
+      quotationId: quotation.id,
+      details: `Customer removed recommendation "${rec.name}" from quotation ${quotation.id}.`,
+    })
+
+    onShowToast(`Removed ${rec.name} from order.`)
+  }
 
   // Negotiation items matching wireframe or live quotation items
   const [lines, setLines] = useState<NegotiationLine[]>(() => {
@@ -146,7 +238,7 @@ export default function CustomerPortalModule({
           <div>
             <h1 className={styles.title}>Messages &amp; Direct Communication</h1>
             <p className={styles.subtitle}>
-              Direct negotiation channel with your dedicated Sales Representative
+              Live WhatsApp-style messaging, quotation document sharing, and negotiation channel with your dedicated representative
             </p>
           </div>
           <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '8px 16px', borderRadius: 10 }}>
@@ -156,35 +248,17 @@ export default function CustomerPortalModule({
           </div>
         </div>
 
-        <div className={styles.cardBox}>
-          <div className={styles.chatMessages}>
-            {messages.map((m, i) => (
-              <div
-                key={i}
-                className={m.isCustomer ? styles.chatBubbleCustomer : styles.chatBubbleRep}
-              >
-                <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.8, marginBottom: 4 }}>
-                  {m.sender} • {m.time}
-                </div>
-                <div>{m.text}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className={styles.chatInputRow}>
-            <input
-              type="text"
-              className={styles.chatInput}
-              placeholder={`Type a direct message to ${repName}...`}
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-            />
-            <button className={styles.btnSend} onClick={handleSendMessage}>
-              Send to Rep
-            </button>
-          </div>
-        </div>
+        <ChatModule
+          currentUser={
+            user || {
+              email: 'customer1@acme.demo',
+              fullName: customerDisplayName,
+              role: 'customer',
+            }
+          }
+          onShowToast={onShowToast}
+          initialRecipientEmail={repEmail}
+        />
       </div>
     )
   }
@@ -264,7 +338,7 @@ export default function CustomerPortalModule({
 
       {/* ── Status Pill ───────────────────────────────────── */}
       <div className={styles.statusBadge}>
-        Status: {negotiationStatus}
+        Status: {negotiationStatus} • Total Value: {formatPrice(proposalTotal)}
       </div>
 
       {/* ── Negotiation Items Table ───────────────────────── */}
@@ -299,6 +373,87 @@ export default function CustomerPortalModule({
           </tbody>
         </table>
       </div>
+
+      {/* ── Optional Recommendations Attached by Sales Rep ────────────── */}
+      {recommendedItems.length > 0 && (
+        <div className={styles.recommendationsCard}>
+          <div className={styles.recSectionHeader}>
+            <div>
+              <div className={styles.recSectionTitle}>
+                <span>💡</span> Recommended Add-Ons by Your Sales Representative ({repName})
+              </div>
+              <div className={styles.recSectionSubtitle}>
+                Your representative suggested these optional items based on your selected solution. You may add them to your order below.
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.portalRecGrid}>
+            {recommendedItems.map(rec => {
+              const isAccepted =
+                Boolean(rec.customerAccepted) ||
+                (quotation.items || []).some(it => String(it.productId) === String(rec.productId))
+
+              return (
+                <div key={rec.id} className={styles.portalRecCard}>
+                  <div>
+                    <div className={styles.portalRecTop}>
+                      <div>
+                        <div className={styles.portalRecTitle}>{rec.name}</div>
+                        <span
+                          className={
+                            rec.type === 'UPSELL'
+                              ? `${styles.portalRecBadge} ${styles.portalRecBadgeUpsell}`
+                              : `${styles.portalRecBadge} ${styles.portalRecBadgeCross}`
+                          }
+                        >
+                          {rec.type === 'UPSELL' ? 'Higher-tier Alternative' : 'Suggested Complement'}
+                        </span>
+                      </div>
+                      <div className={styles.portalRecPrice}>
+                        {formatPrice(rec.unitPrice)}
+                      </div>
+                    </div>
+
+                    <div className={styles.portalRecReasons} style={{ marginTop: 12 }}>
+                      <div className={styles.portalRecReasonHeader}>
+                        <span>⭐</span> Rep&apos;s Recommendation Rationale:
+                      </div>
+                      <div>{rec.reason}</div>
+                    </div>
+                  </div>
+
+                  <div className={styles.portalRecActions}>
+                    {isAccepted ? (
+                      <div className={styles.btnAddedWrap}>
+                        <span className={styles.btnAddedOrder}>
+                          ✓ Included in Your Order
+                        </span>
+                        <button
+                          type="button"
+                          className={styles.btnRemoveOrder}
+                          onClick={() => handleRemoveRecommendedFromOrder(rec)}
+                          title="Remove from your order"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.btnAddOrder}
+                        onClick={() => handleAddRecommendedToOrder(rec)}
+                      >
+                        ＋ Add to My Order
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── Counter Discount & Delivery Date Inputs ───────── */}
       <div className={styles.inputsRow}>
