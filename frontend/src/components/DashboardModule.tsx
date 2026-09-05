@@ -107,14 +107,14 @@ export default function DashboardModule({
     )
   }
 
-  /* ── 2. Customer Dashboard ──────────────────────────────── */
-  if (role === 'customer') {
+  /* ── 2. Customer / Standard User Dashboard ─────────────── */
+  if (role === 'customer' || role === 'user') {
     return (
       <div className={styles.canvas}>
         <div className={styles.header}>
-          <h1 className={styles.title}>Customer Portal Dashboard</h1>
+          <h1 className={styles.title}>{role === 'user' ? 'User Portal Dashboard' : 'Customer Portal Dashboard'}</h1>
           <p className={styles.subtitle}>
-            Welcome {user?.companyName || 'Acme Corp'}. Review your active quotation, counter-offers, and negotiation terms
+            Welcome {user?.fullName || user?.companyName || 'User'}. Review your active quotation, proposals, and deal communications
           </p>
         </div>
 

@@ -8,56 +8,80 @@
 
 ```
 dealflow360/
-├── frontend/               React + TypeScript + Vite (UI)
+├── frontend/               Next.js 16 (App Router) + TypeScript + Vanilla CSS Modules
 │   └── src/
-│       ├── pages/          Page-level components
-│       ├── components/     Reusable UI components
-│       └── ...
+│       ├── app/            Next.js App Router (layout & page entry points)
+│       ├── components/     Enterprise UI modules (Admin, Sales, Dashboard, Invoices, Subscriptions)
+│       └── lib/            API client and state helpers
 │
-├── backend/                Python + FastAPI (API)
+├── backend/                Python 3.12 + FastAPI
 │   └── app/
-│       ├── main.py         FastAPI entry point
-│       ├── core/           Config, DB, Security
-│       ├── api/v1/         REST API routes
+│       ├── main.py         FastAPI entry point & routers
+│       ├── core/           Database (SQLAlchemy), Security & Config
+│       ├── api/v1/         REST API endpoints (Auth, Users, Quotations, Invoices, etc.)
 │       ├── models/         SQLAlchemy ORM models
 │       ├── schemas/        Pydantic request/response schemas
-│       ├── services/       Business logic (deterministic)
-│       ├── ai/             ML recommendations + LLM layer
-│       └── utils/          Email, audit trail helpers
+│       ├── services/       Deterministic business logic
+│       ├── ai/             ML recommendations & anomaly detection
+│       └── utils/          Email (Resend) & notification helpers
 │
-└── memory.md               Project decisions and architecture notes
+└── memory.md               Architecture specifications and design guidelines
 ```
 
 ---
 
 ## Quick Start (Local Development)
 
-### 1. Backend
+### 1. Prerequisites
+- **Python 3.10+** (Python 3.12 recommended)
+- **Node.js 18+** & `npm`
+- **PostgreSQL 15+** (optional: pgvector enabled)
+
+---
+
+### 2. Backend Setup
 
 ```bash
 cd backend
-cp .env.example .env
-# Fill in .env values
+
+# Create & activate virtual environment
+# On Windows (PowerShell):
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+
+# On Linux/macOS:
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
-uvicorn app.main:app --reload
-# API: http://localhost:8000
-# Docs: http://localhost:8000/docs
+
+# Configure environment variables
+# Copy .env.example to .env and configure DATABASE_URL and RESEND_API_KEY
+cp .env.example .env
+
+# Run FastAPI development server
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-### 2. Frontend
+- **API Endpoint:** `http://localhost:8000`
+- **Interactive Swagger Docs:** `http://localhost:8000/docs`
+
+---
+
+### 3. Frontend Setup
 
 ```bash
 cd frontend
+
+# Install Node dependencies
 npm install
+
+# Run Next.js development server
 npm run dev
-# App: http://localhost:5173
 ```
 
-### 3. Docker (full stack)
-
-```bash
-docker-compose up
-```
+- **Web Application:** `http://localhost:3000`
 
 ---
 
@@ -65,33 +89,34 @@ docker-compose up
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | Next.js 16 (App Router) + TypeScript |
-| Styling | Vanilla CSS Modules |
-| Backend | Python 3.12 + FastAPI |
-| Database | PostgreSQL 16 + pgvector |
-| Auth | JWT (python-jose) + bcrypt |
-| Email | Resend (dev) → Postmark (prod) |
-| AI/ML | scikit-learn + OpenAI API |
-| Infrastructure | Docker + Docker Compose |
+| **Frontend** | Next.js 16 (App Router) + React 19 + TypeScript |
+| **Styling** | Premium Vanilla CSS Modules (Glassmorphism & Dark Mode) |
+| **Backend** | Python 3.12 + FastAPI + Uvicorn |
+| **Database** | PostgreSQL + SQLAlchemy ORM + asyncpg / psycopg2 |
+| **Auth & Security** | JWT (`python-jose`) + password hashing (`passlib`/`bcrypt`) |
+| **Email Service** | [Resend](https://resend.com) API for transactional emails |
+| **Data & Analytics**| scikit-learn + pandas + numpy |
 
 ---
 
-## SMTP
+## User Roles & Permissions
 
-- **Development:** [Resend](https://resend.com) — free tier, 3,000 emails/month
-- **Production:** [Postmark](https://postmarkapp.com) — best deliverability for transactional email
-
-Configure `RESEND_API_KEY` in `.env`.
+| Role | Access Level | Onboarding Flow |
+|------|-------------|-----------------|
+| **Admin** | Full system control, role provisioning, user directory, system configuration | Initial Admin / Admin Invite |
+| **Sales Manager** | High-tier approvals, team performance, quotes & pipeline analytics | Admin invites |
+| **Sales Rep** | Quotation builder, discounts, catalog, Kanban pipeline | Admin invites |
+| **Finance / Ops** | Invoicing, payments, fulfillment tracking, margin audits | Admin invites |
+| **Customer** | Customer self-service portal, quotation acceptance & status | Direct self-signup |
 
 ---
 
-## Roles
+## Environment Variables (`backend/.env`)
 
-| Role | Access | Onboarding |
-|------|--------|-----------|
-| Admin | Full internal app | Existing Admin invites |
-| Sales Manager | Internal app | Admin invites |
-| Finance / Ops | Internal app | Admin invites |
-| Sales Rep | Internal app | Admin invites |
-| Customer | Portal only | Self-signup |
-
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://postgres:postgres@localhost:5432/dealflow360` |
+| `SECRET_KEY` | JWT secret signing key | Generated secret string |
+| `RESEND_API_KEY` | Resend API key for verification emails | `re_...` |
+| `EMAIL_FROM` | Sender address for verification & notifications | `onboarding@resend.dev` |
+| `FRONTEND_URL` | Frontend origin for CORS and email links | `http://localhost:3000` |

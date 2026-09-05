@@ -3,17 +3,14 @@
 import { useState } from 'react'
 import styles from './Dashboard.module.css'
 
-export interface UserSession {
-  email: string
-  fullName: string
-  role: 'admin' | 'sales_rep' | 'sales_manager' | 'customer'
-  companyName?: string
-}
+import { UserRole, UserSession } from './types'
+
+export type { UserSession }
 
 interface DashboardProps {
   user: UserSession
   onLogout: () => void
-  onSwitchRole: (newRole: UserSession['role']) => void
+  onSwitchRole: (newRole: UserRole) => void
 }
 
 export default function Dashboard({ user, onLogout, onSwitchRole }: DashboardProps) {
@@ -110,14 +107,18 @@ export default function Dashboard({ user, onLogout, onSwitchRole }: DashboardPro
     admin: 'Administrator',
     sales_manager: 'Sales Manager',
     sales_rep: 'Sales Representative',
+    finance: 'Financial Officer',
     customer: 'Customer Portal',
+    user: 'Standard User',
   }
 
   const badgeClassMap: Record<UserSession['role'], string> = {
     admin: styles.roleBadgeAdmin,
     sales_manager: styles.roleBadgeSales,
     sales_rep: styles.roleBadgeSales,
+    finance: styles.roleBadgeSales,
     customer: styles.roleBadgeCustomer,
+    user: styles.roleBadgeCustomer,
   }
 
   return (

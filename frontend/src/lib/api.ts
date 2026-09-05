@@ -97,6 +97,16 @@ export async function registerCustomer(payload: {
   success: boolean
   email: string
   message: string
+  access_token?: string
+  token_type?: string
+  user?: {
+    id: number
+    name: string
+    email: string
+    role: UserRole
+    status: string
+    company_name?: string
+  }
   mail_status?: {
     success: boolean
     error?: string
@@ -278,24 +288,61 @@ export async function updateQuotationLive(
 }
 
 /**
- * Process quotation approval decision
+ * Provision role access and dispatch credentials email from Admin
  */
-export async function submitApprovalAction(
-  approvalId: number,
-  action: 'APPROVE' | 'REJECT',
-  comments?: string
-): Promise<boolean> {
-  try {
-    const res = await fetch(`${API_BASE}/api/v1/workspace/approvals/${approvalId}/action`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, comments }),
-    })
-    return res.ok
-  } catch (err) {
-    console.warn('Backend offline, approval recorded locally.')
-    return false
+export async function provisionUserFromAdmin(payload: {
+  name: string
+  email: string
+  role: UserRole
+  company_name?: string
+  password?: string
+}): Promise<{
+  success: boolean
+  action: string
+  user: any
+  credentials: { email: string; password: string }
+  mail_status: { success: boolean; error?: string; to?: string }
+  message: string
+}> {
+  const res = await fetch(`${API_BASE}/api/v1/users/provision`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  const data = await res.json()
+  if (!res.ok) {
+    throw new Error(data.detail || data.message || 'Provisioning failed.')
   }
+  return data
+}
+
+/**
+ * Dispatch an executive direct message email from Admin Console
+ */
+export async function sendDirectAdminMessage(payload: {
+  recipient_name: string
+  recipient_email: string
+  subject: string
+  message: string
+  priority?: string
+  sender_name?: string
+}): Promise<{
+  success: boolean
+  recipient: string
+  subject: string
+  mail_status: { success: boolean; error?: string }
+  message: string
+}> {
+  const res = await fetch(`${API_BASE}/api/v1/users/send-message`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  const data = await res.json()
+  if (!res.ok) {
+    throw new Error(data.detail || data.message || 'Failed to dispatch message email.')
+  }
+  return data
 }
 
 /**

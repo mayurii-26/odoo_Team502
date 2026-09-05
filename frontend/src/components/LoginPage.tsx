@@ -49,6 +49,14 @@ export const DEMO_ACCOUNTS = [
     companyName: 'DealFlow360 Finance',
     label: 'Financial Officer',
   },
+  {
+    email: 'user@dealflow360.com',
+    password: 'password123',
+    fullName: 'Alex User',
+    role: 'user' as const,
+    companyName: 'DealFlow360 User',
+    label: 'User',
+  },
 ]
 
 /* ── DealFlow360 Official Brand Logo ──────────────────────────────── */
@@ -238,21 +246,67 @@ export default function LoginPage() {
       const saved = localStorage.getItem('dealflow_active_user')
       if (saved) {
         const parsed = JSON.parse(saved)
-        parsed.role = 'sales_rep'
-        parsed.fullName = parsed.fullName && !parsed.fullName.includes('Sarah') ? parsed.fullName : 'Jane Smith'
-        parsed.email = 'sales@dealflow360.com'
-        setCurrentUser(parsed)
-        localStorage.setItem('dealflow_active_user', JSON.stringify(parsed))
+        if (parsed && parsed.email && parsed.role) {
+          if (typeof window !== 'undefined') {
+            const savedModule = localStorage.getItem('dealflow_active_module') || 'dashboard'
+            window.history.replaceState({ loggedIn: false, view: 'login' }, '', window.location.pathname)
+            window.history.pushState({ loggedIn: true, view: 'app', module: savedModule }, '', window.location.pathname)
+          }
+          setCurrentUser(parsed)
+        }
+      } else {
+        if (typeof window !== 'undefined' && !window.history.state) {
+          window.history.replaceState({ loggedIn: false, view: 'login' }, '', window.location.pathname)
+        }
       }
     } catch {
       // ignore
     }
   }, [])
 
+  // Listen for browser Back/Forward navigation
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const handlePopState = (event: PopStateEvent) => {
+      const state = event.state
+      if (!state || !state.loggedIn) {
+        if (currentUser) {
+          setCurrentUser(null)
+          try {
+            localStorage.removeItem('dealflow_active_user')
+            localStorage.removeItem('dealflow_active_module')
+          } catch {}
+        }
+        if (state?.view === 'signup') {
+          setMode('signup')
+        } else {
+          setMode('login')
+        }
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [currentUser])
+
+  function switchAuthMode(newMode: 'login' | 'signup') {
+    setMode(newMode)
+    setError('')
+    setVerificationSent(null)
+    if (typeof window !== 'undefined') {
+      window.history.pushState({ loggedIn: false, view: newMode }, '', window.location.pathname)
+    }
+  }
+
   function handleLoginSuccess(user: UserSession) {
     setCurrentUser(user)
     try {
       localStorage.setItem('dealflow_active_user', JSON.stringify(user))
+      if (typeof window !== 'undefined') {
+        const savedModule = localStorage.getItem('dealflow_active_module') || 'dashboard'
+        window.history.pushState({ loggedIn: true, view: 'app', module: savedModule }, '', window.location.pathname)
+      }
     } catch {}
   }
 
@@ -260,6 +314,10 @@ export default function LoginPage() {
     setCurrentUser(null)
     try {
       localStorage.removeItem('dealflow_active_user')
+      localStorage.removeItem('dealflow_active_module')
+      if (typeof window !== 'undefined') {
+        window.history.replaceState({ loggedIn: false, view: 'login' }, '', window.location.pathname)
+      }
     } catch {}
   }
 
@@ -340,6 +398,17 @@ export default function LoginPage() {
         full_name: suName.trim(),
         company_name: suCompany.trim(),
       })
+
+      if (res.user || res.access_token || res.success) {
+        handleLoginSuccess({
+          email: res.user?.email || suEmail.trim(),
+          fullName: res.user?.name || suName.trim(),
+          role: 'user',
+          companyName: res.user?.company_name || suCompany.trim() || 'DealFlow360',
+        })
+        return
+      }
+
       setVerificationSent({
         email: suEmail.trim(),
         url: res.verification_url || res.mail_status?.verification_url,
@@ -511,11 +580,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   className={styles.switchModeBtn}
-                  onClick={() => {
-                    setMode('signup')
-                    setError('')
-                    setVerificationSent(null)
-                  }}
+                  onClick={() => switchAuthMode('signup')}
                 >
                   Sign up
                 </button>
@@ -696,10 +761,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   className={styles.switchModeBtn}
-                  onClick={() => {
-                    setMode('login')
-                    setError('')
-                  }}
+                  onClick={() => switchAuthMode('login')}
                 >
                   Sign in
                 </button>

@@ -231,9 +231,9 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false)
 
   // Role permissions
-  const role = user.role || 'sales_rep'
+  const role = user.role || 'user'
   const isAdmin = role === 'admin'
-  const isCustomer = role === 'customer'
+  const isCustomer = role === 'customer' || role === 'user'
   const isFinance = role === 'finance'
   const isSalesManager = role === 'sales_manager'
   const isSalesRep = role === 'sales_rep'
@@ -256,8 +256,53 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
     return 'DRAFT'
   }
 
-  // Active view: Defaults according to role
-  const [activeModule, setActiveModule] = useState<ActiveModule>('dashboard')
+  // Determine if a given module is accessible for this role
+  function isModuleAllowedForRole(mod: ActiveModule, userRole: UserRole): boolean {
+    if (userRole === 'customer' || userRole === 'user') {
+      return ['dashboard', 'customer_portal', 'messages', 'profile'].includes(mod)
+    }
+    if (userRole === 'finance') {
+      return ['dashboard', 'approvals', 'fulfillment', 'invoices', 'billing', 'messages'].includes(mod)
+    }
+    if (userRole === 'sales_manager') {
+      return ['dashboard', 'approvals', 'deal_health', 'messages'].includes(mod)
+    }
+    if (userRole === 'admin') {
+      return [
+        'dashboard', 'admin_access', 'admin_messages', 'admin_directory', 'admin_recommendations',
+        'governance', 'users', 'quotations', 'builder', 'reports', 'deal_health', 'catalog'
+      ].includes(mod)
+    }
+    // sales_rep and default
+    return [
+      'dashboard', 'quotations', 'builder', 'approvals', 'fulfillment',
+      'subscriptions', 'invoices', 'billing', 'deal_health', 'reports', 'catalog'
+    ].includes(mod)
+  }
+
+  // Active view: Defaults according to role and restored from localStorage if valid
+  const [activeModule, setActiveModule] = useState<ActiveModule>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('dealflow_active_module') as ActiveModule | null
+        if (saved && isModuleAllowedForRole(saved, user.role)) {
+          return saved
+        }
+      } catch {}
+    }
+    return 'dashboard'
+  })
+
+  // Ensure activeModule is synchronized when user role changes or if invalid
+  useEffect(() => {
+    if (!isModuleAllowedForRole(activeModule, user.role)) {
+      setActiveModule('dashboard')
+      try {
+        localStorage.setItem('dealflow_active_module', 'dashboard')
+      } catch {}
+    }
+  }, [user.role])
+
   const [selectedQuotationId, setSelectedQuotationId] = useState<string>('Q-1042')
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
@@ -266,9 +311,37 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
     setTimeout(() => setToastMessage(null), 3500)
   }
 
-  function handleNavigateModule(mod: ActiveModule) {
+  function handleNavigateModule(mod: ActiveModule, pushHistory = true) {
     setActiveModule(mod)
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('dealflow_active_module', mod)
+        if (pushHistory) {
+          window.history.pushState({ loggedIn: true, module: mod, view: 'app' }, '', window.location.pathname)
+        }
+      } catch {}
+    }
   }
+
+  // Handle browser back / forward navigation within modules while logged in
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const handleModulePopState = (event: PopStateEvent) => {
+      const state = event.state
+      if (state && state.loggedIn && state.module) {
+        if (isModuleAllowedForRole(state.module, user.role)) {
+          setActiveModule(state.module)
+          try {
+            localStorage.setItem('dealflow_active_module', state.module)
+          } catch {}
+        }
+      }
+    }
+
+    window.addEventListener('popstate', handleModulePopState)
+    return () => window.removeEventListener('popstate', handleModulePopState)
+  }, [user.role])
 
   // Fetch live PostgreSQL database data on mount
   async function loadDatabaseData(isManual = false) {
@@ -449,6 +522,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
     sales_manager: 'Sales Manager',
     finance: 'Financial Officer',
     customer: 'Customer',
+    user: 'User',
   }
 
   const pendingApprovalsCount = quotations.filter(q => q.status === 'Under Review').length
@@ -912,10 +986,11 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
                 const newRole = e.target.value as UserRole
                 onSwitchRole(newRole)
                 showToast(`Switched view to ${roleLabelMap[newRole]}`)
-                setActiveModule('dashboard')
+                handleNavigateModule('dashboard')
               }}
               title="Switch user perspective"
             >
+              <option value="user">User</option>
               <option value="sales_rep">Sales Representative</option>
               <option value="finance">Financial Officer</option>
               <option value="sales_manager">Sales Manager</option>

@@ -2,7 +2,7 @@
 // DealFlow360 — Global Domain Types
 // ============================================================
 
-export type UserRole = 'admin' | 'sales_rep' | 'sales_manager' | 'finance' | 'customer'
+export type UserRole = 'admin' | 'sales_rep' | 'sales_manager' | 'finance' | 'customer' | 'user'
 
 export interface UserSession {
   email: string
