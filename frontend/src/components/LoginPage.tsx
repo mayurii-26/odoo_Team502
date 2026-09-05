@@ -5,6 +5,7 @@ import styles from './LoginPage.module.css'
 import AppShell from './AppShell'
 import { UserSession, UserRole } from './types'
 import { IconEye, IconEyeOff } from './Icons'
+import { registerCustomer, resendVerification, verifyEmailToken, loginUser } from '@/lib/api'
 
 /* ── Pre-configured Demo Test Accounts (Clean - No Icons) ─────────── */
 export const DEMO_ACCOUNTS = [
@@ -179,11 +180,44 @@ export default function LoginPage() {
   const [suConfirmPassword, setSuConfirmPassword] = useState('')
   const [suShowPassword, setSuShowPassword] = useState(false)
 
+  // Verification states
+  const [verificationSent, setVerificationSent] = useState<{
+    email: string
+    url?: string
+    token?: string
+    mailSuccess: boolean
+    error?: string
+  } | null>(null)
+  const [verificationSuccess, setVerificationSuccess] = useState<string | null>(null)
+
   // Carousel state
   const [currentSlide, setCurrentSlide] = useState(0)
 
   useEffect(() => {
     setIsClient(true)
+
+    // 1. Check for verification token in URL
+    try {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search)
+        const vToken = params.get('verify_token')
+        const vEmail = params.get('email')
+        if (vToken) {
+          verifyEmailToken(vToken)
+            .then(res => {
+              setVerificationSuccess(res.message || 'Email verified successfully! You may now sign in.')
+              setMode('login')
+              if (vEmail) setEmail(vEmail)
+              window.history.replaceState({}, document.title, window.location.pathname)
+            })
+            .catch(err => {
+              setError(err.message || 'Verification link expired or invalid.')
+            })
+        }
+      }
+    } catch {}
+
+    // 2. Restore active session
     try {
       const saved = localStorage.getItem('dealflow_active_user')
       if (saved) {
@@ -228,6 +262,7 @@ export default function LoginPage() {
     setPassword(acc.password)
     setActiveRole(acc.role)
     setError('')
+    setVerificationSuccess(null)
   }
 
   // "Change" button action: cycles through demo accounts
@@ -239,101 +274,33 @@ export default function LoginPage() {
     selectDemoAccount(nextAcc)
   }
 
-  function handleLoginSubmit(e: React.FormEvent) {
+  async function handleLoginSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!email || !password) {
       setError('Please fill in all fields.')
       return
     }
     setError('')
+    setVerificationSuccess(null)
     setLoading(true)
 
-    setTimeout(() => {
+    try {
+      // Authenticate via live backend API
+      const res = await loginUser({ email: email.trim(), password })
+      handleLoginSuccess({
+        email: res.email,
+        fullName: res.fullName || res.full_name || 'Jane Smith',
+        role: res.role,
+        companyName: res.companyName || res.company_name || 'DealFlow360',
+      })
+    } catch (err: any) {
+      setError(err.message || 'Invalid credentials. Select a demo account below.')
+    } finally {
       setLoading(false)
-      const cleanEmail = email.trim().toLowerCase()
-
-      // 1. Check predefined demo accounts
-      const matchedDemo = DEMO_ACCOUNTS.find(
-        a => a.email.toLowerCase() === cleanEmail
-      )
-      if (matchedDemo) {
-        if (password === matchedDemo.password || password === 'password123') {
-          handleLoginSuccess({
-            email: matchedDemo.email,
-            fullName: matchedDemo.fullName,
-            role: matchedDemo.role,
-            companyName: matchedDemo.companyName,
-          })
-          return
-        } else {
-          setError(`Incorrect password for ${matchedDemo.email}. Demo password is: password123`)
-          return
-        }
-      }
-
-      // 2. Check local custom registered accounts
-      try {
-        const stored = localStorage.getItem('dealflow_registered_users')
-        if (stored) {
-          const customUsers = JSON.parse(stored) as Array<{
-            email: string
-            password: string
-            fullName: string
-            companyName: string
-          }>
-          const matchedUser = customUsers.find(u => u.email.toLowerCase() === cleanEmail)
-          if (matchedUser) {
-            if (matchedUser.password === password) {
-              handleLoginSuccess({
-                email: matchedUser.email,
-                fullName: matchedUser.fullName,
-                role: 'customer',
-                companyName: matchedUser.companyName,
-              })
-              return
-            } else {
-              setError('Incorrect password for this account.')
-              return
-            }
-          }
-        }
-      } catch {}
-
-      // 3. Arbitrary email fallback
-      if (cleanEmail.includes('@') && password.length >= 6) {
-        const isAdmin = cleanEmail.includes('admin')
-        const isCustomer = cleanEmail.includes('customer') || cleanEmail.includes('acme')
-        const isFinance = cleanEmail.includes('finance')
-        const isManager = cleanEmail.includes('manager')
-
-        const role: UserRole = isAdmin
-          ? 'admin'
-          : isCustomer
-          ? 'customer'
-          : isFinance
-          ? 'finance'
-          : isManager
-          ? 'sales_manager'
-          : 'sales_rep'
-
-        handleLoginSuccess({
-          email: cleanEmail,
-          fullName: isAdmin
-            ? 'Sarah Connor'
-            : isCustomer
-            ? 'John Davis (rk)'
-            : cleanEmail.split('@')[0],
-          role,
-          companyName: isCustomer ? 'Acme Corp' : 'DealFlow360 HQ',
-        })
-        return
-      }
-
-      setError('Invalid credentials. Select a demo account below.')
-    }, 400)
+    }
   }
 
-  function handleSignupSubmit(e: React.FormEvent) {
+  async function handleSignupSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!suName || !suCompany || !suEmail || !suPassword || !suConfirmPassword) {
       setError('Please fill in all fields.')
@@ -350,29 +317,63 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
 
-    setTimeout(() => {
+    try {
+      const res = await registerCustomer({
+        email: suEmail.trim(),
+        password: suPassword,
+        full_name: suName.trim(),
+        company_name: suCompany.trim(),
+      })
+      setVerificationSent({
+        email: suEmail.trim(),
+        url: res.verification_url || res.mail_status?.verification_url,
+        token: res.mail_status?.token,
+        mailSuccess: res.mail_status?.success ?? true,
+        error: res.mail_status?.error,
+      })
+    } catch (err: any) {
+      setError(err.message || 'Registration failed.')
+    } finally {
       setLoading(false)
-      const newUser: UserSession = {
-        email: suEmail.trim().toLowerCase(),
-        fullName: suName.trim(),
-        role: 'customer',
-        companyName: suCompany.trim(),
-      }
+    }
+  }
 
-      try {
-        const stored = localStorage.getItem('dealflow_registered_users')
-        const list = stored ? JSON.parse(stored) : []
-        list.push({
-          email: suEmail.trim().toLowerCase(),
-          fullName: suName.trim(),
-          companyName: suCompany.trim(),
-          password: suPassword,
-        })
-        localStorage.setItem('dealflow_registered_users', JSON.stringify(list))
-      } catch {}
+  async function handleResendVerification() {
+    if (!verificationSent?.email) return
+    setLoading(true)
+    setError('')
+    try {
+      const res = await resendVerification(verificationSent.email)
+      setVerificationSent({
+        email: verificationSent.email,
+        url: res.verification_url || res.mail_status?.verification_url,
+        token: res.mail_status?.token,
+        mailSuccess: res.mail_status?.success ?? true,
+        error: res.mail_status?.error,
+      })
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend verification link.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
-      handleLoginSuccess(newUser)
-    }, 450)
+  async function handleDirectVerify() {
+    const token = verificationSent?.token
+    if (!token) return
+    setLoading(true)
+    setError('')
+    try {
+      const res = await verifyEmailToken(token)
+      setVerificationSent(null)
+      setVerificationSuccess(res.message || 'Email verified successfully! You may now sign in.')
+      setMode('login')
+      setEmail(verificationSent.email)
+    } catch (err: any) {
+      setError(err.message || 'Failed to activate account.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Prevent SSR hydration mismatch
@@ -412,6 +413,13 @@ export default function LoginPage() {
           {mode === 'login' ? (
             /* ── Login Mode ── */
             <form className={styles.form} onSubmit={handleLoginSubmit} noValidate>
+              {verificationSuccess && (
+                <div className={styles.successBox} role="alert">
+                  <span>✓</span>
+                  <span>{verificationSuccess}</span>
+                </div>
+              )}
+
               {error && (
                 <div className={styles.errorBox} role="alert">
                   {error}
@@ -490,6 +498,7 @@ export default function LoginPage() {
                   onClick={() => {
                     setMode('signup')
                     setError('')
+                    setVerificationSent(null)
                   }}
                 >
                   Sign up
@@ -513,6 +522,66 @@ export default function LoginPage() {
                 </div>
               </div>
             </form>
+          ) : verificationSent ? (
+            /* ── Verification Sent Confirmation Screen ── */
+            <div className={styles.verifyCard}>
+              <div className={styles.verifyIconWrap}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="20" height="16" x="2" y="4" rx="2" />
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                </svg>
+              </div>
+
+              <h3 className={styles.verifyTitle}>Verification Email Sent</h3>
+              <p className={styles.verifyText}>
+                We sent an email verification link to <span className={styles.verifyEmailHighlight}>{verificationSent.email}</span>.
+              </p>
+
+              {verificationSent.mailSuccess ? (
+                <p className={styles.verifyText} style={{ fontSize: '13px', color: '#16a34a' }}>
+                  ✓ Email successfully dispatched via Resend API. Please check your inbox.
+                </p>
+              ) : (
+                <div className={styles.verifySandboxNote}>
+                  <strong>Resend Sandbox Notice:</strong> Resend restricts test deliveries to verified domains. You can verify your account instantly using the button below.
+                </div>
+              )}
+
+              {/* Direct Verify Action */}
+              <button
+                type="button"
+                className={styles.directVerifyBtn}
+                onClick={handleDirectVerify}
+                disabled={loading}
+              >
+                {loading ? 'Activating Account...' : 'Direct Verify & Activate Account'}
+              </button>
+
+              {/* Resend Action */}
+              <button
+                type="button"
+                className={styles.resendBtn}
+                onClick={handleResendVerification}
+                disabled={loading}
+              >
+                {loading ? 'Sending...' : 'Resend Verification Link'}
+              </button>
+
+              {/* Back to Sign In */}
+              <div className={styles.switchModeRow} style={{ marginTop: '8px' }}>
+                <button
+                  type="button"
+                  className={styles.switchModeBtn}
+                  onClick={() => {
+                    setMode('login')
+                    setEmail(verificationSent.email)
+                    setVerificationSent(null)
+                  }}
+                >
+                  Return to Sign in
+                </button>
+              </div>
+            </div>
           ) : (
             /* ── Sign Up Mode ── */
             <form className={styles.form} onSubmit={handleSignupSubmit} noValidate>

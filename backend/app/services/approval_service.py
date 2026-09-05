@@ -1,5 +1,5 @@
 # ============================================================
-# DealFlow360 — Approval Routing Service (DETERMINISTIC)
+# DealFlow360 - Approval Routing Service (DETERMINISTIC)
 # ============================================================
 # IMPORTANT: Pure business logic. No LLM.
 #
@@ -12,4 +12,4 @@
 #
 # re_evaluate_after_negotiation(quotation) -> RiskResult
 #   Called when customer submits a counter-offer
-# ============================================================
+# ============================================================

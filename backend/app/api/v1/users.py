@@ -1,5 +1,5 @@
 # ============================================================
-# DealFlow360 — Users Router (Admin only)
+# DealFlow360 - Users Router (Admin only)
 # ============================================================
 # Endpoints:
 #   GET    /users              List all internal users (Admin)
@@ -7,4 +7,4 @@
 #   PATCH  /users/{id}/role    Change user role (Admin only)
 #   DELETE /users/{id}         Deactivate user (Admin only)
 #   GET    /users/me           Current authenticated user's profile
-# ============================================================
+# ============================================================

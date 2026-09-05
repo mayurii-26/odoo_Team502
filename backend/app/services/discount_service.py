@@ -1,5 +1,5 @@
 # ============================================================
-# DealFlow360 — Discount Governance Service (DETERMINISTIC)
+# DealFlow360 - Discount Governance Service (DETERMINISTIC)
 # ============================================================
 # IMPORTANT: This is pure business logic. No LLM involvement.
 #
@@ -14,4 +14,4 @@
 #   Gold / Service     -> max 10%
 #   Silver / Hardware  -> max 20%
 #   etc. (loaded from discount_configs table)
-# ============================================================
+# ============================================================

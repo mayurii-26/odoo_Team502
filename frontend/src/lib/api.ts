@@ -93,23 +93,70 @@ export async function registerCustomer(payload: {
   password: string
   full_name: string
   company_name: string
-}): Promise<{ email: string; message?: string }> {
-  try {
-    const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-    if (res.ok) {
-      return await res.json()
-    }
-  } catch (err) {}
-
-  return { email: payload.email, message: 'Verification link sent' }
+}): Promise<{
+  success: boolean
+  email: string
+  message: string
+  mail_status?: {
+    success: boolean
+    error?: string
+    token?: string
+    verification_url?: string
+  }
+  verification_url?: string
+}> {
+  const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  const data = await res.json()
+  if (!res.ok) {
+    throw new Error(data.detail || data.message || 'Registration failed.')
+  }
+  return data
 }
 
-export async function resendVerification(email: string): Promise<boolean> {
-  return true
+/**
+ * Resend email verification
+ */
+export async function resendVerification(email: string): Promise<{
+  success: boolean
+  email: string
+  message: string
+  mail_status?: any
+  verification_url?: string
+}> {
+  const res = await fetch(`${API_BASE}/api/v1/auth/resend-verification`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+  const data = await res.json()
+  if (!res.ok) {
+    throw new Error(data.detail || data.message || 'Failed to resend verification email.')
+  }
+  return data
+}
+
+/**
+ * Verify token and activate account
+ */
+export async function verifyEmailToken(token: string): Promise<{
+  success: boolean
+  email: string
+  message: string
+}> {
+  const res = await fetch(`${API_BASE}/api/v1/auth/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  })
+  const data = await res.json()
+  if (!res.ok) {
+    throw new Error(data.detail || data.message || 'Invalid or expired verification token.')
+  }
+  return data
 }
 
 /**

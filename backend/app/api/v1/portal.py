@@ -1,5 +1,5 @@
 # ============================================================
-# DealFlow360 — Customer Portal Router (Customer role ONLY)
+# DealFlow360 - Customer Portal Router (Customer role ONLY)
 # ============================================================
 # Endpoints:
 #   GET    /portal/quotations         My quotations (customer view)
@@ -8,4 +8,4 @@
 #   POST   /portal/quotations/{id}/counter      Submit counter-offer
 #   POST   /portal/quotations/{id}/confirm      Confirm quotation
 # Note: All endpoints enforce Customer role. No internal data exposed.
-# ============================================================
+# ============================================================

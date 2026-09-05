@@ -1,5 +1,5 @@
 # ============================================================
-# DealFlow360 — Subscription & Billing Service (DETERMINISTIC)
+# DealFlow360 - Subscription & Billing Service (DETERMINISTIC)
 # ============================================================
 # IMPORTANT: Pure business logic. No LLM.
 #
@@ -11,4 +11,4 @@
 #
 # cancel_subscription(subscription, reason) -> CreditNoteData
 # issue_credit_note(data) -> CreditNote
-# ============================================================
+# ============================================================

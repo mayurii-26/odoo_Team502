@@ -1,5 +1,5 @@
 # ============================================================
-# DealFlow360 — LLM Assistant (natural language layer only)
+# DealFlow360 - LLM Assistant (natural language layer only)
 # ============================================================
 # IMPORTANT: LLM does NOT make business decisions.
 #            It only generates human-readable explanations.
@@ -15,4 +15,4 @@
 # suggest_sales_response(negotiation) -> str
 #
 # Provider: configured via OPENAI_API_KEY / GEMINI_API_KEY in .env
-# ============================================================
+# ============================================================

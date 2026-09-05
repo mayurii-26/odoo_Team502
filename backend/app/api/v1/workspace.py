@@ -20,7 +20,7 @@ from app.models.user import User
 
 router = APIRouter()
 
-# ── Schemas for Mutations ────────────────────────────────────
+# â"â" Schemas for Mutations â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"
 class QuotationLineSaveItem(BaseModel):
     id: Optional[Any] = None
     product_id: Optional[int] = None
@@ -43,7 +43,7 @@ class ApprovalActionPayload(BaseModel):
     comments: Optional[str] = None
     approver_name: Optional[str] = "Sales Manager"
 
-# ── Helpers to format model objects to frontend shapes ───────
+# â"â" Helpers to format model objects to frontend shapes â"â"â"â"â"â"â"
 def format_quotation(q: Quotation, db: Session) -> Dict[str, Any]:
     lines = db.query(QuotationLine).filter(QuotationLine.quotation_id == q.id).all()
     
@@ -111,7 +111,7 @@ def format_quotation(q: Quotation, db: Session) -> Dict[str, Any]:
         "lines": formatted_lines
     }
 
-# ── Bootstrap Endpoint: All Workspace Data in One Call ───────
+# â"â" Bootstrap Endpoint: All Workspace Data in One Call â"â"â"â"â"â"â"
 @router.get("/bootstrap")
 def get_workspace_bootstrap(db: Session = Depends(get_db)):
     """
@@ -266,7 +266,7 @@ def get_workspace_bootstrap(db: Session = Depends(get_db)):
         }
     }
 
-# ── Quotation CRUD & Actions ──────────────────────────────────
+# â"â" Quotation CRUD & Actions â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"â"
 @router.get("/quotations")
 def list_quotations(status: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(Quotation).order_by(desc(Quotation.id))

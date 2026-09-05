@@ -1,5 +1,5 @@
 # ============================================================
-# DealFlow360 — Audit Trail Utility
+# DealFlow360 - Audit Trail Utility
 # ============================================================
 # log_action(entity_type, entity_id, action, actor, old, new, reason)
 #
@@ -11,4 +11,4 @@
 #   - Credit note issued
 #
 # Writes to audit_logs table (append-only).
-# ============================================================
+# ============================================================

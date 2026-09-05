@@ -1,5 +1,5 @@
 # ============================================================
-# DealFlow360 — Warehouse Fulfillment Service (DETERMINISTIC)
+# DealFlow360 - Warehouse Fulfillment Service (DETERMINISTIC)
 # ============================================================
 # IMPORTANT: Pure business logic. No LLM.
 #
@@ -12,4 +12,4 @@
 #   Ops team manual override
 #
 # handle_backorder(line) -> BackorderRecord
-# ============================================================
+# ============================================================

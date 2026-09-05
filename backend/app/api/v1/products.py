@@ -1,5 +1,5 @@
 # ============================================================
-# DealFlow360 — Products & Price Management Router
+# DealFlow360 - Products & Price Management Router
 # ============================================================
 # Endpoints:
 #   GET    /products            List products with filters
@@ -8,4 +8,4 @@
 #   PATCH  /products/{id}       Update product (Admin)
 #   GET    /pricelists          List pricelists
 #   POST   /pricelists          Create pricelist (Admin)
-# ============================================================
+# ============================================================
