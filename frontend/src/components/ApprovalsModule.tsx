@@ -54,37 +54,31 @@ export default function ApprovalsModule({
 
   // Helper to determine if a quote belongs to the logged-in representative
   const isUserSalesRep = React.useCallback(
-    (itemRep: string): boolean => {
+    (q: Quotation): boolean => {
       if (!user || user.role !== 'sales_rep') return true
-      const rep = (itemRep || '').trim().toLowerCase()
-      if (!rep) return false
-
       const userFull = (user.fullName || '').trim().toLowerCase()
       const userEmail = (user.email || '').trim().toLowerCase()
       const userEmailName = userEmail.split('@')[0].replace(/[._-]/g, ' ')
       const userFirstName = userFull.split(' ')[0]
-      const repFirstName = rep.split(' ')[0]
 
-      return (
-        rep === userFull ||
-        rep === userEmail ||
-        rep === userEmailName ||
-        (Boolean(userFirstName) && Boolean(repFirstName) && userFirstName === repFirstName) ||
-        userFull.includes(rep) ||
-        rep.includes(userFull)
-      )
+      const repName = (q.salesRep || q.approvalWorkflow?.assignedRep || '').trim().toLowerCase()
+      const repEmail = (q.salesRepEmail || '').trim().toLowerCase()
+      const repFirstName = repName.split(' ')[0]
+
+      if (repEmail && userEmail && repEmail === userEmail) return true
+      if (repName && (repName === userFull || repName === userEmail || repName === userEmailName)) return true
+      if (userFirstName && repFirstName && userFirstName === repFirstName && userFirstName.length >= 3) return true
+      if (repName && userFull && (userFull.includes(repName) || repName.includes(userFull))) return true
+
+      return false
     },
     [user]
   )
 
-  // Filter quotations according to user role: Sales Reps see their deals or full pipeline
+  // Filter quotations according to user role: Sales Reps ONLY see their own approval requests
   const relevantQuotations = React.useMemo(() => {
     if (!isSalesRep) return quotations
-    const filtered = quotations.filter(q => {
-      const rep = q.salesRep || q.approvalWorkflow?.assignedRep || ''
-      return isUserSalesRep(rep)
-    })
-    return filtered.length > 0 ? filtered : quotations
+    return quotations.filter(q => isUserSalesRep(q))
   }, [quotations, isSalesRep, isUserSalesRep])
 
   // Map quotations and live approvals into approval list items

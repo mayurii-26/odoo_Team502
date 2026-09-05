@@ -303,12 +303,17 @@ def get_workspace_bootstrap(db: Session = Depends(get_db)):
         cust = all_customers.get(quote.customer_id) if quote else None
         c_name = cust.company_name if cust else "Enterprise Client"
         req_user = all_users.get(a.requested_by) if a.requested_by else None
+        req_email = req_user.email if req_user else None
+        quote_rep = all_users.get(quote.sales_rep_id) if (quote and quote.sales_rep_id) else None
+        rep_email = quote_rep.email if quote_rep else req_email
         approvals_list.append({
             "id": a.id,
             "quotation_id": a.quotation_id,
             "quote_number": q_num,
             "customer_name": c_name,
-            "requester_name": req_user.name if req_user else "Sales Representative",
+            "requester_name": req_user.name if req_user else (quote_rep.name if quote_rep else "Sales Representative"),
+            "requester_email": req_email or rep_email,
+            "sales_rep_email": rep_email,
             "discount_requested": float(quote.discount_percent) if (quote and quote.discount_percent) else 18.5,
             "max_allowed_discount": 15.0,
             "status": a.status or "PENDING",

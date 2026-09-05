@@ -391,6 +391,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             customerName: dq.customer_company || dq.customer_name,
             customerTier: dq.customer_tier || 'Gold',
             salesRep: dq.sales_rep || '',
+            salesRepEmail: dq.sales_rep_email || '',
             status: mapBackendStatusToFrontend(dq.status),
             createdAt: dq.created_at || '2026-03-01',
             validUntil: dq.expires_at || '2026-04-01',
