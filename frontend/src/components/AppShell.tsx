@@ -195,6 +195,22 @@ function RotateCwIcon({ className }: { className?: string }) {
   )
 }
 
+function SlidersIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="4" x2="4" y1="21" y2="14" />
+      <line x1="4" x2="4" y1="10" y2="3" />
+      <line x1="12" x2="12" y1="21" y2="12" />
+      <line x1="12" x2="12" y1="8" y2="3" />
+      <line x1="20" x2="20" y1="21" y2="16" />
+      <line x1="20" x2="20" y1="12" y2="3" />
+      <line x1="1" x2="7" y1="14" y2="14" />
+      <line x1="9" x2="15" y1="8" y2="8" />
+      <line x1="17" x2="23" y1="16" y2="16" />
+    </svg>
+  )
+}
+
 interface AppShellProps {
   user: UserSession
   onLogout: () => void
@@ -356,7 +372,14 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
   }, [])
 
   async function handleUpdateQuotation(updated: Quotation) {
-    setQuotations(prev => prev.map(q => (q.id === updated.id ? updated : q)))
+    setQuotations(prev => {
+      const exists = prev.some(q => q.id === updated.id)
+      if (exists) {
+        return prev.map(q => (q.id === updated.id ? updated : q))
+      }
+      return [updated, ...prev]
+    })
+    setSelectedQuotationId(updated.id)
     try {
       const backendStatus = mapFrontendStatusToBackend(updated.status)
       await updateQuotationLive(updated.id, {
@@ -374,8 +397,10 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
     setUsers(prev => [u, ...prev])
   }
 
-  const selectedQuote =
-    quotations.find(q => q.id === selectedQuotationId) || quotations[0]
+  const isNewQuote = selectedQuotationId === 'new' || !selectedQuotationId
+  const selectedQuote = isNewQuote
+    ? null
+    : (quotations.find(q => q.id === selectedQuotationId) || null)
 
   const moduleTitles: Record<ActiveModule, string> = {
     dashboard: isCustomer
@@ -388,7 +413,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
       ? 'Sales Management & Approvals'
       : 'Sales Dashboard',
     quotations: 'Quotations & Deals',
-    builder: `Quotation Builder (${selectedQuotationId})`,
+    builder: isNewQuote ? 'Create New Quotation' : `Quotation Builder (${selectedQuotationId})`,
     approvals: isFinance
       ? 'Financial Approval Requests'
       : isSalesManager
@@ -415,6 +440,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
     admin_access: 'Role Access & Provisioning',
     admin_messages: 'Message Anyone Console',
     admin_directory: 'All Users & Directory',
+    admin_recommendations: 'AI Recommendation Settings & Scoring Weights',
   }
 
   const roleLabelMap: Record<UserRole, string> = {
@@ -673,6 +699,16 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
                     <span>All Users &amp; Directory</span>
                   </div>
                 </button>
+
+                <button
+                  className={`${styles.navLink} ${activeModule === 'admin_recommendations' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('admin_recommendations')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><SlidersIcon /></span>
+                    <span>Recommendation Settings</span>
+                  </div>
+                </button>
               </div>
 
               <div className={styles.navGroup}>
@@ -914,7 +950,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
           {/* Customer Portal Modules (from Local Stash) */}
           {(activeModule === 'customer_portal' || (activeModule === 'messages' && isCustomer) || activeModule === 'profile') && (
             <CustomerPortalModule
-              quotation={selectedQuote}
+              quotation={selectedQuote || quotations[0]}
               customerTab={
                 activeModule === 'messages'
                   ? 'messages'
@@ -939,13 +975,15 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
           )}
 
           {/* Root Admin Modules (from Local Stash) */}
-          {(activeModule === 'admin_access' || activeModule === 'admin_messages' || activeModule === 'admin_directory') && (
+          {(activeModule === 'admin_access' || activeModule === 'admin_messages' || activeModule === 'admin_directory' || activeModule === 'admin_recommendations') && (
             <AdminModule
               adminTab={
                 activeModule === 'admin_messages'
                   ? 'messages'
                   : activeModule === 'admin_directory'
                   ? 'directory'
+                  : activeModule === 'admin_recommendations'
+                  ? 'recommendations'
                   : 'access'
               }
               onNavigateTab={tab =>
@@ -954,6 +992,8 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
                     ? 'admin_messages'
                     : tab === 'directory'
                     ? 'admin_directory'
+                    : tab === 'recommendations'
+                    ? 'admin_recommendations'
                     : 'admin_access'
                 )
               }
@@ -976,7 +1016,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
           {/* Fulfillment Module (shared across Finance and Sales Reps) */}
           {activeModule === 'fulfillment' && (
             <FulfillmentModule
-              quotation={selectedQuote}
+              quotation={selectedQuote || quotations[0]}
               warehouses={warehouses}
               quotations={quotations}
               onUpdateQuotation={handleUpdateQuotation}
@@ -988,7 +1028,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
           {/* Invoices Module (shared across Finance and Sales Reps) */}
           {(activeModule === 'invoices' || activeModule === 'billing') && (
             <InvoicesModule
-              quotation={selectedQuote}
+              quotation={selectedQuote || quotations[0]}
               invoices={invoices}
               onUpdateQuotation={handleUpdateQuotation}
               onNavigate={handleNavigateModule}

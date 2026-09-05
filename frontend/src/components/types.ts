@@ -146,3 +146,22 @@ export type ActiveModule =
   | 'admin_access'
   | 'admin_messages'
   | 'admin_directory'
+  | 'admin_recommendations'
+
+export interface RecommendationWeights {
+  upsell: {
+    upgrade_frequency: number
+    margin_opportunity: number
+    promotion: number
+    customer_affinity: number
+    stock_availability: number
+  }
+  cross_sell: {
+    co_purchase_frequency: number
+    compatibility: number
+    promotion: number
+    margin_opportunity: number
+    stock_availability: number
+  }
+}
+

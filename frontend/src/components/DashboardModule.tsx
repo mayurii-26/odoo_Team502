@@ -402,11 +402,11 @@ export default function DashboardModule({
         <button
           className={styles.btnNewQuote}
           onClick={() => {
-            onSelectQuotation(firstQuoteId)
+            onSelectQuotation('new')
             onNavigate('builder')
           }}
         >
-          Create Quotation
+          + Create Quotation
         </button>
 
         <button

@@ -1,7 +1,7 @@
 // ============================================================
 // DealFlow360 - Frontend API Client (Live PostgreSQL Backend)
 // ============================================================
-import { Quotation, Product, Warehouse, UserAccount, GovernanceRule, UserRole } from '@/components/types'
+import { Quotation, Product, Warehouse, UserAccount, GovernanceRule, UserRole, RecommendationWeights } from '@/components/types'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
 
@@ -221,6 +221,42 @@ export async function saveFullQuotationToDb(
 }
 
 /**
+ * Create a new quotation with line items in PostgreSQL DB
+ */
+export async function createFullQuotationInDb(
+  payload: {
+    customer_name?: string
+    customer_company?: string
+    status?: string
+    notes?: string
+    lines: Array<{
+      product_id?: number
+      product_name?: string
+      quantity: number
+      unit_price: number
+      discount_percent: number
+      unit_cost?: number
+    }>
+  }
+): Promise<any | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/workspace/quotations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) {
+      console.warn('Failed to create quotation in DB:', res.status)
+      return null
+    }
+    return await res.json()
+  } catch (err) {
+    console.warn('Backend offline, quotation created locally in session.')
+    return null
+  }
+}
+
+/**
  * Update quotation status or discount in PostgreSQL
  */
 export async function updateQuotationLive(
@@ -261,5 +297,43 @@ export async function submitApprovalAction(
     return false
   }
 }
+
+/**
+ * Recommendation scoring weights config (Admin)
+ */
+export async function fetchRecommendationWeights(): Promise<RecommendationWeights | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/recommendation-weights`)
+    if (!res.ok) return null
+    return await res.json()
+  } catch (err) {
+    console.warn('Backend offline or failed fetching recommendation weights:', err)
+    return null
+  }
+}
+
+export async function saveRecommendationWeights(
+  weights: RecommendationWeights
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/recommendation-weights`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(weights),
+    })
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}))
+      return {
+        success: false,
+        message: errData.detail || 'Failed to save weights to backend',
+      }
+    }
+    return { success: true }
+  } catch (err: any) {
+    console.warn('Backend error saving recommendation weights:', err)
+    return { success: false, message: err?.message || 'Network error saving weights' }
+  }
+}
+
 
 

@@ -1,15 +1,33 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import styles from './AdminModule.module.css'
-import { DirectoryUser, UserRole } from './types'
+import { DirectoryUser, UserRole, RecommendationWeights } from './types'
+import { fetchRecommendationWeights, saveRecommendationWeights } from '@/lib/api'
 
 interface AdminModuleProps {
-  adminTab: 'access' | 'messages' | 'directory'
-  onNavigateTab: (tab: 'access' | 'messages' | 'directory') => void
+  adminTab: 'access' | 'messages' | 'directory' | 'recommendations'
+  onNavigateTab: (tab: 'access' | 'messages' | 'directory' | 'recommendations') => void
   onSwitchRole: (role: UserRole) => void
   onShowToast: (msg: string) => void
   onImpersonateUser?: (email: string, role: UserRole, name: string, company: string) => void
+}
+
+const DEFAULT_WEIGHTS: RecommendationWeights = {
+  upsell: {
+    upgrade_frequency: 35,
+    margin_opportunity: 25,
+    promotion: 20,
+    customer_affinity: 10,
+    stock_availability: 10,
+  },
+  cross_sell: {
+    co_purchase_frequency: 35,
+    compatibility: 20,
+    promotion: 15,
+    margin_opportunity: 20,
+    stock_availability: 10,
+  },
 }
 
 /* ── Initial Unified Directory Mock Data ─────────────────────── */
@@ -221,6 +239,91 @@ export default function AdminModule({
   // Tab 3: Directory Filter State
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all')
+
+  // Tab 4: Recommendation Scoring Weights State
+  const [weights, setWeights] = useState<RecommendationWeights>(DEFAULT_WEIGHTS)
+  const [loadingWeights, setLoadingWeights] = useState(false)
+  const [savingWeights, setSavingWeights] = useState(false)
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null)
+  const [weightsError, setWeightsError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let isMounted = true
+    async function loadWeights() {
+      setLoadingWeights(true)
+      try {
+        const data = await fetchRecommendationWeights()
+        if (data && isMounted) {
+          setWeights(data)
+        }
+      } catch (err) {
+        console.warn('Could not load database recommendation weights:', err)
+      } finally {
+        if (isMounted) setLoadingWeights(false)
+      }
+    }
+    loadWeights()
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const upsellSum = Object.values(weights.upsell).reduce((a, b) => a + b, 0)
+  const crossSellSum = Object.values(weights.cross_sell).reduce((a, b) => a + b, 0)
+  const isUpsellValid = Math.abs(upsellSum - 100) < 0.01
+  const isCrossSellValid = Math.abs(crossSellSum - 100) < 0.01
+  const canSaveWeights = isUpsellValid && isCrossSellValid
+
+  function handleUpsellWeightChange(metric: keyof RecommendationWeights['upsell'], val: number) {
+    setWeights(prev => ({
+      ...prev,
+      upsell: { ...prev.upsell, [metric]: val },
+    }))
+    setSaveSuccessMsg(null)
+    setWeightsError(null)
+  }
+
+  function handleCrossSellWeightChange(metric: keyof RecommendationWeights['cross_sell'], val: number) {
+    setWeights(prev => ({
+      ...prev,
+      cross_sell: { ...prev.cross_sell, [metric]: val },
+    }))
+    setSaveSuccessMsg(null)
+    setWeightsError(null)
+  }
+
+  function handleResetWeights() {
+    setWeights(DEFAULT_WEIGHTS)
+    setSaveSuccessMsg(null)
+    setWeightsError(null)
+    onShowToast('Reset scoring weights to baseline defaults.')
+  }
+
+  async function handleSaveWeights() {
+    if (!canSaveWeights) {
+      setWeightsError(
+        `Weights must total exactly 100% for each model. Current: Upsell ${upsellSum}%, Cross-Sell ${crossSellSum}%.`
+      )
+      return
+    }
+
+    setSavingWeights(true)
+    setWeightsError(null)
+    setSaveSuccessMsg(null)
+    try {
+      const res = await saveRecommendationWeights(weights)
+      if (res.success) {
+        setSaveSuccessMsg('Recommendation weights successfully saved to PostgreSQL database! Live scoring recalculated.')
+        onShowToast('Recommendation weights saved! Quotation engine recalculated.')
+      } else {
+        setWeightsError(res.message || 'Failed to save weights to backend.')
+      }
+    } catch (err) {
+      setWeightsError('Network error while saving weights to database.')
+    } finally {
+      setSavingWeights(false)
+    }
+  }
 
   /* ── Tab 1: Generate Secure Password ───────────────────────── */
   function handleGeneratePassword() {
@@ -452,6 +555,38 @@ export default function AdminModule({
             🏢 Login as Customer
           </button>
         </div>
+      </div>
+
+      {/* ── Sub-Tabs Navigation ── */}
+      <div className={styles.adminNavTabs}>
+        <button
+          type="button"
+          className={`${styles.adminNavTab} ${adminTab === 'access' ? styles.adminNavTabActive : ''}`}
+          onClick={() => onNavigateTab('access')}
+        >
+          <span>🛡️</span> Role Access &amp; Provisioning
+        </button>
+        <button
+          type="button"
+          className={`${styles.adminNavTab} ${adminTab === 'messages' ? styles.adminNavTabActive : ''}`}
+          onClick={() => onNavigateTab('messages')}
+        >
+          <span>💬</span> Message Anyone
+        </button>
+        <button
+          type="button"
+          className={`${styles.adminNavTab} ${adminTab === 'directory' ? styles.adminNavTabActive : ''}`}
+          onClick={() => onNavigateTab('directory')}
+        >
+          <span>👥</span> All Users &amp; Directory
+        </button>
+        <button
+          type="button"
+          className={`${styles.adminNavTab} ${adminTab === 'recommendations' ? styles.adminNavTabActive : ''}`}
+          onClick={() => onNavigateTab('recommendations')}
+        >
+          <span>⚙️</span> Recommendation Settings
+        </button>
       </div>
 
       {/* ============================================================
@@ -1178,6 +1313,381 @@ export default function AdminModule({
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ============================================================
+          TAB 4: AI RECOMMENDATION SETTINGS & SCORING WEIGHTS
+         ============================================================ */}
+      {adminTab === 'recommendations' && (
+        <>
+          <div className={styles.clayCard}>
+            <div className={styles.cardHeader}>
+              <div>
+                <h2 className={styles.cardTitle}>
+                  <span>⚙️</span> Dynamic Recommendation Engine Scoring Weights
+                </h2>
+                <p className={styles.cardSubtitle}>
+                  Configure algorithm weighting percentages stored directly in PostgreSQL. These dynamic weights govern AI upsell and cross-sell candidate scoring in Screen 5 (Quotation Builder).
+                </p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {loadingWeights && (
+                  <span style={{ fontSize: 12, color: '#3b5a8c', fontWeight: 600 }}>
+                    🔄 Syncing with DB...
+                  </span>
+                )}
+                <span className={styles.titleBadge}>
+                  PostgreSQL Synchronized
+                </span>
+              </div>
+            </div>
+
+            <div className={styles.infoBanner}>
+              <span style={{ fontSize: 20 }}>💡</span>
+              <div>
+                <strong>How Recommendation Weights Work:</strong> Each candidate product (upgrade tier or complementary accessory) is scored from 0 to 100 based on the 5 independent criteria below. The sum of weights in each category must equal exactly <strong>100%</strong> to ensure normalized ranking. Changes take effect immediately across all active sales rep sessions.
+              </div>
+            </div>
+
+            {weightsError && (
+              <div className={styles.errorBanner}>
+                <span>⚠️</span>
+                <span>{weightsError}</span>
+              </div>
+            )}
+
+            {saveSuccessMsg && (
+              <div className={styles.successBanner}>
+                <span>✓</span>
+                <span>{saveSuccessMsg}</span>
+              </div>
+            )}
+
+            <div className={styles.weightsGrid}>
+              {/* Card 1: Upsell Weights */}
+              <div className={styles.weightConfigCard}>
+                <div className={styles.weightCardHeader}>
+                  <h3 className={styles.weightCardTitle}>
+                    <span>📈</span> Upsell Scoring Weights
+                  </h3>
+                  <span
+                    className={`${styles.weightTotalBar} ${isUpsellValid ? styles.weightTotalValid : styles.weightTotalInvalid}`}
+                    style={{ padding: '4px 12px', fontSize: 12 }}
+                  >
+                    {isUpsellValid ? `✓ ${upsellSum}% (Balanced)` : `⚠️ ${upsellSum}% / 100%`}
+                  </span>
+                </div>
+                <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 4px 0' }}>
+                  Applied when suggesting higher-tier product replacements to maximize deal value and margins.
+                </p>
+
+                {/* Metric 1: Upgrade Frequency */}
+                <div className={styles.weightSliderItem}>
+                  <div className={styles.weightSliderHeader}>
+                    <span className={styles.weightMetricName}>Upgrade Frequency</span>
+                    <span className={styles.weightMetricVal}>{weights.upsell.upgrade_frequency}%</span>
+                  </div>
+                  <p className={styles.weightMetricDesc}>
+                    Historical conversion rate of accounts upgrading to this premium tier.
+                  </p>
+                  <div className={styles.weightSliderControl}>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      className={styles.rangeInput}
+                      value={weights.upsell.upgrade_frequency}
+                      onChange={e => handleUpsellWeightChange('upgrade_frequency', parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                </div>
+
+                {/* Metric 2: Margin Opportunity */}
+                <div className={styles.weightSliderItem}>
+                  <div className={styles.weightSliderHeader}>
+                    <span className={styles.weightMetricName}>Margin Opportunity</span>
+                    <span className={styles.weightMetricVal}>{weights.upsell.margin_opportunity}%</span>
+                  </div>
+                  <p className={styles.weightMetricDesc}>
+                    Relative gross margin percentage improvement gained from the upgrade.
+                  </p>
+                  <div className={styles.weightSliderControl}>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      className={styles.rangeInput}
+                      value={weights.upsell.margin_opportunity}
+                      onChange={e => handleUpsellWeightChange('margin_opportunity', parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                </div>
+
+                {/* Metric 3: Promotion */}
+                <div className={styles.weightSliderItem}>
+                  <div className={styles.weightSliderHeader}>
+                    <span className={styles.weightMetricName}>Promotion Multiplier</span>
+                    <span className={styles.weightMetricVal}>{weights.upsell.promotion}%</span>
+                  </div>
+                  <p className={styles.weightMetricDesc}>
+                    Active manufacturer spiffs, seasonal discounts, or promotional campaigns.
+                  </p>
+                  <div className={styles.weightSliderControl}>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      className={styles.rangeInput}
+                      value={weights.upsell.promotion}
+                      onChange={e => handleUpsellWeightChange('promotion', parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                </div>
+
+                {/* Metric 4: Customer Affinity */}
+                <div className={styles.weightSliderItem}>
+                  <div className={styles.weightSliderHeader}>
+                    <span className={styles.weightMetricName}>Customer Affinity</span>
+                    <span className={styles.weightMetricVal}>{weights.upsell.customer_affinity}%</span>
+                  </div>
+                  <p className={styles.weightMetricDesc}>
+                    Tier preference alignment based on customer industry and company size.
+                  </p>
+                  <div className={styles.weightSliderControl}>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      className={styles.rangeInput}
+                      value={weights.upsell.customer_affinity}
+                      onChange={e => handleUpsellWeightChange('customer_affinity', parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                </div>
+
+                {/* Metric 5: Stock Availability */}
+                <div className={styles.weightSliderItem}>
+                  <div className={styles.weightSliderHeader}>
+                    <span className={styles.weightMetricName}>Stock Availability</span>
+                    <span className={styles.weightMetricVal}>{weights.upsell.stock_availability}%</span>
+                  </div>
+                  <p className={styles.weightMetricDesc}>
+                    Warehouse inventory readiness to ensure immediate order fulfillment.
+                  </p>
+                  <div className={styles.weightSliderControl}>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      className={styles.rangeInput}
+                      value={weights.upsell.stock_availability}
+                      onChange={e => handleUpsellWeightChange('stock_availability', parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                </div>
+
+                <div
+                  className={`${styles.weightTotalBar} ${isUpsellValid ? styles.weightTotalValid : styles.weightTotalInvalid}`}
+                >
+                  <span>Total Upsell Weight:</span>
+                  <span>{upsellSum}% {isUpsellValid ? '(Target Met: 100%)' : `(Difference: ${100 - upsellSum > 0 ? `+${100 - upsellSum}` : 100 - upsellSum}%)`}</span>
+                </div>
+              </div>
+
+              {/* Card 2: Cross-Sell Weights */}
+              <div className={styles.weightConfigCard}>
+                <div className={styles.weightCardHeader}>
+                  <h3 className={styles.weightCardTitle}>
+                    <span>🔗</span> Cross-Sell Scoring Weights
+                  </h3>
+                  <span
+                    className={`${styles.weightTotalBar} ${isCrossSellValid ? styles.weightTotalValid : styles.weightTotalInvalid}`}
+                    style={{ padding: '4px 12px', fontSize: 12 }}
+                  >
+                    {isCrossSellValid ? `✓ ${crossSellSum}% (Balanced)` : `⚠️ ${crossSellSum}% / 100%`}
+                  </span>
+                </div>
+                <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 4px 0' }}>
+                  Applied when identifying complementary attachments, accessories, and recurring services.
+                </p>
+
+                {/* Metric 1: Co-Purchase Frequency */}
+                <div className={styles.weightSliderItem}>
+                  <div className={styles.weightSliderHeader}>
+                    <span className={styles.weightMetricName}>Co-Purchase Frequency</span>
+                    <span className={styles.weightMetricVal}>{weights.cross_sell.co_purchase_frequency}%</span>
+                  </div>
+                  <p className={styles.weightMetricDesc}>
+                    Historical market basket co-occurrence rate with quoted base items.
+                  </p>
+                  <div className={styles.weightSliderControl}>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      className={styles.rangeInput}
+                      value={weights.cross_sell.co_purchase_frequency}
+                      onChange={e => handleCrossSellWeightChange('co_purchase_frequency', parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                </div>
+
+                {/* Metric 2: Compatibility */}
+                <div className={styles.weightSliderItem}>
+                  <div className={styles.weightSliderHeader}>
+                    <span className={styles.weightMetricName}>Compatibility Match</span>
+                    <span className={styles.weightMetricVal}>{weights.cross_sell.compatibility}%</span>
+                  </div>
+                  <p className={styles.weightMetricDesc}>
+                    Technical and category interoperability score with line items.
+                  </p>
+                  <div className={styles.weightSliderControl}>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      className={styles.rangeInput}
+                      value={weights.cross_sell.compatibility}
+                      onChange={e => handleCrossSellWeightChange('compatibility', parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                </div>
+
+                {/* Metric 3: Promotion Multiplier */}
+                <div className={styles.weightSliderItem}>
+                  <div className={styles.weightSliderHeader}>
+                    <span className={styles.weightMetricName}>Promotion Incentive</span>
+                    <span className={styles.weightMetricVal}>{weights.cross_sell.promotion}%</span>
+                  </div>
+                  <p className={styles.weightMetricDesc}>
+                    Active bundle discount incentives or partner rebate programs.
+                  </p>
+                  <div className={styles.weightSliderControl}>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      className={styles.rangeInput}
+                      value={weights.cross_sell.promotion}
+                      onChange={e => handleCrossSellWeightChange('promotion', parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                </div>
+
+                {/* Metric 4: Margin Opportunity */}
+                <div className={styles.weightSliderItem}>
+                  <div className={styles.weightSliderHeader}>
+                    <span className={styles.weightMetricName}>Margin Contribution</span>
+                    <span className={styles.weightMetricVal}>{weights.cross_sell.margin_opportunity}%</span>
+                  </div>
+                  <p className={styles.weightMetricDesc}>
+                    Direct gross margin contribution generated by attaching this item.
+                  </p>
+                  <div className={styles.weightSliderControl}>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      className={styles.rangeInput}
+                      value={weights.cross_sell.margin_opportunity}
+                      onChange={e => handleCrossSellWeightChange('margin_opportunity', parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                </div>
+
+                {/* Metric 5: Stock Availability */}
+                <div className={styles.weightSliderItem}>
+                  <div className={styles.weightSliderHeader}>
+                    <span className={styles.weightMetricName}>Stock Availability</span>
+                    <span className={styles.weightMetricVal}>{weights.cross_sell.stock_availability}%</span>
+                  </div>
+                  <p className={styles.weightMetricDesc}>
+                    In-stock inventory levels ensuring zero delivery delays for the bundle.
+                  </p>
+                  <div className={styles.weightSliderControl}>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      className={styles.rangeInput}
+                      value={weights.cross_sell.stock_availability}
+                      onChange={e => handleCrossSellWeightChange('stock_availability', parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                </div>
+
+                <div
+                  className={`${styles.weightTotalBar} ${isCrossSellValid ? styles.weightTotalValid : styles.weightTotalInvalid}`}
+                >
+                  <span>Total Cross-Sell Weight:</span>
+                  <span>{crossSellSum}% {isCrossSellValid ? '(Target Met: 100%)' : `(Difference: ${100 - crossSellSum > 0 ? `+${100 - crossSellSum}` : 100 - crossSellSum}%)`}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Formula Reference Card */}
+            <div className={styles.formulaCard}>
+              <div className={styles.formulaTitle}>
+                <span>📐</span> Mathematical Scoring Formula Reference
+              </div>
+              <div>
+                • <strong>Upsell Score</strong> = (Upgrade Freq × {weights.upsell.upgrade_frequency}%) + (Margin Opp × {weights.upsell.margin_opportunity}%) + (Promotion × {weights.upsell.promotion}%) + (Affinity × {weights.upsell.customer_affinity}%) + (Stock × {weights.upsell.stock_availability}%)
+              </div>
+              <div style={{ marginTop: 4 }}>
+                • <strong>Cross-Sell Score</strong> = (Co-Purchase × {weights.cross_sell.co_purchase_frequency}%) + (Compatibility × {weights.cross_sell.compatibility}%) + (Promotion × {weights.cross_sell.promotion}%) + (Margin Opp × {weights.cross_sell.margin_opportunity}%) + (Stock × {weights.cross_sell.stock_availability}%)
+              </div>
+              <div style={{ marginTop: 6, color: '#64748b' }}>
+                Normalized candidate scores range from 0 to 100. Recommendations ranking above the relevance cutoff threshold are prioritized and surfaced in real-time in the quotation editor.
+              </div>
+            </div>
+
+            {/* Actions Bar */}
+            <div className={styles.weightActionsBar}>
+              <button
+                type="button"
+                className={styles.btnSmallClay}
+                onClick={handleResetWeights}
+                disabled={savingWeights}
+              >
+                ↺ Reset to Baseline Defaults
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {!canSaveWeights && (
+                  <span style={{ fontSize: 12.5, color: '#b91c1c', fontWeight: 600 }}>
+                    ⚠️ Both totals must equal 100% to save
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className={styles.btnPrimaryClay}
+                  onClick={handleSaveWeights}
+                  disabled={!canSaveWeights || savingWeights}
+                >
+                  {savingWeights ? (
+                    <>
+                      <span>⏳</span> Saving to Database...
+                    </>
+                  ) : (
+                    <>
+                      <span>💾</span> Save Scoring Weights to Database
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </>

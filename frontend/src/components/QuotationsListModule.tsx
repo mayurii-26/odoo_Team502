@@ -170,6 +170,16 @@ export default function QuotationsListModule({
           >
             {viewMode === 'kanban' ? 'Table View' : 'Kanban View'}
           </button>
+          <button
+            className={styles.btnNewQuote}
+            onClick={() => {
+              onSelectQuotation('new')
+              onNavigate('builder')
+            }}
+            title="Create a new quotation"
+          >
+            + New Quotation
+          </button>
         </div>
       </div>
 
@@ -304,12 +314,11 @@ export default function QuotationsListModule({
         <button
           className={styles.btnNewQuote}
           onClick={() => {
-            const firstId = quotations[0]?.id || 'Q-1042'
-            onSelectQuotation(firstId)
+            onSelectQuotation('new')
             onNavigate('builder')
           }}
         >
-          Create New Quotation
+          + Create New Quotation
         </button>
       </div>
     </div>
