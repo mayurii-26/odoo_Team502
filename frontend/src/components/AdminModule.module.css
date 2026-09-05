@@ -1,0 +1,741 @@
+/* ============================================================
+   DealFlow360 — Admin Module Claymorphism Stylesheet
+   Palette:
+     Deep Navy:       #001D52
+     Cornflower Blue: #70A2FF
+     Baby Blue Ice:   #ADCAFF
+     Lavender:        #D6E4FF
+   ============================================================ */
+
+.container {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Module Header ───────────────────────────────────────── */
+.headerBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.titleArea {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #001D52;
+  letter-spacing: -0.02em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.titleBadge {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: linear-gradient(135deg, #001D52 0%, #1e3a8a 100%);
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 20px;
+  box-shadow: 0 2px 6px rgba(0, 29, 82, 0.25);
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #475569;
+  margin: 0;
+}
+
+/* ── Quick Switch Bar (Test Login as other roles) ───────── */
+.quickSwitchBar {
+  background: linear-gradient(145deg, #ffffff 0%, #f0f6ff 100%);
+  border: 1.5px solid #ADCAFF;
+  border-radius: 20px;
+  padding: 16px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  box-shadow: 6px 10px 24px rgba(0, 29, 82, 0.06),
+              inset 2px 2px 4px #ffffff,
+              inset -2px -2px 4px rgba(173, 202, 255, 0.3);
+}
+
+.quickSwitchLabel {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #001D52;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quickSwitchGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.quickSwitchBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #001D52;
+  background: #ffffff;
+  border: 1.5px solid #ADCAFF;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 2px 4px 10px rgba(0, 29, 82, 0.05),
+              inset 1px 1px 2px #ffffff;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.quickSwitchBtn:hover {
+  transform: translateY(-2px);
+  background: #f8faff;
+  border-color: #70A2FF;
+  box-shadow: 4px 8px 16px rgba(0, 29, 82, 0.12),
+              inset 1px 1px 2px #ffffff;
+}
+
+/* ── Base Clay Card ─────────────────────────────────────── */
+.clayCard {
+  background: #ffffff;
+  border: 1.5px solid #ADCAFF;
+  border-radius: 22px;
+  padding: 24px 28px;
+  box-shadow: 8px 14px 28px rgba(0, 29, 82, 0.08),
+              inset 4px 4px 8px #ffffff,
+              inset -4px -4px 8px rgba(173, 202, 255, 0.28);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(173, 202, 255, 0.4);
+  padding-bottom: 14px;
+}
+
+.cardTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: #001D52;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cardSubtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin: 4px 0 0;
+}
+
+/* ── Form Layout ─────────────────────────────────────────── */
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #001D52;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.input,
+.select,
+.textarea {
+  font-family: inherit;
+  font-size: 14px;
+  color: #001D52;
+  background: #fafcff;
+  border: 1.5px solid #ADCAFF;
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow: inset 2px 2px 5px rgba(0, 29, 82, 0.07),
+              inset -2px -2px 5px #ffffff;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  border-color: #70A2FF;
+  background: #ffffff;
+  box-shadow: inset 2px 2px 6px rgba(112, 162, 255, 0.25),
+              0 0 0 3px rgba(112, 162, 255, 0.2);
+}
+
+.textarea {
+  min-height: 110px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.passwordRow {
+  display: flex;
+  gap: 8px;
+}
+
+.passwordRow .input {
+  flex: 1;
+}
+
+.btnSmallClay {
+  background: #f1f6ff;
+  border: 1.5px solid #ADCAFF;
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #001D52;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 2px 3px 6px rgba(0, 29, 82, 0.06),
+              inset 1px 1px 2px #ffffff;
+  transition: all 0.18s ease;
+}
+
+.btnSmallClay:hover {
+  background: #e2eeff;
+  border-color: #70A2FF;
+  transform: translateY(-1px);
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(214, 228, 255, 0.25);
+  border: 1.5px dashed #ADCAFF;
+  border-radius: 12px;
+}
+
+.checkboxRow label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #001D52;
+  cursor: pointer;
+}
+
+/* ── Primary Action Button ───────────────────────────────── */
+.btnPrimaryClay {
+  background: linear-gradient(135deg, #70A2FF 0%, #4f85e8 100%);
+  color: #ffffff;
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  border-radius: 14px;
+  padding: 12px 26px;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 4px 8px 18px rgba(112, 162, 255, 0.45),
+              inset 2px 2px 4px rgba(255, 255, 255, 0.6),
+              inset -2px -2px 4px rgba(0, 29, 82, 0.2);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btnPrimaryClay:hover {
+  transform: translateY(-2px);
+  box-shadow: 6px 12px 24px rgba(112, 162, 255, 0.55),
+              inset 2px 2px 4px rgba(255, 255, 255, 0.7);
+}
+
+.btnPrimaryClay:active {
+  transform: translateY(1px);
+  box-shadow: 2px 4px 8px rgba(112, 162, 255, 0.35);
+}
+
+/* ── Email Dispatch Simulation Receipt ───────────────────── */
+.emailReceiptCard {
+  background: linear-gradient(145deg, #f8fbff 0%, #eef4ff 100%);
+  border: 2px dashed #70A2FF;
+  border-radius: 20px;
+  padding: 22px;
+  box-shadow: 6px 10px 24px rgba(0, 29, 82, 0.08),
+              inset 2px 2px 4px #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: slideDown 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.receiptHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  border-bottom: 1px solid #ADCAFF;
+  padding-bottom: 12px;
+}
+
+.receiptBadge {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1.5px solid #a7f3d0;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 2px 3px 6px rgba(16, 185, 129, 0.15);
+}
+
+.receiptMeta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  font-size: 13px;
+}
+
+.receiptField {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.receiptFieldLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.receiptFieldValue {
+  font-weight: 700;
+  color: #001D52;
+  word-break: break-all;
+}
+
+.receiptBodyBox {
+  background: #ffffff;
+  border: 1.5px solid #ADCAFF;
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-size: 13px;
+  color: #1e293b;
+  line-height: 1.6;
+  box-shadow: inset 1px 1px 3px rgba(0, 29, 82, 0.05);
+}
+
+.receiptActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ── Table Styling ───────────────────────────────────────── */
+.tableWrap {
+  overflow-x: auto;
+  border-radius: 16px;
+  border: 1.5px solid #ADCAFF;
+  background: #ffffff;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table th {
+  background: #001D52;
+  color: #ffffff;
+  padding: 13px 18px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border-bottom: 2px solid #70A2FF;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(173, 202, 255, 0.45);
+  font-size: 13.5px;
+  color: #001D52;
+  vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background: #f8faff;
+}
+
+/* ── Role Badges ─────────────────────────────────────────── */
+.rolePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 700;
+  box-shadow: 1px 2px 4px rgba(0, 29, 82, 0.08);
+}
+
+.roleFinance {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1.5px solid #a7f3d0;
+}
+
+.roleSalesManager {
+  background: #f3e8ff;
+  color: #6b21a8;
+  border: 1.5px solid #d8b4fe;
+}
+
+.roleSalesRep {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1.5px solid #bfdbfe;
+}
+
+.roleCustomer {
+  background: #f0fdfa;
+  color: #0f766e;
+  border: 1.5px solid #99f6e4;
+}
+
+.roleAdmin {
+  background: #001D52;
+  color: #ffffff;
+  border: 1.5px solid #70A2FF;
+}
+
+/* ── Status Pills ────────────────────────────────────────── */
+.statusActive {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  border-radius: 14px;
+  padding: 2px 9px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.statusPending {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  border-radius: 14px;
+  padding: 2px 9px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+/* ── Action Buttons inside Table ─────────────────────────── */
+.tableActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.tableBtn {
+  background: #ffffff;
+  border: 1.5px solid #ADCAFF;
+  border-radius: 10px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #001D52;
+  cursor: pointer;
+  box-shadow: 1px 2px 4px rgba(0, 29, 82, 0.05);
+  transition: all 0.16s ease;
+  white-space: nowrap;
+}
+
+.tableBtn:hover {
+  background: #f0f6ff;
+  border-color: #70A2FF;
+  transform: translateY(-1px);
+}
+
+.tableBtnPrimary {
+  background: linear-gradient(135deg, #70A2FF 0%, #4f85e8 100%);
+  color: #ffffff;
+  border: 1.5px solid #70A2FF;
+}
+
+.tableBtnPrimary:hover {
+  background: linear-gradient(135deg, #5b94ff 0%, #3e74d6 100%);
+}
+
+/* ── Message Composer & Templates ────────────────────────── */
+.templateRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 6px;
+}
+
+.templateLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.templateChip {
+  background: #f0f6ff;
+  border: 1px solid #ADCAFF;
+  border-radius: 14px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #001D52;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.templateChip:hover {
+  background: #70A2FF;
+  color: #ffffff;
+  border-color: #70A2FF;
+  transform: translateY(-1px);
+}
+
+/* ── Sent Messages Stream ────────────────────────────────── */
+.messageStream {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.msgCard {
+  background: linear-gradient(145deg, #ffffff 0%, #f9fbff 100%);
+  border: 1.5px solid #ADCAFF;
+  border-radius: 18px;
+  padding: 18px 22px;
+  box-shadow: 4px 8px 18px rgba(0, 29, 82, 0.05),
+              inset 2px 2px 4px #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.16s ease;
+}
+
+.msgCard:hover {
+  transform: translateY(-2px);
+  border-color: #70A2FF;
+}
+
+.msgCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.msgRecipient {
+  font-size: 14px;
+  font-weight: 800;
+  color: #001D52;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.msgTime {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.msgSubject {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.msgBody {
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.5;
+  background: #f8faff;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border-left: 3px solid #70A2FF;
+}
+
+.msgFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #059669;
+  font-weight: 600;
+}
+
+/* ── Directory Stats & Filtering ─────────────────────────── */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+}
+
+.statCard {
+  background: linear-gradient(145deg, #ffffff 0%, #f0f6ff 100%);
+  border: 1.5px solid #ADCAFF;
+  border-radius: 18px;
+  padding: 16px 20px;
+  box-shadow: 4px 8px 18px rgba(0, 29, 82, 0.05),
+              inset 2px 2px 4px #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statVal {
+  font-size: 26px;
+  font-weight: 800;
+  color: #001D52;
+}
+
+.statLabel {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.searchFilterBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 4px 0;
+}
+
+.searchBox {
+  flex: 1;
+  min-width: 260px;
+}
+
+.filterPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filterPill {
+  background: #ffffff;
+  border: 1.5px solid #ADCAFF;
+  border-radius: 14px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #001D52;
+  cursor: pointer;
+  box-shadow: 2px 3px 6px rgba(0, 29, 82, 0.05);
+  transition: all 0.16s ease;
+}
+
+.filterPill:hover {
+  border-color: #70A2FF;
+  background: #f8faff;
+}
+
+.filterPillActive {
+  background: #70A2FF;
+  color: #ffffff;
+  border-color: #70A2FF;
+  box-shadow: 0 4px 10px rgba(112, 162, 255, 0.35);
+}
+
+.userAvatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #001D52;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12.5px;
+  font-weight: 800;
+  border: 2px solid #70A2FF;
+  box-shadow: 0 2px 5px rgba(0, 29, 82, 0.2);
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.userNameBlock {
+  display: flex;
+  flex-direction: column;
+}
+
+.userNameText {
+  font-weight: 700;
+  color: #001D52;
+}
+
+.userCompanyText {
+  font-size: 11.5px;
+  color: #64748b;
+}

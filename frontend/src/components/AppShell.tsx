@@ -13,9 +13,16 @@ import {
   UserAccount,
   UserRole,
 } from './types'
-import { INITIAL_GOVERNANCE } from './mockData'
+import {
+  INITIAL_QUOTATIONS,
+  INITIAL_PRODUCTS,
+  INITIAL_WAREHOUSES,
+  INITIAL_GOVERNANCE,
+  INITIAL_USERS,
+} from './mockData'
 import { fetchWorkspaceBootstrap, updateQuotationLive } from '@/lib/api'
 
+/* ── Module Component Imports ─────────────────────────────── */
 import DashboardModule from './DashboardModule'
 import QuotationsListModule from './QuotationsListModule'
 import QuotationBuilderModule from './QuotationBuilderModule'
@@ -30,6 +37,7 @@ import ProductCatalogModule from './ProductCatalogModule'
 import GovernanceModule from './GovernanceModule'
 import UsersModule from './UsersModule'
 import ReportsModule from './ReportsModule'
+import AdminModule from './AdminModule'
 
 /* ── Minimalist Clean SVG Icons ───────────────────────────── */
 function LayoutDashboardIcon() {
@@ -55,22 +63,6 @@ function FileTextIcon() {
   )
 }
 
-function SlidersIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="4" x2="4" y1="21" y2="14" />
-      <line x1="4" x2="4" y1="10" y2="3" />
-      <line x1="12" x2="12" y1="21" y2="12" />
-      <line x1="12" x2="12" y1="8" y2="3" />
-      <line x1="20" x2="20" y1="21" y2="16" />
-      <line x1="20" x2="20" y1="12" y2="3" />
-      <line x1="1" x2="7" y1="14" y2="14" />
-      <line x1="9" x2="15" y1="8" y2="8" />
-      <line x1="17" x2="23" y1="16" y2="16" />
-    </svg>
-  )
-}
-
 function CheckSquareIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -83,9 +75,10 @@ function CheckSquareIcon() {
 function PackageIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M16.5 9.4 7.55 4.24a1.78 1.78 0 0 0-2.5 1.55v12.42a1.78 1.78 0 0 0 2.5 1.55L16.5 14.6" />
-      <polyline points="3.29 7 12 12 20.71 7" />
-      <line x1="12" x2="12" y1="22" y2="12" />
+      <path d="m7.5 4.27 9 5.15" />
+      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+      <path d="m3.3 7 8.7 5 8.7-5" />
+      <path d="M12 22V12" />
     </svg>
   )
 }
@@ -156,6 +149,32 @@ function ShieldIcon() {
   )
 }
 
+function MessageSquareIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  )
+}
+
+function SendIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  )
+}
+
+function UserIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  )
+}
+
 function LogOutIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -182,23 +201,20 @@ interface AppShellProps {
 }
 
 export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps) {
-  const [quotations, setQuotations] = useState<Quotation[]>([])
-  const [products, setProducts] = useState<Product[]>([])
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([])
+  // Domain state with robust fallbacks
+  const [quotations, setQuotations] = useState<Quotation[]>(INITIAL_QUOTATIONS)
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS)
+  const [warehouses, setWarehouses] = useState<Warehouse[]>(INITIAL_WAREHOUSES)
   const [governance, setGovernance] = useState<GovernanceRule>(INITIAL_GOVERNANCE)
-  const [users, setUsers] = useState<UserAccount[]>([])
+  const [users, setUsers] = useState<UserAccount[]>(INITIAL_USERS)
   const [invoices, setInvoices] = useState<any[]>([])
   const [subscriptions, setSubscriptions] = useState<any[]>([])
   const [approvals, setApprovals] = useState<any[]>([])
-  const [reportsData, setReportsData] = useState<any>(null)
-  const [isDbLoaded, setIsDbLoaded] = useState<boolean>(false)
+  const [isDbLoaded, setIsDbLoaded] = useState<boolean>(true)
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false)
 
   // Role permissions
   const role = user.role || 'sales_rep'
-  const isSalesRep = role === 'sales_rep'
-  const isSalesManager = role === 'sales_manager' || role === 'admin'
-  const isFinance = role === 'finance' || role === 'admin'
   const isAdmin = role === 'admin'
   const isCustomer = role === 'customer'
 
@@ -220,10 +236,9 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
     return 'DRAFT'
   }
 
-  const [activeModule, setActiveModule] = useState<ActiveModule>(
-    isCustomer ? 'customer_portal' : 'dashboard'
-  )
-  const [selectedQuotationId, setSelectedQuotationId] = useState<string>('')
+  // Active view: Defaults according to role
+  const [activeModule, setActiveModule] = useState<ActiveModule>('dashboard')
+  const [selectedQuotationId, setSelectedQuotationId] = useState<string>('Q-1042')
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   function showToast(msg: string) {
@@ -233,20 +248,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
 
   function handleNavigateModule(mod: ActiveModule) {
     setActiveModule(mod)
-    try {
-      localStorage.setItem('dealflow_active_module', mod)
-    } catch {}
   }
-
-  // Restore active module from localStorage on client mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('dealflow_active_module') as ActiveModule
-      if (saved) {
-        setActiveModule(saved)
-      }
-    } catch {}
-  }, [])
 
   // Fetch live PostgreSQL database data on mount
   async function loadDatabaseData(isManual = false) {
@@ -323,37 +325,23 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
         }
 
         if (data.users && data.users.length > 0) {
-          const adaptedUsers: UserAccount[] = data.users.map((du: any) => ({
-            id: du.id,
-            name: du.fullName,
-            email: du.email,
-            role: du.role,
-            status: du.is_active ? 'Active' : 'Pending Invite',
-          }))
-          setUsers(adaptedUsers)
+          setUsers(data.users)
         }
-
         if (data.invoices && data.invoices.length > 0) {
           setInvoices(data.invoices)
         }
-
         if (data.subscriptions && data.subscriptions.length > 0) {
           setSubscriptions(data.subscriptions)
         }
-
         if (data.approvals && data.approvals.length > 0) {
           setApprovals(data.approvals)
-        }
-
-        if (data.reports) {
-          setReportsData(data.reports)
         }
 
         setIsDbLoaded(true)
         if (isManual) showToast('Database synchronized.')
       }
     } catch (e) {
-      console.error('Failed to load bootstrap data:', e)
+      console.warn('Backend live sync offline, using rich mock data')
     } finally {
       setIsRefreshing(false)
     }
@@ -365,11 +353,13 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
 
   async function handleUpdateQuotation(updated: Quotation) {
     setQuotations(prev => prev.map(q => (q.id === updated.id ? updated : q)))
-    const backendStatus = mapFrontendStatusToBackend(updated.status)
-    await updateQuotationLive(updated.id, {
-      status: backendStatus,
-      notes: updated.managerComment || updated.customerComment,
-    })
+    try {
+      const backendStatus = mapFrontendStatusToBackend(updated.status)
+      await updateQuotationLive(updated.id, {
+        status: backendStatus,
+        notes: updated.managerComment || updated.customerComment,
+      }).catch(() => null)
+    } catch {}
   }
 
   function handleAddProduct(prod: Product) {
@@ -398,6 +388,11 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
     governance: 'Governance Rules',
     users: 'Team & Users',
     reports: 'Reports & Analytics',
+    messages: 'Customer Messages',
+    profile: 'Customer Profile',
+    admin_access: 'Role Access & Provisioning',
+    admin_messages: 'Message Anyone',
+    admin_directory: 'All Users & Directory',
   }
 
   const roleLabelMap: Record<UserRole, string> = {
@@ -412,7 +407,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
 
   return (
     <div className={styles.shell}>
-      {/* ── Left Clean Enterprise Sidebar ────────────────────────── */}
+      {/* ── Left Clean Enterprise Sidebar (Chinmay B2B Layout) ─── */}
       <aside className={styles.sidebar}>
         {/* Header Branding */}
         <div className={styles.sidebarHeader}>
@@ -442,159 +437,259 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
           </div>
         </div>
 
-        {/* Grouped Navigation Links (All 9 Core Sales Modules + Admin Tools) */}
+        {/* Grouped Navigation Links (Dynamically Adapting to User Role) */}
         <div className={styles.navScroll}>
-          {/* Section 1: Sales Operations */}
-          <div className={styles.navGroup}>
-            <span className={styles.groupLabel}>Sales & Pipeline</span>
-            <button
-              className={`${styles.navLink} ${activeModule === 'dashboard' ? styles.navLinkActive : ''}`}
-              onClick={() => handleNavigateModule('dashboard')}
-            >
-              <div className={styles.navLinkContent}>
-                <span className={styles.navIconWrap}><LayoutDashboardIcon /></span>
-                <span>Dashboard</span>
-              </div>
-            </button>
-
-            <button
-              className={`${styles.navLink} ${activeModule === 'quotations' ? styles.navLinkActive : ''}`}
-              onClick={() => handleNavigateModule('quotations')}
-            >
-              <div className={styles.navLinkContent}>
-                <span className={styles.navIconWrap}><FileTextIcon /></span>
-                <span>Quotations</span>
-              </div>
-              <span className={`${styles.navBadge} ${activeModule === 'quotations' ? styles.navBadgeActive : ''}`}>
-                {quotations.length}
-              </span>
-            </button>
-
-            <button
-              className={`${styles.navLink} ${activeModule === 'approvals' ? styles.navLinkActive : ''}`}
-              onClick={() => handleNavigateModule('approvals')}
-            >
-              <div className={styles.navLinkContent}>
-                <span className={styles.navIconWrap}><CheckSquareIcon /></span>
-                <span>Approvals</span>
-              </div>
-              {pendingApprovalsCount > 0 && (
-                <span className={`${styles.navBadge} ${styles.navBadgeActive}`}>
-                  {pendingApprovalsCount}
-                </span>
-              )}
-            </button>
-          </div>
-
-          {/* Section 2: Commerce & Execution */}
-          <div className={styles.navGroup}>
-            <span className={styles.groupLabel}>Commerce & Ledger</span>
-            <button
-              className={`${styles.navLink} ${activeModule === 'fulfillment' ? styles.navLinkActive : ''}`}
-              onClick={() => handleNavigateModule('fulfillment')}
-            >
-              <div className={styles.navLinkContent}>
-                <span className={styles.navIconWrap}><PackageIcon /></span>
-                <span>Fulfillment</span>
-              </div>
-            </button>
-
-            <button
-              className={`${styles.navLink} ${activeModule === 'subscriptions' ? styles.navLinkActive : ''}`}
-              onClick={() => handleNavigateModule('subscriptions')}
-            >
-              <div className={styles.navLinkContent}>
-                <span className={styles.navIconWrap}><RepeatIcon /></span>
-                <span>Subscriptions</span>
-              </div>
-            </button>
-
-            <button
-              className={`${styles.navLink} ${activeModule === 'invoices' || activeModule === 'billing' ? styles.navLinkActive : ''}`}
-              onClick={() => handleNavigateModule('invoices')}
-            >
-              <div className={styles.navLinkContent}>
-                <span className={styles.navIconWrap}><CreditCardIcon /></span>
-                <span>Invoices</span>
-              </div>
-            </button>
-          </div>
-
-          {/* Section 3: Intelligence & Master Catalog */}
-          <div className={styles.navGroup}>
-            <span className={styles.groupLabel}>Intelligence & Master</span>
-            <button
-              className={`${styles.navLink} ${activeModule === 'deal_health' ? styles.navLinkActive : ''}`}
-              onClick={() => handleNavigateModule('deal_health')}
-            >
-              <div className={styles.navLinkContent}>
-                <span className={styles.navIconWrap}><ActivityIcon /></span>
-                <span>Deal Health</span>
-              </div>
-            </button>
-
-            <button
-              className={`${styles.navLink} ${activeModule === 'reports' ? styles.navLinkActive : ''}`}
-              onClick={() => handleNavigateModule('reports')}
-            >
-              <div className={styles.navLinkContent}>
-                <span className={styles.navIconWrap}><BarChartIcon /></span>
-                <span>Reports</span>
-              </div>
-            </button>
-
-            <button
-              className={`${styles.navLink} ${activeModule === 'catalog' ? styles.navLinkActive : ''}`}
-              onClick={() => handleNavigateModule('catalog')}
-            >
-              <div className={styles.navLinkContent}>
-                <span className={styles.navIconWrap}><TagIcon /></span>
-                <span>Products</span>
-              </div>
-              <span className={styles.navBadge}>{products.length}</span>
-            </button>
-          </div>
-
-          {/* Section 4: Administration & System Governance (Admin Only) */}
-          {isAdmin && (
+          {/* ─── Role: Customer Navigation ─── */}
+          {isCustomer ? (
             <div className={styles.navGroup}>
-              <span className={styles.groupLabel}>Administration</span>
+              <span className={styles.groupLabel}>Customer Portal</span>
               <button
-                className={`${styles.navLink} ${activeModule === 'users' ? styles.navLinkActive : ''}`}
-                onClick={() => handleNavigateModule('users')}
+                className={`${styles.navLink} ${activeModule === 'dashboard' ? styles.navLinkActive : ''}`}
+                onClick={() => handleNavigateModule('dashboard')}
               >
                 <div className={styles.navLinkContent}>
-                  <span className={styles.navIconWrap}><UsersIcon /></span>
-                  <span>Team & Users</span>
+                  <span className={styles.navIconWrap}><LayoutDashboardIcon /></span>
+                  <span>Portal Overview</span>
                 </div>
               </button>
 
-              <button
-                className={`${styles.navLink} ${activeModule === 'governance' ? styles.navLinkActive : ''}`}
-                onClick={() => handleNavigateModule('governance')}
-              >
-                <div className={styles.navLinkContent}>
-                  <span className={styles.navIconWrap}><ShieldIcon /></span>
-                  <span>Governance Rules</span>
-                </div>
-              </button>
-            </div>
-          )}
-
-          {/* Customer Portal (Customer Only) */}
-          {isCustomer && (
-            <div className={styles.navGroup}>
-              <span className={styles.groupLabel}>Portal</span>
               <button
                 className={`${styles.navLink} ${activeModule === 'customer_portal' ? styles.navLinkActive : ''}`}
                 onClick={() => handleNavigateModule('customer_portal')}
               >
                 <div className={styles.navLinkContent}>
                   <span className={styles.navIconWrap}><FileTextIcon /></span>
-                  <span>My Quotations</span>
+                  <span>My Quotation</span>
+                </div>
+              </button>
+
+              <button
+                className={`${styles.navLink} ${activeModule === 'messages' ? styles.navLinkActive : ''}`}
+                onClick={() => handleNavigateModule('messages')}
+              >
+                <div className={styles.navLinkContent}>
+                  <span className={styles.navIconWrap}><MessageSquareIcon /></span>
+                  <span>Messages</span>
+                </div>
+              </button>
+
+              <button
+                className={`${styles.navLink} ${activeModule === 'profile' ? styles.navLinkActive : ''}`}
+                onClick={() => handleNavigateModule('profile')}
+              >
+                <div className={styles.navLinkContent}>
+                  <span className={styles.navIconWrap}><UserIcon /></span>
+                  <span>Account Profile</span>
                 </div>
               </button>
             </div>
+          ) : isAdmin ? (
+            /* ─── Role: Admin Navigation ─── */
+            <>
+              <div className={styles.navGroup}>
+                <span className={styles.groupLabel}>Administration</span>
+                <button
+                  className={`${styles.navLink} ${activeModule === 'dashboard' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('dashboard')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><LayoutDashboardIcon /></span>
+                    <span>Admin Dashboard</span>
+                  </div>
+                </button>
+
+                <button
+                  className={`${styles.navLink} ${activeModule === 'admin_access' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('admin_access')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><ShieldIcon /></span>
+                    <span>Role Access</span>
+                  </div>
+                </button>
+
+                <button
+                  className={`${styles.navLink} ${activeModule === 'admin_messages' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('admin_messages')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><SendIcon /></span>
+                    <span>Message Anyone</span>
+                  </div>
+                </button>
+
+                <button
+                  className={`${styles.navLink} ${activeModule === 'admin_directory' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('admin_directory')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><UsersIcon /></span>
+                    <span>All Users &amp; Directory</span>
+                  </div>
+                </button>
+              </div>
+
+              <div className={styles.navGroup}>
+                <span className={styles.groupLabel}>Governance &amp; Controls</span>
+                <button
+                  className={`${styles.navLink} ${activeModule === 'governance' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('governance')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><ShieldIcon /></span>
+                    <span>Governance Rules</span>
+                  </div>
+                </button>
+
+                <button
+                  className={`${styles.navLink} ${activeModule === 'users' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('users')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><UsersIcon /></span>
+                    <span>Team Management</span>
+                  </div>
+                </button>
+              </div>
+
+              <div className={styles.navGroup}>
+                <span className={styles.groupLabel}>Sales Audit</span>
+                <button
+                  className={`${styles.navLink} ${activeModule === 'quotations' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('quotations')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><FileTextIcon /></span>
+                    <span>All Quotations</span>
+                  </div>
+                  <span className={styles.navBadge}>{quotations.length}</span>
+                </button>
+
+                <button
+                  className={`${styles.navLink} ${activeModule === 'reports' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('reports')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><BarChartIcon /></span>
+                    <span>Executive Reports</span>
+                  </div>
+                </button>
+              </div>
+            </>
+          ) : (
+            /* ─── Role: Sales Representative / Manager / Finance (Chinmay Sales Module) ─── */
+            <>
+              {/* Section 1: Sales Operations */}
+              <div className={styles.navGroup}>
+                <span className={styles.groupLabel}>Sales &amp; Pipeline</span>
+                <button
+                  className={`${styles.navLink} ${activeModule === 'dashboard' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('dashboard')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><LayoutDashboardIcon /></span>
+                    <span>Dashboard</span>
+                  </div>
+                </button>
+
+                <button
+                  className={`${styles.navLink} ${activeModule === 'quotations' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('quotations')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><FileTextIcon /></span>
+                    <span>Quotations</span>
+                  </div>
+                  <span className={`${styles.navBadge} ${activeModule === 'quotations' ? styles.navBadgeActive : ''}`}>
+                    {quotations.length}
+                  </span>
+                </button>
+
+                <button
+                  className={`${styles.navLink} ${activeModule === 'approvals' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('approvals')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><CheckSquareIcon /></span>
+                    <span>Approvals</span>
+                  </div>
+                  {pendingApprovalsCount > 0 && (
+                    <span className={`${styles.navBadge} ${styles.navBadgeActive}`}>
+                      {pendingApprovalsCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {/* Section 2: Commerce & Execution */}
+              <div className={styles.navGroup}>
+                <span className={styles.groupLabel}>Commerce &amp; Ledger</span>
+                <button
+                  className={`${styles.navLink} ${activeModule === 'fulfillment' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('fulfillment')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><PackageIcon /></span>
+                    <span>Fulfillment</span>
+                  </div>
+                </button>
+
+                <button
+                  className={`${styles.navLink} ${activeModule === 'subscriptions' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('subscriptions')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><RepeatIcon /></span>
+                    <span>Subscriptions</span>
+                  </div>
+                </button>
+
+                <button
+                  className={`${styles.navLink} ${activeModule === 'invoices' || activeModule === 'billing' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('invoices')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><CreditCardIcon /></span>
+                    <span>Invoices</span>
+                  </div>
+                </button>
+              </div>
+
+              {/* Section 3: Intelligence & Master Catalog */}
+              <div className={styles.navGroup}>
+                <span className={styles.groupLabel}>Intelligence &amp; Master</span>
+                <button
+                  className={`${styles.navLink} ${activeModule === 'deal_health' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('deal_health')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><ActivityIcon /></span>
+                    <span>Deal Health</span>
+                  </div>
+                </button>
+
+                <button
+                  className={`${styles.navLink} ${activeModule === 'reports' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('reports')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><BarChartIcon /></span>
+                    <span>Reports</span>
+                  </div>
+                </button>
+
+                <button
+                  className={`${styles.navLink} ${activeModule === 'catalog' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('catalog')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><TagIcon /></span>
+                    <span>Products</span>
+                  </div>
+                  <span className={styles.navBadge}>{products.length}</span>
+                </button>
+              </div>
+            </>
           )}
         </div>
 
@@ -619,10 +714,29 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
           <div className={styles.breadcrumbs}>
             <span className={styles.breadRoot}>DealFlow360</span>
             <span className={styles.breadDivider}>/</span>
-            <span className={styles.breadCurrent}>{moduleTitles[activeModule]}</span>
+            <span className={styles.breadCurrent}>{moduleTitles[activeModule] || 'Workspace'}</span>
           </div>
 
           <div className={styles.topBarRight}>
+            {/* Quick Role Switcher for instant role preview */}
+            <select
+              className={styles.roleSwitcherSelect}
+              value={user.role}
+              onChange={e => {
+                const newRole = e.target.value as UserRole
+                onSwitchRole(newRole)
+                showToast(`Switched view to ${roleLabelMap[newRole]}`)
+                setActiveModule('dashboard')
+              }}
+              title="Switch user perspective"
+            >
+              <option value="sales_rep">Sales Representative</option>
+              <option value="admin">Administrator</option>
+              <option value="customer">Customer (Acme Corp)</option>
+              <option value="sales_manager">Sales Manager</option>
+              <option value="finance">Finance</option>
+            </select>
+
             <button
               className={styles.refreshBtn}
               onClick={() => loadDatabaseData(true)}
@@ -637,131 +751,155 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
 
         {/* Module Content Body */}
         <main className={styles.workspace}>
-          {!isDbLoaded ? (
-            <div className={styles.loadingContainer}>
-              <div className={styles.loadingSpinner} />
-              <p className={styles.loadingText}>Synchronizing with PostgreSQL database...</p>
-            </div>
-          ) : (
-            <>
-              {activeModule === 'dashboard' && (
-                <DashboardModule
-                  quotations={quotations}
-                  onNavigate={handleNavigateModule}
-                  onSelectQuotation={setSelectedQuotationId}
-                />
-              )}
+          {/* Dashboard Module (dynamically adapts according to user.role) */}
+          {activeModule === 'dashboard' && (
+            <DashboardModule
+              user={user}
+              quotations={quotations}
+              onNavigate={handleNavigateModule}
+              onSelectQuotation={setSelectedQuotationId}
+            />
+          )}
 
-              {activeModule === 'quotations' && (
-                <QuotationsListModule
-                  quotations={quotations}
-                  onSelectQuotation={setSelectedQuotationId}
-                  onNavigate={handleNavigateModule}
-                  onUpdateQuotation={handleUpdateQuotation}
-                  onShowToast={showToast}
-                />
-              )}
+          {/* Customer Portal Modules (from Local Stash) */}
+          {(activeModule === 'customer_portal' || activeModule === 'messages' || activeModule === 'profile') && (
+            <CustomerPortalModule
+              quotation={selectedQuote}
+              customerTab={
+                activeModule === 'messages'
+                  ? 'messages'
+                  : activeModule === 'profile'
+                  ? 'profile'
+                  : 'quotation'
+              }
+              onUpdateQuotation={handleUpdateQuotation}
+              onNavigate={handleNavigateModule}
+              onShowToast={showToast}
+            />
+          )}
 
-              {activeModule === 'builder' && (
-                <QuotationBuilderModule
-                  quotation={selectedQuote}
-                  products={products}
-                  onUpdateQuotation={handleUpdateQuotation}
-                  onNavigate={handleNavigateModule}
-                  onShowToast={showToast}
-                />
-              )}
+          {/* Root Admin Modules (from Local Stash) */}
+          {(activeModule === 'admin_access' || activeModule === 'admin_messages' || activeModule === 'admin_directory') && (
+            <AdminModule
+              adminTab={
+                activeModule === 'admin_messages'
+                  ? 'messages'
+                  : activeModule === 'admin_directory'
+                  ? 'directory'
+                  : 'access'
+              }
+              onNavigateTab={tab =>
+                handleNavigateModule(
+                  tab === 'messages'
+                    ? 'admin_messages'
+                    : tab === 'directory'
+                    ? 'admin_directory'
+                    : 'admin_access'
+                )
+              }
+              onSwitchRole={onSwitchRole}
+              onShowToast={showToast}
+            />
+          )}
 
-              {activeModule === 'approvals' && (
-                <ApprovalsModule
-                  quotations={quotations}
-                  approvals={approvals}
-                  onUpdateQuotation={handleUpdateQuotation}
-                  onNavigate={handleNavigateModule}
-                  onShowToast={showToast}
-                />
-              )}
+          {/* Sales Representative Modules (pushed by Chinmay) */}
+          {activeModule === 'quotations' && (
+            <QuotationsListModule
+              quotations={quotations}
+              onSelectQuotation={setSelectedQuotationId}
+              onNavigate={handleNavigateModule}
+              onUpdateQuotation={handleUpdateQuotation}
+              onShowToast={showToast}
+            />
+          )}
 
-              {activeModule === 'customer_portal' && (
-                <CustomerPortalModule
-                  quotation={selectedQuote}
-                  onUpdateQuotation={handleUpdateQuotation}
-                  onNavigate={handleNavigateModule}
-                  onShowToast={showToast}
-                />
-              )}
+          {activeModule === 'builder' && (
+            <QuotationBuilderModule
+              quotation={selectedQuote}
+              products={products}
+              onUpdateQuotation={handleUpdateQuotation}
+              onNavigate={handleNavigateModule}
+              onShowToast={showToast}
+            />
+          )}
 
-              {activeModule === 'fulfillment' && (
-                <FulfillmentModule
-                  quotation={selectedQuote}
-                  warehouses={warehouses}
-                  quotations={quotations}
-                  onUpdateQuotation={handleUpdateQuotation}
-                  onNavigate={handleNavigateModule}
-                  onShowToast={showToast}
-                />
-              )}
+          {activeModule === 'approvals' && (
+            <ApprovalsModule
+              quotations={quotations}
+              approvals={approvals}
+              onUpdateQuotation={handleUpdateQuotation}
+              onNavigate={handleNavigateModule}
+              onShowToast={showToast}
+            />
+          )}
 
-              {activeModule === 'subscriptions' && (
-                <SubscriptionsModule
-                  subscriptions={subscriptions}
-                  onNavigate={handleNavigateModule}
-                  onShowToast={showToast}
-                />
-              )}
+          {activeModule === 'fulfillment' && (
+            <FulfillmentModule
+              quotation={selectedQuote}
+              warehouses={warehouses}
+              quotations={quotations}
+              onUpdateQuotation={handleUpdateQuotation}
+              onNavigate={handleNavigateModule}
+              onShowToast={showToast}
+            />
+          )}
 
-              {(activeModule === 'invoices' || activeModule === 'billing') && (
-                <InvoicesModule
-                  quotation={selectedQuote}
-                  invoices={invoices}
-                  onUpdateQuotation={handleUpdateQuotation}
-                  onNavigate={handleNavigateModule}
-                  onShowToast={showToast}
-                />
-              )}
+          {activeModule === 'subscriptions' && (
+            <SubscriptionsModule
+              subscriptions={subscriptions}
+              onNavigate={handleNavigateModule}
+              onShowToast={showToast}
+            />
+          )}
 
-              {activeModule === 'deal_health' && (
-                <DealHealthModule
-                  quotations={quotations}
-                  onNavigate={handleNavigateModule}
-                  onSelectQuotation={setSelectedQuotationId}
-                  onShowToast={showToast}
-                />
-              )}
+          {(activeModule === 'invoices' || activeModule === 'billing') && (
+            <InvoicesModule
+              quotation={selectedQuote}
+              invoices={invoices}
+              onUpdateQuotation={handleUpdateQuotation}
+              onNavigate={handleNavigateModule}
+              onShowToast={showToast}
+            />
+          )}
 
-              {activeModule === 'catalog' && (
-                <ProductCatalogModule
-                  products={products}
-                  onAddProduct={handleAddProduct}
-                  onShowToast={showToast}
-                />
-              )}
+          {activeModule === 'deal_health' && (
+            <DealHealthModule
+              quotations={quotations}
+              onNavigate={handleNavigateModule}
+              onSelectQuotation={setSelectedQuotationId}
+              onShowToast={showToast}
+            />
+          )}
 
-              {activeModule === 'governance' && (
-                <GovernanceModule
-                  governance={governance}
-                  onUpdateGovernance={setGovernance}
-                  onShowToast={showToast}
-                />
-              )}
+          {activeModule === 'catalog' && (
+            <ProductCatalogModule
+              products={products}
+              onAddProduct={handleAddProduct}
+              onShowToast={showToast}
+            />
+          )}
 
-              {activeModule === 'users' && (
-                <UsersModule
-                  users={users}
-                  onAddUser={handleAddUser}
-                  onShowToast={showToast}
-                />
-              )}
+          {activeModule === 'governance' && (
+            <GovernanceModule
+              governance={governance}
+              onUpdateGovernance={setGovernance}
+              onShowToast={showToast}
+            />
+          )}
 
-              {activeModule === 'reports' && (
-                <ReportsModule
-                  reportsData={reportsData}
-                  quotations={quotations}
-                  onNavigate={handleNavigateModule}
-                  onShowToast={showToast}
-                />
-              )}
-            </>
+          {activeModule === 'users' && (
+            <UsersModule
+              users={users}
+              onAddUser={handleAddUser}
+              onShowToast={showToast}
+            />
+          )}
+
+          {activeModule === 'reports' && (
+            <ReportsModule
+              onNavigate={handleNavigateModule}
+              onShowToast={showToast}
+            />
           )}
         </main>
       </div>
@@ -769,6 +907,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
       {/* Floating Toast Notification */}
       {toastMessage && (
         <div className={styles.toast}>
+          <span>✓</span>
           <span>{toastMessage}</span>
         </div>
       )}

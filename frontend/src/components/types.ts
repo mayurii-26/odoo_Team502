@@ -114,6 +114,18 @@ export interface UserAccount {
   inviteExpires?: string
 }
 
+export interface DirectoryUser {
+  id: string
+  name: string
+  email: string
+  role: UserRole
+  roleLabel: string
+  company: string
+  status: 'Active' | 'Pending Invite' | 'Suspended'
+  lastActive: string
+  avatarInitials: string
+}
+
 export type ActiveModule =
   | 'dashboard'
   | 'quotations'
@@ -129,3 +141,8 @@ export type ActiveModule =
   | 'governance'
   | 'users'
   | 'reports'
+  | 'messages'
+  | 'profile'
+  | 'admin_access'
+  | 'admin_messages'
+  | 'admin_directory'

@@ -1,0 +1,1187 @@
+'use client'
+
+import React, { useState } from 'react'
+import styles from './AdminModule.module.css'
+import { DirectoryUser, UserRole } from './types'
+
+interface AdminModuleProps {
+  adminTab: 'access' | 'messages' | 'directory'
+  onNavigateTab: (tab: 'access' | 'messages' | 'directory') => void
+  onSwitchRole: (role: UserRole) => void
+  onShowToast: (msg: string) => void
+  onImpersonateUser?: (email: string, role: UserRole, name: string, company: string) => void
+}
+
+/* ── Initial Unified Directory Mock Data ─────────────────────── */
+const INITIAL_DIRECTORY: DirectoryUser[] = [
+  {
+    id: 'u-1',
+    name: 'Sarah Connor',
+    email: 'admin@dealflow360.com',
+    role: 'admin',
+    roleLabel: 'Administrator',
+    company: 'DealFlow360 HQ',
+    status: 'Active',
+    lastActive: 'Just now',
+    avatarInitials: 'SC',
+  },
+  {
+    id: 'u-2',
+    name: 'David Miller',
+    email: 'finance@dealflow360.com',
+    role: 'finance',
+    roleLabel: 'Finance User',
+    company: 'DealFlow360 Finance & Audit',
+    status: 'Active',
+    lastActive: '12 mins ago',
+    avatarInitials: 'DM',
+  },
+  {
+    id: 'u-3',
+    name: 'Alex Rivera',
+    email: 'manager@dealflow360.com',
+    role: 'sales_manager',
+    roleLabel: 'Sales Manager',
+    company: 'DealFlow360 Commercial Ops',
+    status: 'Active',
+    lastActive: '25 mins ago',
+    avatarInitials: 'AR',
+  },
+  {
+    id: 'u-4',
+    name: 'Jane Smith',
+    email: 'sales@dealflow360.com',
+    role: 'sales_rep',
+    roleLabel: 'Sales Representative',
+    company: 'DealFlow360 Direct Sales',
+    status: 'Active',
+    lastActive: '5 mins ago',
+    avatarInitials: 'JS',
+  },
+  {
+    id: 'u-5',
+    name: 'John Davis (rk)',
+    email: 'customer@acme.com',
+    role: 'customer',
+    roleLabel: 'Customer Contact',
+    company: 'Acme Corporation',
+    status: 'Active',
+    lastActive: 'Today, 11:30 AM',
+    avatarInitials: 'RK',
+  },
+  {
+    id: 'u-6',
+    name: 'Robert Vance',
+    email: 'robert.vance@dealflow360.com',
+    role: 'finance',
+    roleLabel: 'Finance Director',
+    company: 'DealFlow360 Treasury',
+    status: 'Active',
+    lastActive: 'Yesterday',
+    avatarInitials: 'RV',
+  },
+  {
+    id: 'u-7',
+    name: 'Elena Rostova',
+    email: 'elena.r@dealflow360.com',
+    role: 'sales_manager',
+    roleLabel: 'Sales Manager (Enterprise)',
+    company: 'DealFlow360 Strategic Accounts',
+    status: 'Active',
+    lastActive: '1 hour ago',
+    avatarInitials: 'ER',
+  },
+  {
+    id: 'u-8',
+    name: 'Rachel Green',
+    email: 'rachel@nexusglobal.com',
+    role: 'customer',
+    roleLabel: 'Customer Contact',
+    company: 'Nexus Global',
+    status: 'Active',
+    lastActive: '2 days ago',
+    avatarInitials: 'RG',
+  },
+  {
+    id: 'u-9',
+    name: 'Carlos Mendez',
+    email: 'carlos.m@dealflow360.com',
+    role: 'sales_rep',
+    roleLabel: 'Senior Sales Rep',
+    company: 'DealFlow360 Field Sales',
+    status: 'Active',
+    lastActive: '3 hours ago',
+    avatarInitials: 'CM',
+  },
+  {
+    id: 'u-10',
+    name: 'Thomas Wayne',
+    email: 't.wayne@omnicorp.com',
+    role: 'customer',
+    roleLabel: 'Customer Contact',
+    company: 'OmniCorp Industries',
+    status: 'Active',
+    lastActive: 'Sep 3, 2026',
+    avatarInitials: 'TW',
+  },
+  {
+    id: 'u-11',
+    name: 'Marcus Vance',
+    email: 'marcus.v@dealflow360.com',
+    role: 'sales_rep',
+    roleLabel: 'Sales Representative',
+    company: 'DealFlow360 Direct Sales',
+    status: 'Pending Invite',
+    lastActive: 'Invited (Pending)',
+    avatarInitials: 'MV',
+  },
+]
+
+/* ── Initial Sent Messages ───────────────────────────────────── */
+interface SentDirectMessage {
+  id: string
+  recipient: string
+  recipientCategory: string
+  subject: string
+  body: string
+  priority: 'Normal' | 'High' | 'Urgent'
+  timestamp: string
+  status: 'Delivered & Emailed' | 'Read'
+}
+
+const INITIAL_SENT_MESSAGES: SentDirectMessage[] = [
+  {
+    id: 'msg-1',
+    recipient: '💰 Finance Team (David Miller, Robert Vance)',
+    recipientCategory: 'finance',
+    subject: 'Q3 Margin Audit & High-Discount Quote Reviews',
+    body: 'Please conduct an expedited review of all quotes flagged with blended risk score > 45. Direct approval required before fulfillment allocation.',
+    priority: 'High',
+    timestamp: 'Today, 2:15 PM',
+    status: 'Delivered & Emailed',
+  },
+  {
+    id: 'msg-2',
+    recipient: '📊 Alex Rivera (Sales Manager)',
+    recipientCategory: 'sales_manager',
+    subject: 'Approval Thresholds Updated for Enterprise Tier',
+    body: 'Hardware discount ceilings have been recalibrated to 18% max without CFO countersignature. Please review your pending queue in Screen 6.',
+    priority: 'Normal',
+    timestamp: 'Today, 10:45 AM',
+    status: 'Read',
+  },
+  {
+    id: 'msg-3',
+    recipient: '🏢 John Davis (Acme Corp)',
+    recipientCategory: 'customer',
+    subject: 'Quotation Q-1042 Counter-Terms Under Assessment',
+    body: 'We have received your requested 15% warranty discount and next-month delivery preference. Our account lead Jane Smith is preparing the revised breakdown.',
+    priority: 'Normal',
+    timestamp: 'Yesterday, 4:30 PM',
+    status: 'Read',
+  },
+]
+
+export default function AdminModule({
+  adminTab,
+  onNavigateTab,
+  onSwitchRole,
+  onShowToast,
+  onImpersonateUser,
+}: AdminModuleProps) {
+  // Directory & Users State
+  const [directory, setDirectory] = useState<DirectoryUser[]>(INITIAL_DIRECTORY)
+
+  // Tab 1: Access Provisioning Form State
+  const [provisionName, setProvisionName] = useState('Liam Thorne')
+  const [provisionEmail, setProvisionEmail] = useState('liam.finance@dealflow360.com')
+  const [provisionRole, setProvisionRole] = useState<UserRole>('finance')
+  const [provisionCompany, setProvisionCompany] = useState('DealFlow360 Finance & Treasury')
+  const [provisionPassword, setProvisionPassword] = useState('DealFlow#2026')
+  const [sendMailChecked, setSendMailChecked] = useState(true)
+  const [emailReceipt, setEmailReceipt] = useState<{
+    name: string
+    email: string
+    role: UserRole
+    roleLabel: string
+    password: string
+    timestamp: string
+  } | null>(null)
+
+  // Tab 2: Messaging State
+  const [messages, setMessages] = useState<SentDirectMessage[]>(INITIAL_SENT_MESSAGES)
+  const [recipient, setRecipient] = useState('finance@dealflow360.com')
+  const [recipientName, setRecipientName] = useState('David Miller (Finance User)')
+  const [msgSubject, setMsgSubject] = useState('Fiscal Year End Reconciliation Instructions')
+  const [msgPriority, setMsgPriority] = useState<'Normal' | 'High' | 'Urgent'>('High')
+  const [msgBody, setMsgBody] = useState(
+    'Please verify all outstanding unallocated hardware lines prior to the Friday cutoff.'
+  )
+
+  // Tab 3: Directory Filter State
+  const [searchQuery, setSearchQuery] = useState('')
+  const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all')
+
+  /* ── Tab 1: Generate Secure Password ───────────────────────── */
+  function handleGeneratePassword() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%*'
+    let pwd = 'DF-'
+    for (let i = 0; i < 8; i++) {
+      pwd += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    setProvisionPassword(pwd)
+    onShowToast('Generated new high-entropy temporary password.')
+  }
+
+  /* ── Tab 1: Role Selection Sync ────────────────────────────── */
+  function handleRoleChange(newRole: UserRole) {
+    setProvisionRole(newRole)
+    if (newRole === 'finance') {
+      setProvisionCompany('DealFlow360 Finance & Treasury')
+      if (provisionEmail.includes('@dealflow360')) {
+        setProvisionEmail('liam.finance@dealflow360.com')
+      }
+    } else if (newRole === 'sales_manager') {
+      setProvisionCompany('DealFlow360 Commercial Sales Ops')
+      setProvisionEmail('liam.manager@dealflow360.com')
+    } else if (newRole === 'sales_rep') {
+      setProvisionCompany('DealFlow360 Direct Sales')
+      setProvisionEmail('liam.sales@dealflow360.com')
+    } else if (newRole === 'customer') {
+      setProvisionCompany('Apex Enterprises')
+      setProvisionEmail('procurement@apexenterprises.com')
+    }
+  }
+
+  /* ── Tab 1: Grant Access & Send Mail ───────────────────────── */
+  function handleGrantAccess(e: React.FormEvent) {
+    e.preventDefault()
+    if (!provisionEmail || !provisionName) {
+      onShowToast('Please specify a valid user name and email address.')
+      return
+    }
+
+    const roleLabels: Record<UserRole, string> = {
+      admin: 'Administrator',
+      finance: 'Finance User',
+      sales_manager: 'Sales Manager',
+      sales_rep: 'Sales Representative',
+      customer: 'Customer Contact',
+    }
+
+    const roleLabel = roleLabels[provisionRole]
+
+    // Create user in directory
+    const initials = provisionName
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+
+    const newUser: DirectoryUser = {
+      id: `u-${Date.now()}`,
+      name: provisionName,
+      email: provisionEmail.trim().toLowerCase(),
+      role: provisionRole,
+      roleLabel,
+      company: provisionCompany || 'DealFlow360',
+      status: 'Active',
+      lastActive: 'Just provisioned',
+      avatarInitials: initials || 'DF',
+    }
+
+    setDirectory(prev => [newUser, ...prev])
+
+    // Generate Mail Dispatch Receipt
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    setEmailReceipt({
+      name: provisionName,
+      email: provisionEmail,
+      role: provisionRole,
+      roleLabel,
+      password: provisionPassword,
+      timestamp: `Today, ${now}`,
+    })
+
+    onShowToast(
+      `Access granted for ${provisionName} (${roleLabel})! Credentials sent directly to ${provisionEmail} via mail.`
+    )
+  }
+
+  /* ── Tab 2: Send Direct Message ────────────────────────────── */
+  function handleSendMessage(e: React.FormEvent) {
+    e.preventDefault()
+    if (!msgSubject || !msgBody) {
+      onShowToast('Please fill in both the message subject and body.')
+      return
+    }
+
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    const newMsg: SentDirectMessage = {
+      id: `msg-${Date.now()}`,
+      recipient: recipientName,
+      recipientCategory: recipient,
+      subject: msgSubject,
+      body: msgBody,
+      priority: msgPriority,
+      timestamp: `Today, ${now}`,
+      status: 'Delivered & Emailed',
+    }
+
+    setMessages(prev => [newMsg, ...prev])
+    onShowToast(`Message dispatched directly to ${recipientName} and copy delivered to mailbox!`)
+    setMsgBody('')
+  }
+
+  /* ── Tab 2: Quick Template Fill ────────────────────────────── */
+  function applyTemplate(type: 'maintenance' | 'commission' | 'finance' | 'quote') {
+    if (type === 'maintenance') {
+      setMsgSubject('Scheduled Infrastructure Maintenance Window')
+      setMsgPriority('High')
+      setMsgBody(
+        'DealFlow360 platform will undergo database index re-balancing this Saturday from 02:00 UTC to 03:00 UTC. System access will remain online with momentary read-only caching.'
+      )
+    } else if (type === 'commission') {
+      setMsgSubject('Sales Commission Threshold & Spiff Update')
+      setMsgPriority('Normal')
+      setMsgBody(
+        'All quotations confirmed with recurring software commitments exceeding $25,000 ARR will receive an additional 2.5% accelerator bonus this cycle.'
+      )
+    } else if (type === 'finance') {
+      setMsgSubject('Invoice Reconciliation & Pending Margin Clearance')
+      setMsgPriority('Urgent')
+      setMsgBody(
+        'Urgent: Please review customer payment settlements for invoice batches INV-1040 through INV-1044. Unallocated reserves must be balanced before tomorrow.'
+      )
+    } else if (type === 'quote') {
+      setMsgSubject('Quotation Review Ready for Customer Consultation')
+      setMsgPriority('Normal')
+      setMsgBody(
+        'The customized proposal with extended service terms and hardware delivery schedule is prepared for executive sign-off in the customer portal.'
+      )
+    }
+  }
+
+  /* ── Tab 3: Directory Filter Logic ─────────────────────────── */
+  const filteredDirectory = directory.filter(u => {
+    const matchesRole = roleFilter === 'all' || u.role === roleFilter
+    const q = searchQuery.toLowerCase().trim()
+    const matchesSearch =
+      !q ||
+      u.name.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      u.company.toLowerCase().includes(q) ||
+      u.roleLabel.toLowerCase().includes(q)
+    return matchesRole && matchesSearch
+  })
+
+  // Directory Counts
+  const countCustomers = directory.filter(u => u.role === 'customer').length
+  const countSalesReps = directory.filter(u => u.role === 'sales_rep').length
+  const countSalesManagers = directory.filter(u => u.role === 'sales_manager').length
+  const countFinance = directory.filter(u => u.role === 'finance').length
+  const countAdmins = directory.filter(u => u.role === 'admin').length
+
+  return (
+    <div className={styles.container}>
+      {/* ── Top Header Bar ──────────────────────────────────── */}
+      <div className={styles.headerBar}>
+        <div className={styles.titleArea}>
+          <h1 className={styles.title}>
+            Administrator Command Center
+            <span className={styles.titleBadge}>Root Governance</span>
+          </h1>
+          <p className={styles.subtitle}>
+            Manage role permissions, dispatch automated credential emails, send direct communications to any party, and view all users and customers.
+          </p>
+        </div>
+      </div>
+
+      {/* ── Quick Switch Bar (Test Login Directly as Any Role) ── */}
+      <div className={styles.quickSwitchBar}>
+        <div className={styles.quickSwitchLabel}>
+          <span>⚡ Instant Role Switch / Impersonation:</span>
+          <span style={{ fontSize: 12, color: '#64748b', fontWeight: 500 }}>
+            (Immediately test platform views without logging out)
+          </span>
+        </div>
+        <div className={styles.quickSwitchGroup}>
+          <button
+            type="button"
+            className={styles.quickSwitchBtn}
+            onClick={() => {
+              onSwitchRole('finance')
+              onShowToast('Switched session to Finance User (David Miller).')
+            }}
+            title="Switch to Finance User"
+          >
+            💰 Login as Finance User
+          </button>
+          <button
+            type="button"
+            className={styles.quickSwitchBtn}
+            onClick={() => {
+              onSwitchRole('sales_manager')
+              onShowToast('Switched session to Sales Manager (Alex Rivera).')
+            }}
+            title="Switch to Sales Manager"
+          >
+            📊 Login as Sales Manager
+          </button>
+          <button
+            type="button"
+            className={styles.quickSwitchBtn}
+            onClick={() => {
+              onSwitchRole('sales_rep')
+              onShowToast('Switched session to Sales Representative (Jane Smith).')
+            }}
+            title="Switch to Sales Rep"
+          >
+            💼 Login as Sales Rep
+          </button>
+          <button
+            type="button"
+            className={styles.quickSwitchBtn}
+            onClick={() => {
+              onSwitchRole('customer')
+              onShowToast('Switched session to Customer (John Davis / Acme Corp).')
+            }}
+            title="Switch to Customer Portal"
+          >
+            🏢 Login as Customer
+          </button>
+        </div>
+      </div>
+
+      {/* ============================================================
+          TAB 1: ROLE ACCESS & PROVISIONING
+          "it will give access to login as finance user, sales manager .
+           admin will enter email and give him assecc as per their role
+           and then sends username and password through mail directly."
+         ============================================================ */}
+      {adminTab === 'access' && (
+        <>
+          {/* Main Provisioning Form Card */}
+          <div className={styles.clayCard}>
+            <div className={styles.cardHeader}>
+              <div>
+                <h2 className={styles.cardTitle}>
+                  <span>🛡️</span> Role Provisioning & Access Assignment
+                </h2>
+                <p className={styles.cardSubtitle}>
+                  Enter the user email, assign their designated role (Finance User, Sales Manager, Sales Rep, Customer), and dispatch credentials directly via email.
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleGrantAccess} className={styles.formGrid}>
+              {/* Full Name */}
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>User Full Name *</label>
+                <input
+                  type="text"
+                  className={styles.input}
+                  placeholder="e.g. David Miller"
+                  value={provisionName}
+                  onChange={e => setProvisionName(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Email Address */}
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>Recipient Work Email *</label>
+                <input
+                  type="email"
+                  className={styles.input}
+                  placeholder="e.g. user@dealflow360.com"
+                  value={provisionEmail}
+                  onChange={e => setProvisionEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Role Selector */}
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>Assign System Role *</label>
+                <select
+                  className={styles.select}
+                  value={provisionRole}
+                  onChange={e => handleRoleChange(e.target.value as UserRole)}
+                >
+                  <option value="finance">💰 Finance User (Invoices, Approvals & Reconciliation)</option>
+                  <option value="sales_manager">📊 Sales Manager (Tier Approvals, Discount Overrides & Team Deals)</option>
+                  <option value="sales_rep">💼 Sales Representative (Quotations & Deal Flow)</option>
+                  <option value="customer">🏢 Customer Contact (Quotation Review & Negotiation Portal)</option>
+                </select>
+              </div>
+
+              {/* Company / Department */}
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>Department / Organization</label>
+                <input
+                  type="text"
+                  className={styles.input}
+                  placeholder="e.g. DealFlow360 Finance & Treasury"
+                  value={provisionCompany}
+                  onChange={e => setProvisionCompany(e.target.value)}
+                />
+              </div>
+
+              {/* Auto-generated Password */}
+              <div className={styles.inputGroup}>
+                <div className={styles.label}>
+                  <span>Temporary Access Password</span>
+                  <button
+                    type="button"
+                    className={styles.btnSmallClay}
+                    onClick={handleGeneratePassword}
+                  >
+                    🔄 Generate New
+                  </button>
+                </div>
+                <div className={styles.passwordRow}>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={provisionPassword}
+                    onChange={e => setProvisionPassword(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Email Dispatch Checkbox */}
+              <div className={styles.inputGroup} style={{ justifyContent: 'center' }}>
+                <div className={styles.checkboxRow}>
+                  <input
+                    type="checkbox"
+                    id="chk-send-mail"
+                    checked={sendMailChecked}
+                    onChange={e => setSendMailChecked(e.target.checked)}
+                  />
+                  <label htmlFor="chk-send-mail">
+                    ✉️ Immediately dispatch username & password directly through mail
+                  </label>
+                </div>
+              </div>
+
+              {/* Submit CTA */}
+              <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-start', paddingTop: 8 }}>
+                <button type="submit" className={styles.btnPrimaryClay}>
+                  <span>✉️</span> Grant Access & Send Credentials via Mail
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Simulated Email Dispatch Receipt Modal / Preview */}
+          {emailReceipt && (
+            <div className={styles.emailReceiptCard}>
+              <div className={styles.receiptHeader}>
+                <span className={styles.receiptBadge}>
+                  <span>✓</span> Direct Credentials Email Dispatched via SMTP Mail Server
+                </span>
+                <span style={{ fontSize: 12, color: '#64748b' }}>{emailReceipt.timestamp}</span>
+              </div>
+
+              <div className={styles.receiptMeta}>
+                <div className={styles.receiptField}>
+                  <span className={styles.receiptFieldLabel}>Recipient (To)</span>
+                  <span className={styles.receiptFieldValue}>{emailReceipt.email}</span>
+                </div>
+                <div className={styles.receiptField}>
+                  <span className={styles.receiptFieldLabel}>Assigned Role</span>
+                  <span className={styles.receiptFieldValue}>{emailReceipt.roleLabel}</span>
+                </div>
+                <div className={styles.receiptField}>
+                  <span className={styles.receiptFieldLabel}>Subject Line</span>
+                  <span className={styles.receiptFieldValue}>
+                    Welcome to DealFlow360 — Your {emailReceipt.roleLabel} Login Credentials
+                  </span>
+                </div>
+              </div>
+
+              <div className={styles.receiptBodyBox}>
+                <p style={{ margin: '0 0 8px', fontWeight: 600 }}>
+                  Hello {emailReceipt.name},
+                </p>
+                <p style={{ margin: '0 0 8px' }}>
+                  Your enterprise access has been approved and provisioned by the Administrator with the role of{' '}
+                  <strong>{emailReceipt.roleLabel}</strong>. You can now log into DealFlow360 using the credentials below:
+                </p>
+                <div
+                  style={{
+                    background: '#f1f5f9',
+                    padding: '10px 14px',
+                    borderRadius: 8,
+                    fontFamily: 'monospace',
+                    fontSize: 13,
+                    margin: '8px 0',
+                    border: '1px solid #cbd5e1',
+                  }}
+                >
+                  <div><strong>Portal URL:</strong> http://localhost:3000</div>
+                  <div><strong>Username (Email):</strong> {emailReceipt.email}</div>
+                  <div><strong>Temporary Password:</strong> {emailReceipt.password}</div>
+                </div>
+                <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+                  Please change your password upon initial sign-in. This access key is governed by corporate RBAC policies.
+                </p>
+              </div>
+
+              <div className={styles.receiptActions}>
+                <button
+                  type="button"
+                  className={styles.btnPrimaryClay}
+                  style={{ padding: '8px 20px', fontSize: 13 }}
+                  onClick={() => {
+                    onSwitchRole(emailReceipt.role)
+                    onShowToast(`Impersonating ${emailReceipt.name} (${emailReceipt.roleLabel}). Session switched.`)
+                  }}
+                >
+                  🚀 Test Login Now as {emailReceipt.roleLabel}
+                </button>
+                <button
+                  type="button"
+                  className={styles.btnSmallClay}
+                  onClick={() => setEmailReceipt(null)}
+                >
+                  Dismiss Receipt
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Provisioned Users Table */}
+          <div className={styles.clayCard}>
+            <div className={styles.cardHeader}>
+              <div>
+                <h3 className={styles.cardTitle}>
+                  <span>👥</span> Active Provisioned Accounts
+                </h3>
+                <p className={styles.cardSubtitle}>
+                  Recently provisioned roles with live login impersonation and credential re-dispatch.
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>User / Account</th>
+                    <th>Email Address</th>
+                    <th>Assigned Role</th>
+                    <th>Status</th>
+                    <th>Credentials Delivery</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {directory.slice(0, 7).map(u => (
+                    <tr key={u.id}>
+                      <td>
+                        <div className={styles.userInfo}>
+                          <div className={styles.userAvatar}>{u.avatarInitials}</div>
+                          <div className={styles.userNameBlock}>
+                            <span className={styles.userNameText}>{u.name}</span>
+                            <span className={styles.userCompanyText}>{u.company}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ fontFamily: 'monospace', fontSize: 12.5 }}>{u.email}</td>
+                      <td>
+                        <span
+                          className={`${styles.rolePill} ${u.role === 'finance'
+                              ? styles.roleFinance
+                              : u.role === 'sales_manager'
+                                ? styles.roleSalesManager
+                                : u.role === 'customer'
+                                  ? styles.roleCustomer
+                                  : u.role === 'admin'
+                                    ? styles.roleAdmin
+                                    : styles.roleSalesRep
+                            }`}
+                        >
+                          {u.roleLabel}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className={
+                            u.status === 'Active' ? styles.statusActive : styles.statusPending
+                          }
+                        >
+                          {u.status}
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{ fontSize: 12, color: '#059669', fontWeight: 600 }}>
+                          ✉️ Emailed directly
+                        </span>
+                      </td>
+                      <td>
+                        <div className={styles.tableActions}>
+                          <button
+                            type="button"
+                            className={`${styles.tableBtn} ${styles.tableBtnPrimary}`}
+                            onClick={() => {
+                              onSwitchRole(u.role)
+                              onShowToast(`Switched session to ${u.name} (${u.roleLabel}).`)
+                            }}
+                            title={`Test Login as ${u.name}`}
+                          >
+                            🔑 Login As
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.tableBtn}
+                            onClick={() => {
+                              onShowToast(`Resent username & temporary credentials email directly to ${u.email}.`)
+                            }}
+                            title="Resend Mail"
+                          >
+                            ✉️ Resend Mail
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ============================================================
+          TAB 2: MESSAGE TO ANYONE
+          "message to anyone"
+         ============================================================ */}
+      {adminTab === 'messages' && (
+        <>
+          <div className={styles.clayCard}>
+            <div className={styles.cardHeader}>
+              <div>
+                <h2 className={styles.cardTitle}>
+                  <span>💬</span> Direct Messaging & Broadcast Console
+                </h2>
+                <p className={styles.cardSubtitle}>
+                  Compose and deliver high-priority direct messages, announcements, or notifications to any user, customer, or organizational tier.
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Templates */}
+            <div className={styles.templateRow}>
+              <span className={styles.templateLabel}>⚡ Quick Templates:</span>
+              <button
+                type="button"
+                className={styles.templateChip}
+                onClick={() => applyTemplate('maintenance')}
+              >
+                🛠️ Maintenance Alert
+              </button>
+              <button
+                type="button"
+                className={styles.templateChip}
+                onClick={() => applyTemplate('finance')}
+              >
+                💰 Finance Reconciliation
+              </button>
+              <button
+                type="button"
+                className={styles.templateChip}
+                onClick={() => applyTemplate('commission')}
+              >
+                📊 Manager Target Escalation
+              </button>
+              <button
+                type="button"
+                className={styles.templateChip}
+                onClick={() => applyTemplate('quote')}
+              >
+                🏢 Customer Quotation Update
+              </button>
+            </div>
+
+            <form onSubmit={handleSendMessage} className={styles.formGrid}>
+              {/* Recipient Dropdown */}
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>Select Recipient (User / Customer / Group) *</label>
+                <select
+                  className={styles.select}
+                  value={recipient}
+                  onChange={e => {
+                    setRecipient(e.target.value)
+                    const sel = e.target.options[e.target.selectedIndex].text
+                    setRecipientName(sel)
+                  }}
+                >
+                  <optgroup label="Broad Groups">
+                    <option value="broadcast">📢 All Users & Customers (Broadcast)</option>
+                    <option value="customers_all">🏢 All Customers</option>
+                    <option value="sales_managers_all">📊 All Sales Managers</option>
+                    <option value="finance_all">💰 Finance Operations Team</option>
+                    <option value="sales_reps_all">💼 All Sales Representatives</option>
+                  </optgroup>
+                  <optgroup label="Specific Team Members">
+                    <option value="finance@dealflow360.com">David Miller (Finance User)</option>
+                    <option value="robert.vance@dealflow360.com">Robert Vance (Finance Director)</option>
+                    <option value="manager@dealflow360.com">Alex Rivera (Sales Manager)</option>
+                    <option value="elena.r@dealflow360.com">Elena Rostova (Sales Manager)</option>
+                    <option value="sales@dealflow360.com">Jane Smith (Sales Representative)</option>
+                    <option value="carlos.m@dealflow360.com">Carlos Mendez (Sales Rep)</option>
+                  </optgroup>
+                  <optgroup label="Customer Contacts">
+                    <option value="customer@acme.com">John Davis — Acme Corp (Customer)</option>
+                    <option value="rachel@nexusglobal.com">Rachel Green — Nexus Global (Customer)</option>
+                    <option value="t.wayne@omnicorp.com">Thomas Wayne — OmniCorp (Customer)</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              {/* Priority */}
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>Urgency & Delivery Priority</label>
+                <select
+                  className={styles.select}
+                  value={msgPriority}
+                  onChange={e => setMsgPriority(e.target.value as 'Normal' | 'High' | 'Urgent')}
+                >
+                  <option value="Normal">Normal — Inbox Delivery</option>
+                  <option value="High">High Priority — Portal Banner & Instant Email</option>
+                  <option value="Urgent">Urgent Alert — Immediate Push Notification</option>
+                </select>
+              </div>
+
+              {/* Subject */}
+              <div className={styles.inputGroup} style={{ gridColumn: '1 / -1' }}>
+                <label className={styles.label}>Message Subject / Title *</label>
+                <input
+                  type="text"
+                  className={styles.input}
+                  placeholder="e.g. Fiscal Year End Reconciliation Instructions"
+                  value={msgSubject}
+                  onChange={e => setMsgSubject(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Body */}
+              <div className={styles.inputGroup} style={{ gridColumn: '1 / -1' }}>
+                <label className={styles.label}>Message Content *</label>
+                <textarea
+                  className={styles.textarea}
+                  placeholder="Type your message or announcement to the recipient..."
+                  value={msgBody}
+                  onChange={e => setMsgBody(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Submit CTA */}
+              <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-start', paddingTop: 6 }}>
+                <button type="submit" className={styles.btnPrimaryClay}>
+                  <span>✉️</span> Send Message Directly
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Sent Messages Stream */}
+          <div className={styles.clayCard}>
+            <div className={styles.cardHeader}>
+              <div>
+                <h3 className={styles.cardTitle}>
+                  <span>📬</span> Sent Messages & Delivery Log
+                </h3>
+                <p className={styles.cardSubtitle}>
+                  Chronological audit stream of messages and broadcasts sent by the Administrator.
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.messageStream}>
+              {messages.map(msg => (
+                <div key={msg.id} className={styles.msgCard}>
+                  <div className={styles.msgCardHeader}>
+                    <div className={styles.msgRecipient}>
+                      <span>To: {msg.recipient}</span>
+                      <span
+                        className={styles.rolePill}
+                        style={{
+                          background:
+                            msg.priority === 'Urgent'
+                              ? '#fef2f2'
+                              : msg.priority === 'High'
+                                ? '#fffbeb'
+                                : '#eff6ff',
+                          color:
+                            msg.priority === 'Urgent'
+                              ? '#991b1b'
+                              : msg.priority === 'High'
+                                ? '#92400e'
+                                : '#1e40af',
+                          border: '1px solid currentColor',
+                        }}
+                      >
+                        {msg.priority} Priority
+                      </span>
+                    </div>
+                    <span className={styles.msgTime}>{msg.timestamp}</span>
+                  </div>
+
+                  <div className={styles.msgSubject}>{msg.subject}</div>
+                  <div className={styles.msgBody}>{msg.body}</div>
+
+                  <div className={styles.msgFooter}>
+                    <span>✓ {msg.status}</span>
+                    <button
+                      type="button"
+                      className={styles.tableBtn}
+                      onClick={() => onShowToast(`Notification ping resent to ${msg.recipient}.`)}
+                    >
+                      Resend Ping
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ============================================================
+          TAB 3: ALL CUSTOMERS AND USER LIST
+          "all cusyomers and user list"
+         ============================================================ */}
+      {adminTab === 'directory' && (
+        <>
+          {/* Summary Stat Chips */}
+          <div className={styles.statsGrid}>
+            <div className={styles.statCard}>
+              <span className={styles.statVal}>{directory.length}</span>
+              <span className={styles.statLabel}>Total Directory Accounts</span>
+            </div>
+            <div className={styles.statCard}>
+              <span className={styles.statVal} style={{ color: '#0f766e' }}>
+                {countCustomers}
+              </span>
+              <span className={styles.statLabel}>Active Customers</span>
+            </div>
+            <div className={styles.statCard}>
+              <span className={styles.statVal} style={{ color: '#1d4ed8' }}>
+                {countSalesReps}
+              </span>
+              <span className={styles.statLabel}>Sales Representatives</span>
+            </div>
+            <div className={styles.statCard}>
+              <span className={styles.statVal} style={{ color: '#6b21a8' }}>
+                {countSalesManagers}
+              </span>
+              <span className={styles.statLabel}>Sales Managers</span>
+            </div>
+            <div className={styles.statCard}>
+              <span className={styles.statVal} style={{ color: '#047857' }}>
+                {countFinance}
+              </span>
+              <span className={styles.statLabel}>Finance Personnel</span>
+            </div>
+            <div className={styles.statCard}>
+              <span className={styles.statVal} style={{ color: '#001D52' }}>
+                {countAdmins}
+              </span>
+              <span className={styles.statLabel}>Root Administrators</span>
+            </div>
+          </div>
+
+          {/* Unified Directory Card */}
+          <div className={styles.clayCard}>
+            <div className={styles.cardHeader}>
+              <div>
+                <h2 className={styles.cardTitle}>
+                  <span>👥</span> Unified Directory: All Customers & Users
+                </h2>
+                <p className={styles.cardSubtitle}>
+                  Real-time roster of customer accounts, commercial sales reps, managers, and finance operators with direct messaging and login impersonation.
+                </p>
+              </div>
+            </div>
+
+            {/* Live Filter & Search Controls */}
+            <div className={styles.searchFilterBar}>
+              <div className={styles.searchBox}>
+                <input
+                  type="text"
+                  className={styles.input}
+                  placeholder="🔍 Search directory by name, email, company, or role..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div className={styles.filterPills}>
+                <button
+                  type="button"
+                  className={`${styles.filterPill} ${roleFilter === 'all' ? styles.filterPillActive : ''}`}
+                  onClick={() => setRoleFilter('all')}
+                >
+                  All ({directory.length})
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.filterPill} ${roleFilter === 'customer' ? styles.filterPillActive : ''}`}
+                  onClick={() => setRoleFilter('customer')}
+                >
+                  Customers ({countCustomers})
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.filterPill} ${roleFilter === 'sales_rep' ? styles.filterPillActive : ''}`}
+                  onClick={() => setRoleFilter('sales_rep')}
+                >
+                  Sales Reps ({countSalesReps})
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.filterPill} ${roleFilter === 'sales_manager' ? styles.filterPillActive : ''}`}
+                  onClick={() => setRoleFilter('sales_manager')}
+                >
+                  Sales Managers ({countSalesManagers})
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.filterPill} ${roleFilter === 'finance' ? styles.filterPillActive : ''}`}
+                  onClick={() => setRoleFilter('finance')}
+                >
+                  Finance ({countFinance})
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.filterPill} ${roleFilter === 'admin' ? styles.filterPillActive : ''}`}
+                  onClick={() => setRoleFilter('admin')}
+                >
+                  Admins ({countAdmins})
+                </button>
+              </div>
+            </div>
+
+            {/* Directory Table */}
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>User / Contact Name</th>
+                    <th>Email Address</th>
+                    <th>Company / Entity</th>
+                    <th>Assigned Role</th>
+                    <th>Account Status</th>
+                    <th>Last Active</th>
+                    <th style={{ textAlign: 'right' }}>Direct Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredDirectory.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+                        No users or customers found matching the search criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredDirectory.map(user => (
+                      <tr key={user.id}>
+                        <td>
+                          <div className={styles.userInfo}>
+                            <div className={styles.userAvatar}>{user.avatarInitials}</div>
+                            <div className={styles.userNameBlock}>
+                              <span className={styles.userNameText}>{user.name}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ fontFamily: 'monospace', fontSize: 12.5 }}>{user.email}</td>
+                        <td>{user.company}</td>
+                        <td>
+                          <span
+                            className={`${styles.rolePill} ${user.role === 'finance'
+                                ? styles.roleFinance
+                                : user.role === 'sales_manager'
+                                  ? styles.roleSalesManager
+                                  : user.role === 'customer'
+                                    ? styles.roleCustomer
+                                    : user.role === 'admin'
+                                      ? styles.roleAdmin
+                                      : styles.roleSalesRep
+                              }`}
+                          >
+                            {user.roleLabel}
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            className={
+                              user.status === 'Active' ? styles.statusActive : styles.statusPending
+                            }
+                          >
+                            {user.status}
+                          </span>
+                        </td>
+                        <td style={{ fontSize: 12.5, color: '#64748b' }}>{user.lastActive}</td>
+                        <td>
+                          <div className={styles.tableActions}>
+                            {/* Message action */}
+                            <button
+                              type="button"
+                              className={styles.tableBtn}
+                              onClick={() => {
+                                setRecipient(user.email)
+                                setRecipientName(`${user.name} (${user.roleLabel})`)
+                                onNavigateTab('messages')
+                                onShowToast(`Ready to message ${user.name}.`)
+                              }}
+                              title={`Direct Message ${user.name}`}
+                            >
+                              💬 Message
+                            </button>
+
+                            {/* Login As action */}
+                            <button
+                              type="button"
+                              className={`${styles.tableBtn} ${styles.tableBtnPrimary}`}
+                              onClick={() => {
+                                onSwitchRole(user.role)
+                                onShowToast(`Switched session to ${user.name} (${user.roleLabel}).`)
+                              }}
+                              title={`Test Login as ${user.name}`}
+                            >
+                              🔑 Login As
+                            </button>
+
+                            {/* Reset mail */}
+                            <button
+                              type="button"
+                              className={styles.tableBtn}
+                              onClick={() => {
+                                onShowToast(`Password reset link dispatched directly to ${user.email}.`)
+                              }}
+                              title="Send Reset Mail"
+                            >
+                              ✉️ Reset
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}

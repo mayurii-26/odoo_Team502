@@ -1,603 +1,657 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import styles from './LoginPage.module.css'
-import { loginUser, registerCustomer, resendVerification, UserProfile } from '../lib/api'
 import AppShell from './AppShell'
-import { UserRole } from './types'
+import { UserSession, UserRole } from './types'
+import { IconEye, IconEyeOff } from './Icons'
 
-type AuthMode = 'signin' | 'signup'
+/* ── Pre-configured Demo Test Accounts (Clean - No Icons) ─────────── */
+export const DEMO_ACCOUNTS = [
+  {
+    email: 'admin@dealflow360.com',
+    password: 'password123',
+    fullName: 'Sarah Connor',
+    role: 'admin' as const,
+    companyName: 'DealFlow360 HQ',
+    label: 'Administrator',
+  },
+  {
+    email: 'sales@dealflow360.com',
+    password: 'password123',
+    fullName: 'Jane Smith',
+    role: 'sales_rep' as const,
+    companyName: 'DealFlow360',
+    label: 'Sales Rep',
+  },
+  {
+    email: 'customer@acme.com',
+    password: 'password123',
+    fullName: 'John Davis (rk)',
+    role: 'customer' as const,
+    companyName: 'Acme Corp',
+    label: 'Customer',
+  },
+]
 
-/* ── Minimal SVG Icons ────────────────────────────────────── */
-function PulseIcon() {
+/* ── DealFlow360 Official Brand Logo ──────────────────────────────── */
+function BrandLogo() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-    </svg>
+    <div className={styles.brandLogo}>
+      <img
+        src="/dealflow360-logo.jpg"
+        alt="DealFlow360"
+        className={styles.brandImg}
+      />
+    </div>
   )
 }
 
-function ShieldIcon() {
+/* ── Vector DealFlow360 Platform Promo Illustration ─────────────────── */
+function DealFlowIllustration() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
+    <div className={styles.illustrationWrap}>
+      <svg width="290" height="205" viewBox="0 0 340 240" fill="none" className={styles.mfaSvg}>
+        {/* Soft cloud backdrop */}
+        <path d="M120 180 C90 180 70 160 70 135 C70 115 85 95 110 90 C120 60 150 40 185 40 C225 40 255 65 260 100 C285 105 305 125 305 150 C305 175 285 195 260 195 L120 195 Z" fill="#F8FAFC" />
+        
+        {/* Smartphone body */}
+        <rect x="155" y="60" width="85" height="142" rx="12" fill="#001D52" stroke="#70A2FF" strokeWidth="2.5" />
+        <rect x="160" y="65" width="75" height="132" rx="8" fill="#0A1938" />
+        
+        {/* Phone screen DealFlow Telemetry (Ascending bars + swoosh) */}
+        <g transform="translate(170, 96)">
+          <rect x="0" y="24" width="8" height="20" rx="2" fill="#10B981" />
+          <rect x="12" y="14" width="8" height="30" rx="2" fill="#10B981" />
+          <rect x="24" y="4" width="8" height="40" rx="2" fill="#059669" />
+          {/* Swoosh arrow */}
+          <path d="M -5 32 Q 18 48 38 12" stroke="#34D399" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <polyline points="34,12 38,12 38,16" stroke="#34D399" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+        </g>
+        
+        {/* Metric badge inside phone */}
+        <text x="175" y="172" fill="#70A2FF" fontSize="9" fontWeight="bold">+34% MRR</text>
+
+        {/* Floating Quotation / Deal Approval Card */}
+        <g filter="drop-shadow(0 4px 12px rgba(0,29,82,0.12))">
+          <rect x="205" y="92" width="105" height="48" rx="7" fill="#FFFFFF" stroke="#E2E8F0" strokeWidth="1" />
+          {/* Header pill */}
+          <rect x="213" y="100" width="34" height="12" rx="3" fill="#DCFCE7" />
+          <text x="216" y="109" fill="#166534" fontSize="8" fontWeight="bold">Q-1042</text>
+          
+          <text x="253" y="109" fill="#001D52" fontSize="9.5" fontWeight="800">$124,500</text>
+          
+          {/* Status check pill */}
+          <rect x="213" y="118" width="52" height="12" rx="3" fill="#E0F2FE" />
+          <text x="217" y="127" fill="#0369A1" fontSize="8" fontWeight="600">✓ Approved</text>
+
+          {/* Sparkline */}
+          <path d="M272 124 L278 120 L284 126 L292 117 L298 122" stroke="#10B981" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+        </g>
+
+        {/* Standing female analyst figure pointing to metrics */}
+        <g id="figure">
+          {/* Hair */}
+          <path d="M142 58 C137 58 133 62 133 68 C133 74 135 80 135 84 L149 84 C149 80 151 74 151 68 C151 62 147 58 142 58 Z" fill="#1E293B" />
+          {/* Head */}
+          <circle cx="142" cy="70" r="6" fill="#FED7AA" />
+          {/* Torso & blouse */}
+          <path d="M136 80 L148 80 L146 122 L138 122 Z" fill="#70A2FF" />
+          {/* Arms */}
+          <path d="M136 82 L124 98 L128 99 L137 86 Z" fill="#FED7AA" />
+          <path d="M148 82 L158 96 L155 98 L146 86 Z" fill="#FED7AA" />
+          <circle cx="123" cy="99" r="2.5" fill="#FED7AA" />
+          {/* Pants */}
+          <path d="M138 122 L134 165 L140 165 L142 135 L144 165 L150 165 L146 122 Z" fill="#001D52" />
+          {/* Shoes */}
+          <ellipse cx="137" cy="166" rx="4" ry="2" fill="#FED7AA" />
+          <ellipse cx="147" cy="166" rx="4" ry="2" fill="#FED7AA" />
+        </g>
+
+        {/* Floating DealFlow360 platform capability badges */}
+        {/* Deal Health Anomaly Pulse Badge */}
+        <circle cx="95" cy="98" r="14" fill="#0284C7" />
+        <polyline points="87,98 91,98 94,93 97,103 100,98 103,98" stroke="#FFFFFF" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+
+        {/* Governance Shield Badge */}
+        <circle cx="130" cy="55" r="14" fill="#10B981" />
+        <path d="M130 49 L136 52 V56 C136 60 130 63 130 63 C130 63 124 60 124 56 V52 Z" stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
+        <polyline points="127,56 129,58 133,54" stroke="#FFFFFF" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+
+        {/* Quotations / Invoicing Document Badge */}
+        <circle cx="215" cy="55" r="14" fill="#6366F1" />
+        <rect x="210" y="49" width="10" height="12" rx="2" stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
+        <line x1="213" y1="53" x2="217" y2="53" stroke="#FFFFFF" strokeWidth="1.2" />
+        <line x1="213" y1="56" x2="217" y2="56" stroke="#FFFFFF" strokeWidth="1.2" />
+
+        {/* Multi-Warehouse Fulfillment Box Badge */}
+        <circle cx="270" cy="85" r="14" fill="#2563EB" />
+        <rect x="264" y="80" width="12" height="10" rx="1.5" stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
+        <line x1="264" y1="84" x2="276" y2="84" stroke="#FFFFFF" strokeWidth="1.2" />
+
+        {/* Recurring Subscriptions Sync Badge */}
+        <circle cx="85" cy="155" r="14" fill="#059669" />
+        <path d="M80 155 A5 5 0 0 1 88 152 M90 155 A5 5 0 0 1 82 158" stroke="#FFFFFF" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+        <polyline points="88,150 88,152 86,152" stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
+        <polyline points="82,160 82,158 84,158" stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
+      </svg>
+    </div>
   )
 }
 
-function ZapIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-    </svg>
-  )
-}
+/* ── Project Specific Feature Promotion Slides ─────────────────────── */
+const PROMO_SLIDES = [
+  {
+    title: 'Enterprise Deal Orchestration',
+    desc: 'Automate multi-tier quote governance, track real-time deal health telemetry, and streamline B2B fulfillment across operations.',
+  },
+  {
+    title: 'Autonomous Margin & Risk Governance',
+    desc: 'Enforce automated approval routing for discount thresholds, payment terms, and delivery schedules before quotation release.',
+  },
+  {
+    title: 'Unified Customer Negotiation Portal',
+    desc: 'Empower clients to review line items, propose counter-discounts, and confirm legally-binding quotations in real-time.',
+  },
+]
 
-function SparklesIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-      <line x1="12" y1="17" x2="12.01" y2="17" />
-    </svg>
-  )
-}
-
-function MailIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <rect width="20" height="16" x="2" y="4" rx="2" />
-      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-    </svg>
-  )
-}
-
-function LockIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  )
-}
-
-function UserIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  )
-}
-
-function BuildingIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <rect width="16" height="20" x="4" y="2" rx="2" ry="2" />
-      <path d="M9 22v-4h6v4" />
-      <path d="M8 6h.01" /><path d="M16 6h.01" />
-      <path d="M8 10h.01" /><path d="M16 10h.01" />
-      <path d="M8 14h.01" /><path d="M16 14h.01" />
-    </svg>
-  )
-}
-
-function EyeIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  )
-}
-
-function EyeOffIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
-      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
-      <line x1="2" x2="22" y1="2" y2="22" />
-    </svg>
-  )
-}
-
-function CheckIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  )
-}
-
-/* ── Main Component ────────────────────────────────────────── */
+/* ── Main Exported Page Component ─────────────────────────────────── */
 export default function LoginPage() {
-  const [mounted, setMounted] = useState(false)
-  const [authMode, setAuthMode] = useState<AuthMode>('signin')
+  const [currentUser, setCurrentUser] = useState<UserSession | null>(null)
+  const [isClient, setIsClient] = useState(false)
 
-  // Sign In Form States
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  // Mode: 'login' or 'signup'
+  const [mode, setMode] = useState<'login' | 'signup'>('login')
+
+  // Login Form states
+  const [email, setEmail] = useState('sales@dealflow360.com')
+  const [password, setPassword] = useState('password123')
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(true)
-  const [loginLoading, setLoginLoading] = useState(false)
-  const [loginError, setLoginError] = useState('')
-  const [resendStatus, setResendStatus] = useState('')
-  const [resending, setResending] = useState(false)
-  const [loggedInUser, setLoggedInUser] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [activeRole, setActiveRole] = useState<'admin' | 'sales_rep' | 'customer'>('sales_rep')
 
-  // Sign Up Form States
-  const [signupForm, setSignupForm] = useState({
-    fullName: '',
-    companyName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  })
-  const [showSignupPassword, setShowSignupPassword] = useState(false)
-  const [signupLoading, setSignupLoading] = useState(false)
-  const [signupError, setSignupError] = useState('')
-  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null)
+  // Signup Form states
+  const [suName, setSuName] = useState('')
+  const [suCompany, setSuCompany] = useState('')
+  const [suEmail, setSuEmail] = useState('')
+  const [suPassword, setSuPassword] = useState('')
+  const [suConfirmPassword, setSuConfirmPassword] = useState('')
+  const [suShowPassword, setSuShowPassword] = useState(false)
+
+  // Carousel state
+  const [currentSlide, setCurrentSlide] = useState(0)
 
   useEffect(() => {
-    setMounted(true)
+    setIsClient(true)
     try {
       const saved = localStorage.getItem('dealflow_active_user')
       if (saved) {
-        setLoggedInUser(JSON.parse(saved))
+        const parsed = JSON.parse(saved)
+        parsed.role = 'sales_rep'
+        parsed.fullName = parsed.fullName && !parsed.fullName.includes('Sarah') ? parsed.fullName : 'Jane Smith'
+        parsed.email = 'sales@dealflow360.com'
+        setCurrentUser(parsed)
+        localStorage.setItem('dealflow_active_user', JSON.stringify(parsed))
       }
-    } catch {}
+    } catch {
+      // ignore
+    }
   }, [])
 
-  function updateSignup(field: keyof typeof signupForm, value: string) {
-    setSignupForm(f => ({ ...f, [field]: value }))
+  function handleLoginSuccess(user: UserSession) {
+    setCurrentUser(user)
+    try {
+      localStorage.setItem('dealflow_active_user', JSON.stringify(user))
+    } catch {}
   }
 
-  // Handle Login
-  async function handleLoginSubmit(e: React.FormEvent) {
+  function handleLogout() {
+    setCurrentUser(null)
+    try {
+      localStorage.removeItem('dealflow_active_user')
+    } catch {}
+  }
+
+  function handleSwitchRole(newRole: UserRole) {
+    if (!currentUser) return
+    const updated: UserSession = { ...currentUser, role: newRole }
+    setCurrentUser(updated)
+    try {
+      localStorage.setItem('dealflow_active_user', JSON.stringify(updated))
+    } catch {}
+  }
+
+  // Quick switch demo account
+  function selectDemoAccount(acc: typeof DEMO_ACCOUNTS[0]) {
+    setEmail(acc.email)
+    setPassword(acc.password)
+    setActiveRole(acc.role)
+    setError('')
+  }
+
+  // "Change" button action: cycles through demo accounts
+  function handleChangeEmail() {
+    const roles: Array<'sales_rep' | 'customer' | 'admin'> = ['sales_rep', 'customer', 'admin']
+    const nextIdx = (roles.indexOf(activeRole) + 1) % roles.length
+    const nextRole = roles[nextIdx]
+    const nextAcc = DEMO_ACCOUNTS.find(a => a.role === nextRole) || DEMO_ACCOUNTS[0]
+    selectDemoAccount(nextAcc)
+  }
+
+  function handleLoginSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoginError('')
-    setResendStatus('')
-    if (!email.trim() || !password) {
-      setLoginError('Please enter both your email address and password.')
+    if (!email || !password) {
+      setError('Please fill in all fields.')
       return
     }
-    setLoginLoading(true)
-    try {
-      const res = await loginUser({ email: email.trim(), password })
-      setLoggedInUser(res)
+    setError('')
+    setLoading(true)
+
+    setTimeout(() => {
+      setLoading(false)
+      const cleanEmail = email.trim().toLowerCase()
+
+      // 1. Check predefined demo accounts
+      const matchedDemo = DEMO_ACCOUNTS.find(
+        a => a.email.toLowerCase() === cleanEmail
+      )
+      if (matchedDemo) {
+        if (password === matchedDemo.password || password === 'password123') {
+          handleLoginSuccess({
+            email: matchedDemo.email,
+            fullName: matchedDemo.fullName,
+            role: matchedDemo.role,
+            companyName: matchedDemo.companyName,
+          })
+          return
+        } else {
+          setError(`Incorrect password for ${matchedDemo.email}. Demo password is: password123`)
+          return
+        }
+      }
+
+      // 2. Check local custom registered accounts
       try {
-        localStorage.setItem('dealflow_active_user', JSON.stringify(res))
+        const stored = localStorage.getItem('dealflow_registered_users')
+        if (stored) {
+          const customUsers = JSON.parse(stored) as Array<{
+            email: string
+            password: string
+            fullName: string
+            companyName: string
+          }>
+          const matchedUser = customUsers.find(u => u.email.toLowerCase() === cleanEmail)
+          if (matchedUser) {
+            if (matchedUser.password === password) {
+              handleLoginSuccess({
+                email: matchedUser.email,
+                fullName: matchedUser.fullName,
+                role: 'customer',
+                companyName: matchedUser.companyName,
+              })
+              return
+            } else {
+              setError('Incorrect password for this account.')
+              return
+            }
+          }
+        }
       } catch {}
-    } catch (err: any) {
-      setLoginError(err.message || 'Login failed. Please check your credentials.')
-    } finally {
-      setLoginLoading(false)
-    }
+
+      // 3. Arbitrary email fallback
+      if (cleanEmail.includes('@') && password.length >= 6) {
+        const isAdmin = cleanEmail.includes('admin')
+        const isCustomer = cleanEmail.includes('customer') || cleanEmail.includes('acme')
+        const isFinance = cleanEmail.includes('finance')
+        const isManager = cleanEmail.includes('manager')
+
+        const role: UserRole = isAdmin
+          ? 'admin'
+          : isCustomer
+          ? 'customer'
+          : isFinance
+          ? 'finance'
+          : isManager
+          ? 'sales_manager'
+          : 'sales_rep'
+
+        handleLoginSuccess({
+          email: cleanEmail,
+          fullName: isAdmin
+            ? 'Sarah Connor'
+            : isCustomer
+            ? 'John Davis (rk)'
+            : cleanEmail.split('@')[0],
+          role,
+          companyName: isCustomer ? 'Acme Corp' : 'DealFlow360 HQ',
+        })
+        return
+      }
+
+      setError('Invalid credentials. Select a demo account below.')
+    }, 400)
   }
 
-  // Handle Resend Verification
-  async function handleResendVerification() {
-    if (!email.trim()) {
-      setLoginError('Please enter your email address above to resend verification.')
-      return
-    }
-    setResending(true)
-    setResendStatus('')
-    try {
-      await resendVerification(email.trim())
-      setResendStatus('Verification link sent! Please check your inbox.')
-    } catch (err: any) {
-      setLoginError(err.message || 'Failed to resend verification email.')
-    } finally {
-      setResending(false)
-    }
-  }
-
-  // Handle Signup
-  async function handleSignupSubmit(e: React.FormEvent) {
+  function handleSignupSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setSignupError('')
-    if (!signupForm.fullName.trim() || !signupForm.companyName.trim() || !signupForm.email.trim() || !signupForm.password || !signupForm.confirmPassword) {
-      setSignupError('Please fill in all required fields.')
+    if (!suName || !suCompany || !suEmail || !suPassword || !suConfirmPassword) {
+      setError('Please fill in all fields.')
       return
     }
-    if (signupForm.password !== signupForm.confirmPassword) {
-      setSignupError('Passwords do not match.')
+    if (suPassword !== suConfirmPassword) {
+      setError('Passwords do not match.')
       return
     }
-    if (signupForm.password.length < 6) {
-      setSignupError('Password must be at least 6 characters.')
+    if (suPassword.length < 6) {
+      setError('Password must be at least 6 characters.')
       return
     }
-    setSignupLoading(true)
-    try {
-      const res = await registerCustomer({
-        email: signupForm.email.trim(),
-        password: signupForm.password,
-        full_name: signupForm.fullName.trim(),
-        company_name: signupForm.companyName.trim(),
-      })
-      setRegisteredEmail(res.email || signupForm.email.trim())
-    } catch (err: any) {
-      setSignupError(err.message || 'Registration failed.')
-    } finally {
-      setSignupLoading(false)
-    }
+    setError('')
+    setLoading(true)
+
+    setTimeout(() => {
+      setLoading(false)
+      const newUser: UserSession = {
+        email: suEmail.trim().toLowerCase(),
+        fullName: suName.trim(),
+        role: 'customer',
+        companyName: suCompany.trim(),
+      }
+
+      try {
+        const stored = localStorage.getItem('dealflow_registered_users')
+        const list = stored ? JSON.parse(stored) : []
+        list.push({
+          email: suEmail.trim().toLowerCase(),
+          fullName: suName.trim(),
+          companyName: suCompany.trim(),
+          password: suPassword,
+        })
+        localStorage.setItem('dealflow_registered_users', JSON.stringify(list))
+      } catch {}
+
+      handleLoginSuccess(newUser)
+    }, 450)
   }
 
-  const isUnverifiedError = loginError.toLowerCase().includes('verify your email')
-
-  if (!mounted) {
-    return <div className={styles.container} style={{ minHeight: '100vh', background: '#ffffff' }} />
+  // Prevent SSR hydration mismatch
+  if (!isClient) {
+    return null
   }
 
-  // Render workspace upon successful login
-  if (loggedInUser) {
+  // If user is authenticated, render the interactive workspace
+  if (currentUser) {
     return (
       <AppShell
-        user={{
-          email: loggedInUser.email,
-          fullName: loggedInUser.full_name || loggedInUser.fullName || 'Jane Smith',
-          role: (loggedInUser.role as UserRole) || 'sales_rep',
-          companyName: loggedInUser.company_name || loggedInUser.companyName || 'DealFlow360',
-        }}
-        onLogout={() => {
-          setLoggedInUser(null)
-          try {
-            localStorage.removeItem('dealflow_active_user')
-            localStorage.removeItem('dealflow_token')
-          } catch {}
-        }}
-        onSwitchRole={(newRole) => {
-          const updated: UserProfile = { ...loggedInUser, role: newRole }
-          setLoggedInUser(updated)
-          try {
-            localStorage.setItem('dealflow_active_user', JSON.stringify(updated))
-          } catch {}
-        }}
+        user={currentUser}
+        onLogout={handleLogout}
+        onSwitchRole={handleSwitchRole}
       />
     )
   }
 
   return (
-    <div className={styles.container} suppressHydrationWarning>
-      {/* ── Left Branded Hero Panel ────────────────────────── */}
-      <aside className={styles.leftPanel}>
-        <div className={styles.circleGraphicTop} />
-        <div className={styles.circleGraphicBottom} />
+    <div className={styles.page}>
+      <div className={styles.authContainer}>
+        {/* ── Left Column: Sign In / Sign Up Form ── */}
+        <div className={styles.leftColumn}>
+          <BrandLogo />
 
-        <div className={styles.heroContent}>
-          <div className={styles.logoBadge}>
-            <PulseIcon />
-          </div>
+          <h1 className={styles.title}>
+            {mode === 'login' ? 'Sign in' : 'Sign up'}
+          </h1>
+          <p className={styles.subtitle}>
+            {mode === 'login' ? (
+              <>to access <span>DealFlow360</span></>
+            ) : (
+              <>to get started with <span>DealFlow360</span></>
+            )}
+          </p>
 
-          <h1 className={styles.brandTitle}>DealFlow360</h1>
-          <p className={styles.brandSubtitle}>Smart CPQ &amp; Sales Operations Platform</p>
+          {mode === 'login' ? (
+            /* ── Login Mode ── */
+            <form className={styles.form} onSubmit={handleLoginSubmit} noValidate>
+              {error && (
+                <div className={styles.errorBox} role="alert">
+                  {error}
+                </div>
+              )}
 
-          <ul className={styles.featureList}>
-            <li className={styles.featureItem}>
-              <span className={styles.featureBulletIcon}>
-                <ShieldIcon />
-              </span>
-              <span className={styles.featureText}>Role-Governed Pricing &amp; Margin Guardrails</span>
-            </li>
-            <li className={styles.featureItem}>
-              <span className={styles.featureBulletIcon}>
-                <ZapIcon />
-              </span>
-              <span className={styles.featureText}>Automated Quotation Approvals &amp; E-Sign</span>
-            </li>
-            <li className={styles.featureItem}>
-              <span className={styles.featureBulletIcon}>
-                <SparklesIcon />
-              </span>
-              <span className={styles.featureText}>AI-Powered Recommendations &amp; Upsell</span>
-            </li>
-          </ul>
-        </div>
-      </aside>
-
-      {/* ── Right Minimal Form Panel ───────────────────────── */}
-      <main className={styles.rightPanel}>
-        <div className={styles.formCard} suppressHydrationWarning>
-          {registeredEmail ? (
-            /* Email Verification Needed */
-            <div className={styles.feedbackBox}>
-              <div className={styles.feedbackIconWrap}>
-                <CheckIcon />
+              {/* Email Input Field with "Change" button */}
+              <div className={styles.inputGroup}>
+                <input
+                  id="login-email"
+                  type="email"
+                  className={styles.input}
+                  placeholder="patriciaboyle@zylker.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  autoComplete="email"
+                />
+                <button
+                  type="button"
+                  className={styles.changeBtn}
+                  onClick={handleChangeEmail}
+                  title="Switch test account"
+                >
+                  Change
+                </button>
               </div>
-              <h2 className={styles.title}>Check your inbox</h2>
-              <p className={styles.subtitle}>
-                We sent a verification link to <span className={styles.emailPill}>{registeredEmail}</span>.
-                Please verify your email address to activate your account.
-              </p>
+
+              {/* Password Input Field with Eye Toggle */}
+              <div className={styles.inputGroup}>
+                <input
+                  id="login-password"
+                  type={showPassword ? 'text' : 'password'}
+                  className={styles.input}
+                  placeholder="••••••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  className={styles.eyeBtn}
+                  onClick={() => setShowPassword(!showPassword)}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <IconEye size={18} /> : <IconEyeOff size={18} />}
+                </button>
+              </div>
+
+              {/* Forgot Password Link */}
+              <div className={styles.forgotRow}>
+                <button
+                  type="button"
+                  className={styles.forgotLink}
+                  onClick={() => setError('For demo access, password is: password123')}
+                >
+                  Forgot password?
+                </button>
+              </div>
+
+              {/* Sign in Primary Action Button */}
               <button
-                type="button"
-                className={styles.submitBtn}
-                style={{ marginTop: 20 }}
-                onClick={() => {
-                  setRegisteredEmail(null)
-                  setAuthMode('signin')
-                }}
+                id="btn-login"
+                type="submit"
+                className={styles.signInBtn}
+                disabled={loading}
               >
-                Proceed to Sign In
+                {loading ? 'Signing in...' : 'Sign in'}
               </button>
-            </div>
-          ) : authMode === 'signin' ? (
-            /* ── Sign In ── */
-            <>
-              <header className={styles.header}>
-                <h2 className={styles.title}>Welcome back</h2>
-                <p className={styles.subtitle}>Sign in to continue to your dashboard</p>
-              </header>
 
-              {loginError && (
-                <div className={styles.errorBanner} role="alert">
-                  <span className={styles.errorIcon}>⚠</span>
-                  <div>{loginError}</div>
-                </div>
-              )}
-
-              {resendStatus && (
-                <div className={styles.successBanner}>
-                  <span>✓</span>
-                  <div>{resendStatus}</div>
-                </div>
-              )}
-
-              {isUnverifiedError && (
+              {/* Toggle to Signup */}
+              <div className={styles.switchModeRow}>
+                <span>Don&apos;t have an account?</span>
                 <button
                   type="button"
-                  className={styles.secondaryBtn}
-                  onClick={handleResendVerification}
-                  disabled={resending}
-                  style={{ marginBottom: 16 }}
-                >
-                  <MailIcon />
-                  {resending ? 'Sending link...' : 'Resend Verification Link'}
-                </button>
-              )}
-
-              <form className={styles.form} onSubmit={handleLoginSubmit} noValidate>
-                <div className={styles.fieldGroup}>
-                  <label htmlFor="login-email" className={styles.label}>Email Address</label>
-                  <div className={styles.inputBox}>
-                    <span className={styles.inputLeadIcon}><MailIcon /></span>
-                    <input
-                      id="login-email"
-                      type="email"
-                      className={styles.textInput}
-                      placeholder="name@company.com"
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      autoComplete="email"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className={styles.fieldGroup}>
-                  <label htmlFor="login-password" className={styles.label}>Password</label>
-                  <div className={styles.inputBox}>
-                    <span className={styles.inputLeadIcon}><LockIcon /></span>
-                    <input
-                      id="login-password"
-                      type={showPassword ? 'text' : 'password'}
-                      className={`${styles.textInput} ${styles.textInputWithTrail}`}
-                      placeholder="••••••••••••"
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      autoComplete="current-password"
-                      required
-                    />
-                    <button
-                      type="button"
-                      className={styles.trailBtn}
-                      onClick={() => setShowPassword(!showPassword)}
-                      tabIndex={-1}
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className={styles.controlsRow}>
-                  <label className={styles.rememberLabel}>
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={e => setRememberMe(e.target.checked)}
-                      className={styles.checkboxInput}
-                    />
-                    <span>Remember me</span>
-                  </label>
-                  <a href="#forgot" className={styles.forgotAnchor}>Forgot password?</a>
-                </div>
-
-                <button
-                  id="btn-login-submit"
-                  type="submit"
-                  className={styles.submitBtn}
-                  disabled={loginLoading}
-                >
-                  {loginLoading ? (
-                    <>
-                      <span className={styles.btnSpinner} />
-                      <span>Signing in...</span>
-                    </>
-                  ) : (
-                    'Sign In'
-                  )}
-                </button>
-              </form>
-
-              <footer className={styles.formFooter}>
-                <span>Don&apos;t have an account? </span>
-                <button
-                  type="button"
-                  className={styles.inlineActionBtn}
+                  className={styles.switchModeBtn}
                   onClick={() => {
-                    setAuthMode('signup')
-                    setSignupError('')
+                    setMode('signup')
+                    setError('')
                   }}
                 >
-                  Create one
+                  Sign up
                 </button>
-              </footer>
-            </>
-          ) : (
-            /* ── Sign Up ── */
-            <>
-              <header className={styles.header}>
-                <h2 className={styles.title}>Create an account</h2>
-                <p className={styles.subtitle}>Register for DealFlow360 Customer Portal</p>
-              </header>
+              </div>
 
-              {signupError && (
-                <div className={styles.errorBanner} role="alert">
-                  <span className={styles.errorIcon}>⚠</span>
-                  <div>{signupError}</div>
+              {/* Clean Demo Account Switcher (No Emojis) */}
+              <div className={styles.demoSwitchWrap}>
+                <span className={styles.demoLabel}>Demo Accounts:</span>
+                <div className={styles.demoPills}>
+                  {DEMO_ACCOUNTS.map(acc => (
+                    <button
+                      key={acc.email}
+                      type="button"
+                      className={`${styles.demoPill} ${activeRole === acc.role ? styles.demoPillActive : ''}`}
+                      onClick={() => selectDemoAccount(acc)}
+                    >
+                      {acc.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </form>
+          ) : (
+            /* ── Sign Up Mode ── */
+            <form className={styles.form} onSubmit={handleSignupSubmit} noValidate>
+              {error && (
+                <div className={styles.errorBox} role="alert">
+                  {error}
                 </div>
               )}
 
-              <form className={styles.form} onSubmit={handleSignupSubmit} noValidate>
-                <div className={styles.twoColRow}>
-                  <div className={styles.fieldGroup}>
-                    <label htmlFor="su-name" className={styles.label}>Full Name</label>
-                    <div className={styles.inputBox}>
-                      <span className={styles.inputLeadIcon}><UserIcon /></span>
-                      <input
-                        id="su-name"
-                        type="text"
-                        className={styles.textInput}
-                        placeholder="Jane Smith"
-                        value={signupForm.fullName}
-                        onChange={e => updateSignup('fullName', e.target.value)}
-                        autoComplete="name"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className={styles.fieldGroup}>
-                    <label htmlFor="su-company" className={styles.label}>Company</label>
-                    <div className={styles.inputBox}>
-                      <span className={styles.inputLeadIcon}><BuildingIcon /></span>
-                      <input
-                        id="su-company"
-                        type="text"
-                        className={styles.textInput}
-                        placeholder="Acme Global"
-                        value={signupForm.companyName}
-                        onChange={e => updateSignup('companyName', e.target.value)}
-                        autoComplete="organization"
-                        required
-                      />
-                    </div>
-                  </div>
+              {/* Row 1: Full Name & Company Name */}
+              <div className={styles.rowTwo}>
+                <div className={styles.inputGroup}>
+                  <input
+                    id="su-name"
+                    type="text"
+                    className={styles.input}
+                    placeholder="Full Name"
+                    value={suName}
+                    onChange={e => setSuName(e.target.value)}
+                    autoComplete="name"
+                  />
                 </div>
-
-                <div className={styles.fieldGroup}>
-                  <label htmlFor="su-email" className={styles.label}>Business Email</label>
-                  <div className={styles.inputBox}>
-                    <span className={styles.inputLeadIcon}><MailIcon /></span>
-                    <input
-                      id="su-email"
-                      type="email"
-                      className={styles.textInput}
-                      placeholder="jane@acme.com"
-                      value={signupForm.email}
-                      onChange={e => updateSignup('email', e.target.value)}
-                      autoComplete="email"
-                      required
-                    />
-                  </div>
+                <div className={styles.inputGroup}>
+                  <input
+                    id="su-company"
+                    type="text"
+                    className={styles.input}
+                    placeholder="Company Name"
+                    value={suCompany}
+                    onChange={e => setSuCompany(e.target.value)}
+                    autoComplete="organization"
+                  />
                 </div>
-
-                <div className={styles.twoColRow}>
-                  <div className={styles.fieldGroup}>
-                    <label htmlFor="su-password" className={styles.label}>Password</label>
-                    <div className={styles.inputBox}>
-                      <span className={styles.inputLeadIcon}><LockIcon /></span>
-                      <input
-                        id="su-password"
-                        type={showSignupPassword ? 'text' : 'password'}
-                        className={`${styles.textInput} ${styles.textInputWithTrail}`}
-                        placeholder="Min. 8 chars"
-                        value={signupForm.password}
-                        onChange={e => updateSignup('password', e.target.value)}
-                        autoComplete="new-password"
-                        required
-                      />
-                      <button
-                        type="button"
-                        className={styles.trailBtn}
-                        onClick={() => setShowSignupPassword(!showSignupPassword)}
-                        tabIndex={-1}
-                      >
-                        {showSignupPassword ? <EyeOffIcon /> : <EyeIcon />}
-                      </button>
-                    </div>
-                  </div>
-                  <div className={styles.fieldGroup}>
-                    <label htmlFor="su-confirm" className={styles.label}>Confirm</label>
-                    <div className={styles.inputBox}>
-                      <span className={styles.inputLeadIcon}><LockIcon /></span>
-                      <input
-                        id="su-confirm"
-                        type={showSignupPassword ? 'text' : 'password'}
-                        className={styles.textInput}
-                        placeholder="Confirm password"
-                        value={signupForm.confirmPassword}
-                        onChange={e => updateSignup('confirmPassword', e.target.value)}
-                        autoComplete="new-password"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  id="btn-create-account"
-                  type="submit"
-                  className={styles.submitBtn}
-                  disabled={signupLoading}
-                  style={{ marginTop: 6 }}
-                >
-                  {signupLoading ? (
-                    <>
-                      <span className={styles.btnSpinner} />
-                      <span>Creating Account...</span>
-                    </>
-                  ) : (
-                    'Create Account'
-                  )}
-                </button>
-              </form>
-
-              <div className={styles.infoBanner}>
-                <span>ℹ</span>
-                <span>An email verification link will be sent to activate your account.</span>
               </div>
 
-              <footer className={styles.formFooter}>
-                <span>Already have an account? </span>
+              {/* Row 2: Work Email */}
+              <div className={styles.inputGroup}>
+                <input
+                  id="su-email"
+                  type="email"
+                  className={styles.input}
+                  placeholder="Work Email"
+                  value={suEmail}
+                  onChange={e => setSuEmail(e.target.value)}
+                  autoComplete="email"
+                />
+              </div>
+
+              {/* Row 3: Password & Confirm Password */}
+              <div className={styles.rowTwo}>
+                <div className={styles.inputGroup}>
+                  <input
+                    id="su-password"
+                    type={suShowPassword ? 'text' : 'password'}
+                    className={styles.input}
+                    placeholder="Password (min 6)"
+                    value={suPassword}
+                    onChange={e => setSuPassword(e.target.value)}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    className={styles.eyeBtn}
+                    onClick={() => setSuShowPassword(!suShowPassword)}
+                    title={suShowPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {suShowPassword ? <IconEye size={18} /> : <IconEyeOff size={18} />}
+                  </button>
+                </div>
+                <div className={styles.inputGroup}>
+                  <input
+                    id="su-confirm"
+                    type={suShowPassword ? 'text' : 'password'}
+                    className={styles.input}
+                    placeholder="Confirm Password"
+                    value={suConfirmPassword}
+                    onChange={e => setSuConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
+                  />
+                </div>
+              </div>
+
+              {/* Sign Up Primary Action Button */}
+              <button
+                id="btn-create-account"
+                type="submit"
+                className={styles.signInBtn}
+                disabled={loading}
+              >
+                {loading ? 'Creating Account...' : 'Create Account'}
+              </button>
+
+              {/* Toggle to Sign In */}
+              <div className={styles.switchModeRow}>
+                <span>Already have an account?</span>
                 <button
                   type="button"
-                  className={styles.inlineActionBtn}
+                  className={styles.switchModeBtn}
                   onClick={() => {
-                    setAuthMode('signin')
-                    setSignupError('')
+                    setMode('login')
+                    setError('')
                   }}
                 >
                   Sign in
                 </button>
-              </footer>
-            </>
+              </div>
+            </form>
           )}
         </div>
-      </main>
+
+        {/* ── Right Column: DealFlow360 Platform Promo & Telemetry ── */}
+        <div className={styles.rightColumn}>
+          <DealFlowIllustration />
+
+          <h3 className={styles.promoTitle}>{PROMO_SLIDES[currentSlide].title}</h3>
+          <p className={styles.promoDesc}>{PROMO_SLIDES[currentSlide].desc}</p>
+
+          <button
+            type="button"
+            className={styles.learnMoreBtn}
+            onClick={() => setCurrentSlide((currentSlide + 1) % PROMO_SLIDES.length)}
+          >
+            Explore Platform
+          </button>
+
+          {/* Carousel Dots */}
+          <div className={styles.carouselDots}>
+            {PROMO_SLIDES.map((_, idx) => (
+              <span
+                key={idx}
+                className={idx === currentSlide ? styles.dotActive : styles.dotInactive}
+                onClick={() => setCurrentSlide(idx)}
+                style={{ cursor: 'pointer' }}
+                title={`Slide ${idx + 1}`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
