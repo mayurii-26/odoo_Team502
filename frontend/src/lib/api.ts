@@ -36,6 +36,7 @@ export interface BootstrapResponse {
       avg_discount: number
       avg_margin: number
     }
+    audit_logs?: any[]
   }
 }
 
@@ -55,34 +56,18 @@ export async function loginUser(credentials: { email: string; password: string }
     if (res.ok) {
       const data = await res.json()
       return {
-        id: data.user?.id || 1,
+        id: data.user?.id,
         email: data.user?.email || cleanEmail,
-        fullName: data.user?.name || data.user?.full_name || 'Jane Smith',
-        full_name: data.user?.name || data.user?.full_name || 'Jane Smith',
+        fullName: data.user?.name || data.user?.full_name || cleanEmail,
+        full_name: data.user?.name || data.user?.full_name || cleanEmail,
         role: (data.user?.role?.toLowerCase() as UserRole) || 'sales_rep',
         token: data.access_token,
       }
     }
-  } catch (err) {
-    // Network fallback
-  }
-
-  // Demo account fallback matching PostgreSQL users
-  if (cleanEmail.includes('admin')) {
-    return { email: cleanEmail, fullName: 'Rajesh Varma', full_name: 'Rajesh Varma', role: 'admin' }
-  } else if (cleanEmail.includes('manager')) {
-    return { email: cleanEmail, fullName: 'Rohan Kapoor', full_name: 'Rohan Kapoor', role: 'sales_manager' }
-  } else if (cleanEmail.includes('finance')) {
-    return { email: cleanEmail, fullName: 'Vikram Malhotra', full_name: 'Vikram Malhotra', role: 'finance' }
-  } else if (cleanEmail.includes('customer') || cleanEmail.includes('acme')) {
-    return { email: cleanEmail, fullName: 'Kavita Rao', full_name: 'Kavita Rao', companyName: 'Acme Corp', role: 'customer' }
-  }
-
-  return {
-    email: cleanEmail,
-    fullName: 'Aarav Sharma',
-    full_name: 'Aarav Sharma',
-    role: 'sales_rep',
+    const errData = await res.json().catch(() => ({}))
+    throw new Error(errData.detail || errData.message || 'Invalid credentials.')
+  } catch (err: any) {
+    throw new Error(err.message || 'Login failed. Please check your credentials.')
   }
 }
 
@@ -297,6 +282,7 @@ export async function provisionUserFromAdmin(payload: {
   role: UserRole
   company_name?: string
   password?: string
+  reporting_manager?: string
 }): Promise<{
   success: boolean
   action: string
@@ -380,6 +366,35 @@ export async function saveRecommendationWeights(
   } catch (err: any) {
     console.warn('Backend error saving recommendation weights:', err)
     return { success: false, message: err?.message || 'Network error saving weights' }
+  }
+}
+
+/**
+ * Record a timestamped workflow action into PostgreSQL audit_logs table
+ */
+export async function recordWorkflowAuditLog(payload: {
+  user_id?: number
+  actor_name: string
+  actor_role: string
+  action: string
+  entity_type?: string
+  entity_id?: number
+  target_quotation_id?: string
+  customer_name?: string
+  details?: string
+}): Promise<{ success: boolean; log?: any }> {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/workspace/audit-log`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) return { success: false }
+    const data = await res.json()
+    return { success: true, log: data.log }
+  } catch (err) {
+    console.warn('Could not persist audit log to backend:', err)
+    return { success: false }
   }
 }
 

@@ -47,13 +47,13 @@ export default function SubscriptionsModule({
       return subscriptions.map((s: any) => ({
         id: s.id,
         subscription_number: s.subscription_number || `SUB-${s.id}`,
-        customer_name: s.customer_name || 'Enterprise Client',
-        plan_name: s.plan_name || 'Enterprise Platform License',
+        customer_name: s.customer_name || '',
+        plan_name: s.plan_name || '',
         billing_frequency: s.billing_frequency || 'MONTHLY',
-        recurring_amount: Number(s.recurring_amount || 1500),
+        recurring_amount: Number(s.recurring_amount || 0),
         status: (s.status?.toUpperCase() === 'PAUSED' ? 'PAUSED' : 'ACTIVE') as any,
-        start_date: s.start_date || '2026-01-01',
-        next_billing_date: s.next_billing_date || '2026-04-01',
+        start_date: s.start_date || '',
+        next_billing_date: s.next_billing_date || '',
       }))
     }
     return []
@@ -66,13 +66,13 @@ export default function SubscriptionsModule({
         subscriptions.map((s: any) => ({
           id: s.id,
           subscription_number: s.subscription_number || `SUB-${s.id}`,
-          customer_name: s.customer_name || 'Enterprise Client',
-          plan_name: s.plan_name || 'Enterprise Platform License',
+          customer_name: s.customer_name || '',
+          plan_name: s.plan_name || '',
           billing_frequency: s.billing_frequency || 'MONTHLY',
-          recurring_amount: Number(s.recurring_amount || 1500),
+          recurring_amount: Number(s.recurring_amount || 0),
           status: (s.status?.toUpperCase() === 'PAUSED' ? 'PAUSED' : 'ACTIVE') as any,
-          start_date: s.start_date || '2026-01-01',
-          next_billing_date: s.next_billing_date || '2026-04-01',
+          start_date: s.start_date || '',
+          next_billing_date: s.next_billing_date || '',
         }))
       )
     }

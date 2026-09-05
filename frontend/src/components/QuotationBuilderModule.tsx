@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import styles from './QuotationDetailWireframe.module.css'
-import { Quotation, Product, ActiveModule } from './types'
+import { Quotation, Product, ActiveModule, UserSession, UserAccount, UserRole, WorkflowAuditEntry } from './types'
 import { saveFullQuotationToDb, createFullQuotationInDb } from '../lib/api'
+import { exportQuotationPDF } from '../lib/pdfGenerator'
 
 interface QuotationBuilderProps {
   quotation?: Quotation | null
@@ -11,6 +12,10 @@ interface QuotationBuilderProps {
   onUpdateQuotation: (updated: Quotation) => void
   onNavigate: (module: ActiveModule) => void
   onShowToast: (msg: string) => void
+  readOnly?: boolean
+  currentUser?: UserSession
+  users?: UserAccount[]
+  onRecordAudit?: (entry: any) => void
 }
 
 interface BuilderLineItem {
@@ -65,6 +70,32 @@ interface WeightsData {
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+
+const CURRENCY_CONFIG: Record<string, { symbol: string; name: string; decimals: number }> = {
+  USD: { symbol: '$', name: 'US Dollar', decimals: 2 },
+  EUR: { symbol: '€', name: 'Euro', decimals: 2 },
+  GBP: { symbol: '£', name: 'British Pound', decimals: 2 },
+  INR: { symbol: '₹', name: 'Indian Rupee', decimals: 2 },
+  JPY: { symbol: '¥', name: 'Japanese Yen', decimals: 0 },
+  CAD: { symbol: 'CA$', name: 'Canadian Dollar', decimals: 2 },
+  AUD: { symbol: 'A$', name: 'Australian Dollar', decimals: 2 },
+  AED: { symbol: 'AED ', name: 'UAE Dirham', decimals: 2 },
+  CHF: { symbol: 'CHF ', name: 'Swiss Franc', decimals: 2 },
+  SGD: { symbol: 'S$', name: 'Singapore Dollar', decimals: 2 },
+}
+
+const DEFAULT_RATES: Record<string, number> = {
+  USD: 1.0,
+  EUR: 0.8609,
+  GBP: 0.7399,
+  INR: 94.4898,
+  JPY: 156.234,
+  CAD: 1.3837,
+  AUD: 1.3885,
+  AED: 3.6725,
+  CHF: 0.8099,
+  SGD: 1.2669,
+}
 
 function getDefaultValidUntil(): string {
   const d = new Date()
@@ -124,15 +155,83 @@ export default function QuotationBuilderModule({
   onUpdateQuotation,
   onNavigate,
   onShowToast,
+  readOnly = false,
+  currentUser,
+  users,
+  onRecordAudit,
 }: QuotationBuilderProps) {
   const isNewQuotation = !quotation || !quotation.id || quotation.id === 'new'
 
   const [customer, setCustomer] = useState(quotation?.customerName || '')
+  const [assignedRep, setAssignedRep] = useState<string>(quotation?.salesRep || currentUser?.fullName || '')
+  const [currency, setCurrency] = useState<string>(quotation?.currency || 'USD')
+  const [exchangeRates, setExchangeRates] = useState<Record<string, number>>(DEFAULT_RATES)
   const [priceList, setPriceList] = useState('Commercial Standard')
   const [validUntil, setValidUntil] = useState(quotation?.validUntil || getDefaultValidUntil())
   const [notes, setNotes] = useState(quotation?.managerComment || '')
-  const [selectedProductId, setSelectedProductId] = useState<string>(products[0]?.id || '1')
+  const [selectedProductId, setSelectedProductId] = useState<string>(products[0]?.id || '')
   const [isSaving, setIsSaving] = useState(false)
+
+  // Fetch live exchange rates from Currency Normalizer Layer
+  useEffect(() => {
+    async function loadLiveRates() {
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/currency/rates`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data.rawRates) {
+            setExchangeRates(prev => ({ ...prev, ...data.rawRates }))
+          }
+        }
+      } catch (err) {
+        // Fallback rates already in place
+      }
+    }
+    loadLiveRates()
+  }, [])
+
+  const currentRate = exchangeRates[currency] || 1.0
+
+  const formatPrice = useCallback((amountInUSD: number, targetCurr: string = currency) => {
+    const rate = exchangeRates[targetCurr] || 1.0
+    const converted = amountInUSD * rate
+    const conf = CURRENCY_CONFIG[targetCurr] || { symbol: `${targetCurr} `, decimals: 2 }
+    return `${conf.symbol}${converted.toLocaleString(undefined, {
+      minimumFractionDigits: conf.decimals,
+      maximumFractionDigits: conf.decimals,
+    })}`
+  }, [currency, exchangeRates])
+
+  // Workflow reporting and tagging states
+  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false)
+  const [targetManager, setTargetManager] = useState<string>(quotation?.reportingManager || '')
+  const [isFinanceTagged, setIsFinanceTagged] = useState<boolean>(!!quotation?.taggedFinanceOfficer)
+  const [taggedFinance, setTaggedFinance] = useState<string>(quotation?.taggedFinanceOfficer || '')
+  const [submissionNotes, setSubmissionNotes] = useState<string>(quotation?.managerComment || '')
+
+  const availableReps = useMemo(() => {
+    if (users && users.length > 0) {
+      const reps = users.filter(u => (u.role || '').toLowerCase().includes('rep') || (u.role || '').toLowerCase().includes('sales'))
+      if (reps.length > 0) return reps
+    }
+    return []
+  }, [users])
+
+  const availableManagers = useMemo(() => {
+    if (users && users.length > 0) {
+      const mgrs = users.filter(u => (u.role || '').toLowerCase().includes('manager'))
+      if (mgrs.length > 0) return mgrs
+    }
+    return []
+  }, [users])
+
+  const availableFinance = useMemo(() => {
+    if (users && users.length > 0) {
+      const fin = users.filter(u => (u.role || '').toLowerCase().includes('finance') || (u.role || '').toLowerCase().includes('treasury'))
+      if (fin.length > 0) return fin
+    }
+    return []
+  }, [users])
 
   // Map incoming quotation items dynamically from DB, or empty for new quote
   const [lines, setLines] = useState<BuilderLineItem[]>(() => {
@@ -475,7 +574,7 @@ export default function QuotationBuilderModule({
   }
 
   // Persist to Live PostgreSQL Database
-  async function handleSave(statusTarget: 'Draft' | 'Under Review' | 'Negotiating') {
+  async function handleSave(statusTarget: 'Draft' | 'Under Review' | 'Negotiating', customReportingNotes?: string) {
     if (!customer.trim()) {
       onShowToast('Please enter a Customer Account name before saving.')
       return
@@ -491,11 +590,14 @@ export default function QuotationBuilderModule({
       statusTarget === 'Under Review' ? 'PENDING_APPROVAL' :
         statusTarget === 'Negotiating' ? 'SENT' : 'DRAFT'
 
+    const effectiveNotes = customReportingNotes !== undefined ? customReportingNotes : notes
+
     const payload = {
       customer_name: customer.trim(),
       customer_company: customer.trim(),
       status: backendStatus,
-      notes: notes,
+      notes: effectiveNotes,
+      sales_rep_name: assignedRep,
       lines: lines.map(l => ({
         product_id: parseInt(l.productId) || undefined,
         product_name: l.name,
@@ -505,6 +607,17 @@ export default function QuotationBuilderModule({
         unit_cost: l.costPrice,
       })),
     }
+
+    const workflowData = statusTarget === 'Under Review' ? {
+      assignedRep,
+      reportingManager: targetManager,
+      taggedFinanceOfficer: isFinanceTagged ? taggedFinance : undefined,
+      submittedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric', year: 'numeric' }),
+      status: 'Pending Manager' as const,
+      managerStatus: 'Pending' as const,
+      financeStatus: isFinanceTagged ? ('Pending' as const) : ('Not Required' as const),
+      managerNotes: effectiveNotes,
+    } : quotation?.approvalWorkflow
 
     try {
       if (isNewQuotation) {
@@ -519,11 +632,14 @@ export default function QuotationBuilderModule({
           customerName: customer.trim(),
           dealName: `${customer.trim()} - $${grandTotal.toLocaleString()}`,
           customerTier: 'Gold',
-          salesRep: 'Jane Smith',
+          salesRep: assignedRep,
+          reportingManager: targetManager,
+          taggedFinanceOfficer: isFinanceTagged ? taggedFinance : undefined,
+          approvalWorkflow: workflowData,
           status: statusTarget,
           createdAt: new Date().toISOString().split('T')[0],
           validUntil: validUntil,
-          managerComment: notes,
+          managerComment: effectiveNotes,
           blendedRiskScore: marginPct >= 40 ? 92 : marginPct >= 25 ? 78 : 50,
           riskLevel: marginPct >= 40 ? 'Low' : marginPct >= 25 ? 'Medium' : 'High',
           items: lines.map(l => ({
@@ -541,8 +657,21 @@ export default function QuotationBuilderModule({
 
         onUpdateQuotation(newQuotation)
 
+        if (onRecordAudit) {
+          onRecordAudit({
+            actorName: currentUser?.fullName || assignedRep,
+            actorRole: currentUser?.role || 'sales_rep',
+            actionType: statusTarget === 'Under Review' ? 'APPROVAL_REQUESTED' : 'QUOTE_CREATED',
+            targetQuotationId: newQuotation.id,
+            customerName: customer.trim(),
+            details: statusTarget === 'Under Review'
+              ? `Reported to ${targetManager}${isFinanceTagged ? ` [Tagged Finance: ${taggedFinance}]` : ''}. Notes: ${effectiveNotes || 'Volume concession request'}`
+              : `Created draft quotation with value $${grandTotal.toLocaleString()}`,
+          })
+        }
+
         if (statusTarget === 'Under Review') {
-          onShowToast(`Quotation ${newQuotation.id} created and submitted for Manager Approval!`)
+          onShowToast(`Quotation ${newQuotation.id} reported to ${targetManager}${isFinanceTagged ? ' & tagged Finance' : ''}!`)
         } else {
           onShowToast(`Quotation ${newQuotation.id} created and saved as Draft!`)
         }
@@ -555,9 +684,13 @@ export default function QuotationBuilderModule({
           ...quotation!,
           customerName: customer.trim(),
           dealName: `${customer.trim()} - $${grandTotal.toLocaleString()}`,
+          salesRep: assignedRep,
+          reportingManager: targetManager,
+          taggedFinanceOfficer: isFinanceTagged ? taggedFinance : undefined,
+          approvalWorkflow: workflowData,
           status: statusTarget,
           validUntil: validUntil,
-          managerComment: notes,
+          managerComment: effectiveNotes,
           blendedRiskScore: marginPct >= 40 ? 92 : marginPct >= 25 ? 78 : 50,
           riskLevel: marginPct >= 40 ? 'Low' : marginPct >= 25 ? 'Medium' : 'High',
           items: lines.map(l => ({
@@ -575,8 +708,21 @@ export default function QuotationBuilderModule({
 
         onUpdateQuotation(updatedQuotation)
 
+        if (onRecordAudit) {
+          onRecordAudit({
+            actorName: currentUser?.fullName || assignedRep,
+            actorRole: currentUser?.role || 'sales_rep',
+            actionType: statusTarget === 'Under Review' ? 'APPROVAL_REQUESTED' : 'QUOTE_UPDATED',
+            targetQuotationId: quotation!.id,
+            customerName: customer.trim(),
+            details: statusTarget === 'Under Review'
+              ? `Reported to ${targetManager}${isFinanceTagged ? ` [Tagged Finance: ${taggedFinance}]` : ''}. Notes: ${effectiveNotes || 'Volume concession request'}`
+              : `Updated quotation items and economics, total $${grandTotal.toLocaleString()}`,
+          })
+        }
+
         if (statusTarget === 'Under Review') {
-          onShowToast(`Quotation ${quotation!.id} submitted for Manager Approval!`)
+          onShowToast(`Quotation ${quotation!.id} submitted to ${targetManager}${isFinanceTagged ? ' & tagged Finance' : ''}!`)
           onNavigate('quotations')
         } else {
           onShowToast(`Quotation ${quotation!.id} saved to PostgreSQL database successfully.`)
@@ -587,7 +733,39 @@ export default function QuotationBuilderModule({
       onShowToast('Could not reach backend database. Changes preserved locally.')
     } finally {
       setIsSaving(false)
+      setIsSubmitModalOpen(false)
     }
+  }
+
+  function handleExportPDF() {
+    const currentQuoteData: Quotation = {
+      id: quotation?.id || 'Q-NEW',
+      dealName: customer.trim() || 'Commercial Deal',
+      customerName: customer.trim() || 'Commercial Client',
+      customerTier: quotation?.customerTier || 'Enterprise',
+      salesRep: assignedRep,
+      reportingManager: targetManager,
+      taggedFinanceOfficer: isFinanceTagged ? taggedFinance : undefined,
+      status: quotation?.status || 'Draft',
+      createdAt: quotation?.createdAt || new Date().toISOString().split('T')[0],
+      validUntil,
+      blendedRiskScore: quotation?.blendedRiskScore || 85,
+      riskLevel: quotation?.riskLevel || 'Low',
+      items: lines.map(l => ({
+        id: l.id,
+        productId: l.productId,
+        name: l.name,
+        category: (l.category as any) || 'Hardware',
+        type: 'one_time',
+        qty: l.qty,
+        unitPrice: l.unitPrice,
+        discountPct: l.discountPct,
+        costPrice: l.costPrice,
+      })),
+      managerComment: notes,
+    }
+    exportQuotationPDF(currentQuoteData)
+    onShowToast(`Exporting DealFlow360 Quotation PDF for ${currentQuoteData.id}...`)
   }
 
   // Suggestions for cross-sell based on catalog
@@ -621,69 +799,173 @@ export default function QuotationBuilderModule({
             <span className={`${styles.statusPill} ${statusClass}`}>
               {isNewQuotation ? 'New Draft' : (quotation?.status || 'Draft')}
             </span>
+            {readOnly && (
+              <span className={styles.readOnlyBadge}>
+                👁️ View Only (Admin Audit)
+              </span>
+            )}
           </div>
           <p className={styles.subtitle}>
-            {isNewQuotation
+            {readOnly
+              ? 'Auditing quotation line items, price discounts, and gross margin economics in read-only mode.'
+              : isNewQuotation
               ? 'Select catalog products, configure quantities and pricing discounts, and create a new deal directly in PostgreSQL.'
               : 'Configure items, customize pricing discounts, and persist deal economics directly to PostgreSQL.'}
           </p>
         </div>
 
         <div className={styles.headerActions}>
+          {/* Live Currency Normalizer Selector */}
+          <div className={styles.currencyPillWrap}>
+            <span className={styles.currencyIcon}>🌐</span>
+            <select
+              className={styles.currencySelect}
+              value={currency}
+              onChange={e => {
+                const newCurr = e.target.value
+                setCurrency(newCurr)
+                const rate = exchangeRates[newCurr] || 1.0
+                onShowToast(`Display currency changed to ${newCurr} (1 USD = ${rate.toFixed(4)} ${newCurr})`)
+              }}
+              title="Display currency (Live rates scraped from web)"
+            >
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="GBP">GBP (£)</option>
+              <option value="INR">INR (₹)</option>
+              <option value="JPY">JPY (¥)</option>
+              <option value="CAD">CAD (CA$)</option>
+              <option value="AUD">AUD (A$)</option>
+              <option value="AED">AED (AED)</option>
+              <option value="CHF">CHF (CHF)</option>
+              <option value="SGD">SGD (S$)</option>
+            </select>
+            {currency !== 'USD' && (
+              <span className={styles.rateTag}>
+                1 USD = {currentRate.toFixed(2)} {currency}
+              </span>
+            )}
+          </div>
+
           <button
             className={styles.btnSecondary}
-            onClick={() => handleSave('Draft')}
-            disabled={isSaving}
+            onClick={handleExportPDF}
+            title="Export Quotation PDF with DealFlow360 branding"
           >
-            <SaveIcon />
-            <span>{isSaving ? 'Saving...' : isNewQuotation ? 'Save New Draft' : 'Save Draft'}</span>
+            <span>📄 Export PDF</span>
           </button>
-          <button
-            className={styles.btnSubmit}
-            onClick={() => handleSave('Under Review')}
-            disabled={isSaving}
-          >
-            <SendIcon />
-            <span>Submit for Approval</span>
-          </button>
+          {readOnly ? (
+            <div className={styles.readOnlyNotice}>
+              <span>🔒 Read-Only Admin Perspective</span>
+            </div>
+          ) : (
+            <>
+              <button
+                className={styles.btnSecondary}
+                onClick={() => handleSave('Draft')}
+                disabled={isSaving}
+              >
+                <SaveIcon />
+                <span>{isSaving ? 'Saving...' : isNewQuotation ? 'Save New Draft' : 'Save Draft'}</span>
+              </button>
+              <button
+                className={styles.btnSubmit}
+                onClick={() => setIsSubmitModalOpen(true)}
+                disabled={isSaving}
+              >
+                <SendIcon />
+                <span>Submit for Approval</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* ── Top Meta Inputs Row (Customer, Price List, Expiry) ── */}
+      {/* ── Top Meta Inputs Row (Customer, Sales Rep, Price List, Expiry) ── */}
       <div className={styles.metaCard}>
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Customer Account *</label>
-          <input
-            type="text"
-            className={styles.textInput}
-            value={customer}
-            onChange={e => setCustomer(e.target.value)}
-            placeholder="Account / Company name (e.g. Acme Corp)"
-          />
-        </div>
+        <div className={styles.inputsRow}>
+          <div className={styles.inputField}>
+            <label className={styles.inputLabel}>Customer Account *</label>
+            <input
+              type="text"
+              className={styles.inputBox}
+              value={customer}
+              onChange={e => setCustomer(e.target.value)}
+              placeholder="Account / Company name"
+              disabled={readOnly}
+            />
+          </div>
 
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Price List Tier</label>
-          <select
-            className={styles.selectInput}
-            value={priceList}
-            onChange={e => setPriceList(e.target.value)}
-          >
-            <option value="Enterprise Tier (US East)">Enterprise Tier (US East)</option>
-            <option value="Commercial Standard">Commercial Standard</option>
-            <option value="Government & Education">Government & Education</option>
-            <option value="Global Wholesale">Global Wholesale</option>
-          </select>
-        </div>
+          <div className={styles.inputField}>
+            <label className={styles.inputLabel}>
+              Assigned Sales Rep
+              {currentUser?.role === 'sales_manager' && !readOnly && (
+                <span style={{ fontSize: '11px', color: '#6366f1', marginLeft: 6 }}>(Manager Reassign)</span>
+              )}
+            </label>
+            {currentUser?.role === 'sales_manager' && !readOnly ? (
+              <select
+                className={styles.inputBox}
+                value={assignedRep}
+                onChange={e => {
+                  const newRep = e.target.value
+                  setAssignedRep(newRep)
+                  if (onRecordAudit) {
+                    onRecordAudit({
+                      actorName: currentUser?.fullName || 'Alex Rivera (Sales Manager)',
+                      actorRole: 'sales_manager',
+                      actionType: 'DEAL_ASSIGNED',
+                      targetQuotationId: quotation?.id || 'New Deal',
+                      customerName: customer.trim() || 'Client',
+                      details: `Manager reassigned deal to ${newRep}`,
+                    })
+                  }
+                  onShowToast(`Assigned deal to ${newRep}!`)
+                }}
+              >
+                {availableReps.map((r: any) => (
+                  <option key={r.id || r.email} value={r.name}>
+                    {r.name} ({r.email})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className={styles.repBadgeRow}>
+                <span className={styles.badgeRep}>💼 {assignedRep}</span>
+                {quotation?.approvalWorkflow?.taggedFinanceOfficer && (
+                  <span className={styles.badgeRepFinance}>
+                    💰 {quotation.approvalWorkflow.taggedFinanceOfficer.split(' ')[0]} (Tagged)
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
 
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Valid Until</label>
-          <input
-            type="date"
-            className={styles.textInput}
-            value={validUntil}
-            onChange={e => setValidUntil(e.target.value)}
-          />
+          <div className={styles.inputField}>
+            <label className={styles.inputLabel}>Price List Tier</label>
+            <select
+              className={styles.inputBox}
+              value={priceList}
+              onChange={e => setPriceList(e.target.value)}
+              disabled={readOnly}
+            >
+              <option value="Enterprise Tier (US East)">Enterprise Tier (US East)</option>
+              <option value="Commercial Standard">Commercial Standard</option>
+              <option value="Government & Education">Government & Education</option>
+              <option value="Global Wholesale">Global Wholesale</option>
+            </select>
+          </div>
+
+          <div className={styles.inputField}>
+            <label className={styles.inputLabel}>Valid Until</label>
+            <input
+              type="date"
+              className={styles.inputBox}
+              value={validUntil}
+              onChange={e => setValidUntil(e.target.value)}
+              disabled={readOnly}
+            />
+          </div>
         </div>
       </div>
 
@@ -694,23 +976,25 @@ export default function QuotationBuilderModule({
             <h2 className={styles.cardTitle}>Configured Line Items</h2>
             <p className={styles.cardSubtitle}>Real-time margin governance enforced at line level.</p>
           </div>
-          <div className={styles.addItemBar}>
-            <select
-              value={selectedProductId}
-              onChange={e => setSelectedProductId(e.target.value)}
-              className={styles.productSelect}
-            >
-              {products.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.name} — ${p.unitPrice.toLocaleString()} ({p.category})
-                </option>
-              ))}
-            </select>
-            <button className={styles.btnAddItem} onClick={handleAddProductFromCatalog}>
-              <PlusIcon />
-              <span>Add Product</span>
-            </button>
-          </div>
+          {!readOnly && (
+            <div className={styles.addItemBar}>
+              <select
+                value={selectedProductId}
+                onChange={e => setSelectedProductId(e.target.value)}
+                className={styles.productSelect}
+              >
+                {products.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} — {formatPrice(p.unitPrice)} ({p.category})
+                  </option>
+                ))}
+              </select>
+              <button className={styles.btnAddItem} onClick={handleAddProductFromCatalog}>
+                <PlusIcon />
+                <span>Add Product</span>
+              </button>
+            </div>
+          )}
         </div>
 
         <div className={styles.tableWrap}>
@@ -724,18 +1008,20 @@ export default function QuotationBuilderModule({
                 <th>Line Subtotal</th>
                 <th>Discount Limit</th>
                 <th>Governance</th>
-                <th>Action</th>
+                {!readOnly && <th>Action</th>}
               </tr>
             </thead>
             <tbody>
               {lines.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: '36px 16px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
+                  <td colSpan={readOnly ? 7 : 8} style={{ padding: '36px 16px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
                     <div style={{ fontWeight: 600, color: '#1E293B', marginBottom: 6, fontSize: '14px' }}>
                       No line items added yet
                     </div>
                     <div>
-                      Select a product from the catalog dropdown above and click <strong>&quot;+ Add Product&quot;</strong> to start building this quotation.
+                      {readOnly
+                        ? 'This quotation does not have any line items.'
+                        : <>Select a product from the catalog dropdown above and click <strong>&quot;+ Add Product&quot;</strong> to start building this quotation.</>}
                     </div>
                   </td>
                 </tr>
@@ -762,6 +1048,7 @@ export default function QuotationBuilderModule({
                         value={line.qty}
                         onChange={e => updateLine(line.id, 'qty', parseInt(e.target.value) || 1)}
                         className={styles.numInput}
+                        disabled={readOnly}
                       />
                     </td>
                     <td>
@@ -772,6 +1059,7 @@ export default function QuotationBuilderModule({
                         value={line.unitPrice}
                         onChange={e => updateLine(line.id, 'unitPrice', parseFloat(e.target.value) || 0)}
                         className={styles.priceInput}
+                        disabled={readOnly}
                       />
                     </td>
                     <td>
@@ -784,12 +1072,13 @@ export default function QuotationBuilderModule({
                           value={line.discountPct}
                           onChange={e => updateLine(line.id, 'discountPct', parseFloat(e.target.value) || 0)}
                           className={styles.discountInput}
+                          disabled={readOnly}
                         />
                         <span>%</span>
                       </div>
                     </td>
                     <td>
-                      <strong>${lineSub.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                      <strong>{formatPrice(lineSub)}</strong>
                     </td>
                     <td>{line.limit}%</td>
                     <td>
@@ -801,15 +1090,17 @@ export default function QuotationBuilderModule({
                         <span className={styles.statusOk}>OK</span>
                       )}
                     </td>
-                    <td>
-                      <button
-                        className={styles.btnDeleteLine}
-                        onClick={() => handleRemoveLine(line.id)}
-                        title="Remove line item"
-                      >
-                        <TrashIcon />
-                      </button>
-                    </td>
+                    {!readOnly && (
+                      <td>
+                        <button
+                          className={styles.btnDeleteLine}
+                          onClick={() => handleRemoveLine(line.id)}
+                          title="Remove line item"
+                        >
+                          <TrashIcon />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 )
               }))}
@@ -842,34 +1133,35 @@ export default function QuotationBuilderModule({
             value={notes}
             onChange={e => setNotes(e.target.value)}
             placeholder="Add customer requirements, SLA specifications, or discount justification for the finance approval team..."
+            disabled={readOnly}
           />
         </div>
 
         <div className={styles.calcCard}>
           <div className={styles.calcRow}>
             <span>Subtotal (Gross)</span>
-            <span>${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span>{formatPrice(subtotal)}</span>
           </div>
 
           <div className={styles.calcRow}>
             <span>Total Discount</span>
-            <span className={styles.discountTag}>-${totalDiscount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span className={styles.discountTag}>-{formatPrice(totalDiscount)}</span>
           </div>
 
           <div className={styles.calcRow}>
             <span>Estimated Tax (8%)</span>
-            <span>${taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span>{formatPrice(taxAmount)}</span>
           </div>
 
           <div className={styles.calcRowStrong}>
             <span>Grand Total</span>
-            <span>${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span>{formatPrice(grandTotal)}</span>
           </div>
 
           <div className={styles.marginMetric}>
             <span>Gross Margin</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span>${grossMargin.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span>{formatPrice(grossMargin)}</span>
               <span className={marginPct >= 30 ? styles.marginPillGood : styles.marginPillLow}>
                 {marginPct.toFixed(1)}%
               </span>
@@ -929,8 +1221,9 @@ export default function QuotationBuilderModule({
                 <div
                   key={`${item.type}-${item.product_id}`}
                   className={styles.upsellCard}
-                  onClick={() => !isActing && handleAddRecommendation(item)}
-                  title="Click to add to quotation"
+                  onClick={() => !readOnly && !isActing && handleAddRecommendation(item)}
+                  title={readOnly ? item.product_name : "Click to add to quotation"}
+                  style={{ cursor: readOnly ? 'default' : 'pointer' }}
                 >
                   <div className={styles.cardTopRow}>
                     <div className={styles.upsellItemName}>
@@ -980,14 +1273,16 @@ export default function QuotationBuilderModule({
 
                   {/* Card Action Buttons */}
                   <div className={styles.cardButtonsRow} onClick={(e) => e.stopPropagation()}>
-                    <button
-                      type="button"
-                      className={styles.btnActionAdd}
-                      disabled={isActing}
-                      onClick={() => handleAddRecommendation(item)}
-                    >
-                      {isActing ? 'Adding...' : isUpsell ? 'Upgrade Line' : 'Add to Quote'}
-                    </button>
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        className={styles.btnActionAdd}
+                        disabled={isActing}
+                        onClick={() => handleAddRecommendation(item)}
+                      >
+                        {isActing ? 'Adding...' : isUpsell ? 'Upgrade Line' : 'Add to Quote'}
+                      </button>
+                    )}
                     <button
                       type="button"
                       className={styles.btnActionWhy}
@@ -1000,14 +1295,16 @@ export default function QuotationBuilderModule({
                     >
                       {isExpanded ? 'Hide' : 'Why?'}
                     </button>
-                    <button
-                      type="button"
-                      className={styles.btnActionDismiss}
-                      onClick={(e) => handleDismissRecommendation(item, e)}
-                      title="Dismiss suggestion"
-                    >
-                      ✕
-                    </button>
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        className={styles.btnActionDismiss}
+                        onClick={(e) => handleDismissRecommendation(item, e)}
+                        title="Dismiss suggestion"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
 
                   {/* Expandable Why Breakdown */}
@@ -1109,16 +1406,127 @@ export default function QuotationBuilderModule({
             <span>{isSaving ? 'Saving Changes...' : isNewQuotation ? 'Save New Draft to DB' : 'Save Draft to DB'}</span>
           </button>
 
-          <button
-            className={styles.btnSubmit}
-            onClick={() => handleSave('Under Review')}
-            disabled={isSaving}
-          >
-            <SendIcon />
-            <span>Submit for Approval</span>
-          </button>
+          {!readOnly && (
+            <button
+              className={styles.btnSubmit}
+              onClick={() => setIsSubmitModalOpen(true)}
+              disabled={isSaving}
+            >
+              <SendIcon />
+              <span>Submit for Approval</span>
+            </button>
+          )}
         </div>
       </div>
+
+      {/* ── Report to Manager & Tag Finance Officer Modal ── */}
+      {isSubmitModalOpen && (
+        <div className={styles.modalBackdrop} onClick={() => setIsSubmitModalOpen(false)}>
+          <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>
+                <span>📋</span> Report &amp; Submit for Manager Approval
+              </h3>
+              <button
+                className={styles.modalCloseBtn}
+                onClick={() => setIsSubmitModalOpen(false)}
+                type="button"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Deal Snapshot Summary */}
+            <div className={styles.approvalSummaryBox}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span><strong>Customer:</strong> {customer || '—'}</span>
+                <span><strong>Deal Value:</strong> ${grandTotal.toLocaleString()}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span><strong>Assigned Rep:</strong> {assignedRep}</span>
+                <span><strong>Gross Margin:</strong> {marginPct.toFixed(1)}%</span>
+              </div>
+            </div>
+
+            {/* 1. Select Reporting Manager */}
+            <div className={styles.modalFormGroup}>
+              <label className={styles.modalLabel}>Select Reporting Sales Manager *</label>
+              <select
+                className={styles.modalSelect}
+                value={targetManager}
+                onChange={e => setTargetManager(e.target.value)}
+              >
+                {availableManagers.map((m: any) => (
+                  <option key={m.id || m.email} value={m.name}>
+                    {m.name} ({m.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 2. Tag Available Financial Officer (Optional / As needed) */}
+            <div className={styles.modalFormGroup}>
+              <label className={styles.checkboxRow}>
+                <input
+                  type="checkbox"
+                  checked={isFinanceTagged}
+                  onChange={e => setIsFinanceTagged(e.target.checked)}
+                />
+                <span>Tag Available Financial Officer for Fiscal Review &amp; Margin Concession</span>
+              </label>
+              {isFinanceTagged && (
+                <div style={{ marginTop: 8 }}>
+                  <label className={styles.modalLabel} style={{ fontSize: '11.5px', color: '#047857' }}>
+                    Available Financial Officer
+                  </label>
+                  <select
+                    className={styles.modalSelect}
+                    value={taggedFinance}
+                    onChange={e => setTaggedFinance(e.target.value)}
+                  >
+                    {availableFinance.map((f: any) => (
+                      <option key={f.id || f.email} value={f.name}>
+                        {f.name} ({f.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* 3. Representative's Commercial Report & Notes */}
+            <div className={styles.modalFormGroup}>
+              <label className={styles.modalLabel}>Representative Notes &amp; Commercial Report</label>
+              <textarea
+                className={styles.modalTextarea}
+                placeholder="Detail customer volume commitment, multi-year term agreement, or justification for requested discounts..."
+                value={submissionNotes}
+                onChange={e => setSubmissionNotes(e.target.value)}
+              />
+            </div>
+
+            {/* Modal Actions */}
+            <div className={styles.modalFooter}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={() => setIsSubmitModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.btnSubmit}
+                disabled={isSaving}
+                onClick={() => handleSave('Under Review', submissionNotes)}
+              >
+                <SendIcon />
+                <span>{isSaving ? 'Submitting...' : 'Send to Manager & Tag Finance'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Admin Weights Configuration Modal ──────────────── */}
       {isWeightModalOpen && tempWeights && (
@@ -1163,7 +1571,10 @@ export default function QuotationBuilderModule({
                     const val = parseFloat(e.target.value) || 0
                     setTempWeights(prev => prev ? ({
                       ...prev,
-                      upsell: { ...prev.upsell, [metric]: val }
+                      upsell: {
+                        ...prev.upsell,
+                        [metric]: val,
+                      },
                     }) : null)
                   }}
                 />
@@ -1177,8 +1588,8 @@ export default function QuotationBuilderModule({
               </span>
             </div>
 
-            {/* Cross-Sell Weights */}
-            <div className={styles.modalSectionTitle}>CROSS-SELL WEIGHTS</div>
+            {/* Cross-sell Weights */}
+            <div className={styles.modalSectionTitle} style={{ marginTop: 20 }}>CROSS-SELL WEIGHTS</div>
             {(Object.keys(tempWeights.cross_sell) as Array<keyof typeof tempWeights.cross_sell>).map((metric) => (
               <div key={metric} className={styles.weightSliderRow}>
                 <span className={styles.weightSliderLabel}>
@@ -1195,7 +1606,10 @@ export default function QuotationBuilderModule({
                     const val = parseFloat(e.target.value) || 0
                     setTempWeights(prev => prev ? ({
                       ...prev,
-                      cross_sell: { ...prev.cross_sell, [metric]: val }
+                      cross_sell: {
+                        ...prev.cross_sell,
+                        [metric]: val,
+                      },
                     }) : null)
                   }}
                 />

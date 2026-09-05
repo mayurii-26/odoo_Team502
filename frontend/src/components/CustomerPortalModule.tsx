@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react'
 import styles from './CustomerPortalWireframe.module.css'
-import { Quotation, ActiveModule } from './types'
+import { Quotation, ActiveModule, UserSession } from './types'
+import { exportQuotationPDF } from '../lib/pdfGenerator'
 
 interface CustomerPortalProps {
   quotation: Quotation
@@ -10,6 +11,8 @@ interface CustomerPortalProps {
   onNavigate: (module: ActiveModule) => void
   onShowToast: (msg: string) => void
   customerTab?: 'quotation' | 'messages' | 'profile'
+  user?: UserSession
+  onRecordAudit?: (entry: { user: string; role: string; action: string; quotationId?: string; details: string }) => void
 }
 
 interface NegotiationLine {
@@ -24,7 +27,13 @@ export default function CustomerPortalModule({
   onNavigate,
   onShowToast,
   customerTab = 'quotation',
+  user,
+  onRecordAudit,
 }: CustomerPortalProps) {
+  const repName = quotation?.salesRep || 'Your Sales Rep'
+  const repEmail = quotation?.salesRepEmail || ''
+  const managerName = quotation?.reportingManager || ''
+
   // Negotiation items matching wireframe or live quotation items
   const [lines, setLines] = useState<NegotiationLine[]>(() => {
     if (quotation?.items && quotation.items.length > 0) {
@@ -34,18 +43,7 @@ export default function CustomerPortalModule({
         customerComment: idx === 0 ? 'Requesting additional volume discount.' : 'Terms acceptable.',
       }))
     }
-    return [
-      {
-        id: 'neg-1',
-        line: 'Extended Warranty',
-        customerComment: 'Can this be 15% off instead of 10%?',
-      },
-      {
-        id: 'neg-2',
-        line: 'Onsite Setup',
-        customerComment: 'Can we push this to next month?',
-      },
-    ]
+    return []
   })
 
   React.useEffect(() => {
@@ -61,23 +59,18 @@ export default function CustomerPortalModule({
   }, [quotation?.id, quotation?.items])
 
   const [counterDiscount, setCounterDiscount] = useState('15')
-  const [requestedDeliveryDate, setRequestedDeliveryDate] = useState('2026-10-15')
+  const [requestedDeliveryDate, setRequestedDeliveryDate] = useState('')
   const [negotiationStatus, setNegotiationStatus] = useState<'Under Negotiation' | 'Confirmed'>('Under Negotiation')
 
-  // Messages Thread State
+  // Messages Thread State tailored to dedicated sales rep
+  const customerDisplayName = user?.fullName || user?.companyName || 'Customer'
   const [chatInput, setChatInput] = useState('')
   const [messages, setMessages] = useState([
     {
-      sender: 'Jane Smith (Sales Rep)',
-      text: 'Hi John, thank you for reviewing the quote. Please let us know if you have questions regarding the warranty terms.',
-      time: '10:30 AM',
+      sender: `${repName} (Your Dedicated Sales Rep)`,
+      text: `Hello! I have assembled this tailored quotation for your review. Please let me know if any line adjustments or schedule preferences are needed.`,
+      time: '',
       isCustomer: false,
-    },
-    {
-      sender: 'John Davis (Acme Corp)',
-      text: 'Thanks Jane. We entered our requested counter-discount and pushed the setup date to mid-October.',
-      time: '11:15 AM',
-      isCustomer: true,
     },
   ])
 
@@ -87,7 +80,16 @@ export default function CustomerPortalModule({
       status: 'Negotiating',
       customerComment: `Counter discount: ${counterDiscount}%, Requested date: ${requestedDeliveryDate}`,
     })
-    onShowToast('Negotiation request submitted! Your sales rep has been notified.')
+
+    onRecordAudit?.({
+      user: customerDisplayName,
+      role: 'customer',
+      action: 'CUSTOMER_PROPOSAL',
+      quotationId: quotation.id,
+      details: `Customer submitted counter-proposal (${counterDiscount}% discount${requestedDeliveryDate ? `, delivery: ${requestedDeliveryDate}` : ''}) to assigned sales representative ${repName}.`,
+    })
+
+    onShowToast(`Negotiation request submitted! Your dedicated sales representative (${repName}) has been notified.`)
   }
 
   function handleConfirmQuotation() {
@@ -96,22 +98,42 @@ export default function CustomerPortalModule({
       ...quotation,
       status: 'Confirmed',
     })
+
+    onRecordAudit?.({
+      user: customerDisplayName,
+      role: 'customer',
+      action: 'CUSTOMER_ACCEPTED',
+      quotationId: quotation.id,
+      details: `Customer accepted and confirmed quotation ${quotation.id} with dedicated sales representative ${repName}. Order released to fulfillment.`,
+    })
+
     onShowToast('Quotation Confirmed! Order is now approved and moving to fulfillment.')
   }
 
   function handleSendMessage() {
     if (!chatInput.trim()) return
+    const text = chatInput.trim()
+
     setMessages(prev => [
       ...prev,
       {
-        sender: 'John Davis (Acme Corp)',
-        text: chatInput.trim(),
+        sender: customerDisplayName,
+        text: text,
         time: 'Just now',
         isCustomer: true,
       },
     ])
+
+    onRecordAudit?.({
+      user: customerDisplayName,
+      role: 'customer',
+      action: 'CUSTOMER_PROPOSAL',
+      quotationId: quotation.id,
+      details: `Customer sent live negotiation message to representative ${repName}: "${text}"`,
+    })
+
     setChatInput('')
-    onShowToast('Message transmitted to Sales Rep!')
+    onShowToast(`Message transmitted directly to ${repName}!`)
   }
 
   /* ──────────────────────────────────────────────────────────
@@ -121,8 +143,17 @@ export default function CustomerPortalModule({
     return (
       <div className={styles.container}>
         <div className={styles.header}>
-          <h1 className={styles.title}>Messages & Communication</h1>
-          <p className={styles.subtitle}>Direct live negotiation thread with your dedicated Sales Representative</p>
+          <div>
+            <h1 className={styles.title}>Messages &amp; Direct Communication</h1>
+            <p className={styles.subtitle}>
+              Direct negotiation channel with your dedicated Sales Representative
+            </p>
+          </div>
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '8px 16px', borderRadius: 10 }}>
+            <span style={{ fontSize: 13, color: '#166534', fontWeight: 600 }}>
+              👤 Dedicated Rep: <strong>{repName}</strong> ({repEmail})
+            </span>
+          </div>
         </div>
 
         <div className={styles.cardBox}>
@@ -144,13 +175,13 @@ export default function CustomerPortalModule({
             <input
               type="text"
               className={styles.chatInput}
-              placeholder="Type your message or term adjustment..."
+              placeholder={`Type a direct message to ${repName}...`}
               value={chatInput}
               onChange={e => setChatInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
             />
             <button className={styles.btnSend} onClick={handleSendMessage}>
-              Send
+              Send to Rep
             </button>
           </div>
         </div>
@@ -166,24 +197,24 @@ export default function CustomerPortalModule({
       <div className={styles.container}>
         <div className={styles.header}>
           <h1 className={styles.title}>Customer Account Profile</h1>
-          <p className={styles.subtitle}>Registered organization credentials and authorized contract signatories</p>
+          <p className={styles.subtitle}>Registered organization credentials, contact leads, and dedicated sales representative</p>
         </div>
 
         <div className={styles.cardBox}>
           <div className={styles.profileGrid}>
             <div className={styles.profileItem}>
               <label>Organization / Account</label>
-              <span className={styles.profileVal}>Acme Corporation (Tier: Enterprise Platinum)</span>
+              <span className={styles.profileVal}>{user?.companyName || quotation?.customerName || 'Your Organization'}</span>
             </div>
 
             <div className={styles.profileItem}>
               <label>Authorized Signatory</label>
-              <span className={styles.profileVal}>John Davis (VP Procurement)</span>
+              <span className={styles.profileVal}>{user?.fullName || 'Account Contact'}</span>
             </div>
 
             <div className={styles.profileItem}>
               <label>Registered Email</label>
-              <span className={styles.profileVal}>customer@acme.com</span>
+              <span className={styles.profileVal}>{user?.email || ''}</span>
             </div>
 
             <div className={styles.profileItem}>
@@ -192,13 +223,18 @@ export default function CustomerPortalModule({
             </div>
 
             <div className={styles.profileItem}>
-              <label>Billing & Delivery Address</label>
+              <label>Billing &amp; Delivery Address</label>
               <span className={styles.profileVal}>450 Enterprise Way, Suite 800, Austin, TX 78701</span>
             </div>
 
-            <div className={styles.profileItem}>
-              <label>Dedicated Sales Representative</label>
-              <span className={styles.profileVal}>Jane Smith (sales@dealflow360.com)</span>
+            <div className={styles.profileItem} style={{ background: '#f8fafc', padding: 12, borderRadius: 10, border: '1.5px solid #cbd5e1' }}>
+              <label style={{ color: '#0f172a', fontWeight: 700 }}>Dedicated Sales Representative</label>
+              <span className={styles.profileVal} style={{ color: '#2563eb', fontWeight: 700 }}>
+                👤 {repName} ({repEmail})
+              </span>
+              <span style={{ display: 'block', fontSize: 11.5, color: '#64748b', marginTop: 3 }}>
+                Reporting Manager: {managerName}
+              </span>
             </div>
           </div>
         </div>
@@ -213,10 +249,17 @@ export default function CustomerPortalModule({
     <div className={styles.container}>
       {/* ── Header ────────────────────────────────────────── */}
       <div className={styles.header}>
-        <h1 className={styles.title}>Customer Portal Negotiation Screen</h1>
-        <p className={styles.subtitle}>
-          Customer reviews and negotiates the quote directly, no email needed
-        </p>
+        <div>
+          <h1 className={styles.title}>Customer Portal Negotiation Screen</h1>
+          <p className={styles.subtitle}>
+            Review deal terms, propose adjustments, or confirm your agreement directly with your dedicated representative
+          </p>
+        </div>
+        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '8px 16px', borderRadius: 10 }}>
+          <span style={{ fontSize: 13, color: '#1e40af', fontWeight: 600 }}>
+            👤 Dedicated Sales Rep: <strong>{repName}</strong>
+          </span>
+        </div>
       </div>
 
       {/* ── Status Pill ───────────────────────────────────── */}
@@ -283,8 +326,20 @@ export default function CustomerPortalModule({
 
       {/* ── Actions Row ───────────────────────────────────── */}
       <div className={styles.actionsRow}>
+        <button
+          className={styles.btnSubmitRequest}
+          style={{ background: '#001D52', color: '#ffffff', borderColor: '#001D52' }}
+          onClick={() => {
+            exportQuotationPDF(quotation)
+            onShowToast('Official DealFlow360 Quotation PDF downloaded!')
+          }}
+          title="Download official quotation document as PDF"
+        >
+          📄 Download Official Quote PDF
+        </button>
+
         <button className={styles.btnSubmitRequest} onClick={handleSubmitRequest}>
-          Submit Request
+          Submit Request to {repName.split(' ')[0]}
         </button>
 
         <button className={styles.btnConfirm} onClick={handleConfirmQuotation}>
@@ -295,7 +350,7 @@ export default function CustomerPortalModule({
       {/* ── Alert Banner ──────────────────────────────────── */}
       <div className={styles.alertBanner}>
         <span>
-          If final terms exceed thresholds, the quote automatically re-enters approval (Screen 6).
+          If counter-terms exceed standard pricing guidelines, your proposal is automatically routed to {repName}&apos;s Sales Manager ({managerName}) for authorized clearance.
         </span>
       </div>
     </div>

@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react'
 import styles from './QuotationsWireframe.module.css'
 import { Quotation, QuotationStatus, ActiveModule } from './types'
+import { exportQuotationPDF } from '../lib/pdfGenerator'
 
 interface QuotationsListProps {
   quotations: Quotation[]
@@ -10,6 +11,7 @@ interface QuotationsListProps {
   onNavigate: (module: ActiveModule) => void
   onUpdateQuotation?: (updated: Quotation) => void
   onShowToast?: (msg: string) => void
+  readOnly?: boolean
 }
 
 type KanbanColStatus = 'Draft' | 'Pending Approval' | 'Approved' | 'Negotiation' | 'Confirmed'
@@ -20,6 +22,7 @@ export default function QuotationsListModule({
   onNavigate,
   onUpdateQuotation,
   onShowToast,
+  readOnly = false,
 }: QuotationsListProps) {
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban')
   const [searchTerm, setSearchTerm] = useState('')
@@ -93,6 +96,10 @@ export default function QuotationsListModule({
 
   // ── Drag & Drop Handlers ────────────────────────────────────
   function handleDragStart(e: React.DragEvent, dealId: string) {
+    if (readOnly) {
+      e.preventDefault()
+      return
+    }
     setDraggedDealId(dealId)
     e.dataTransfer.setData('text/plain', dealId)
     e.dataTransfer.effectAllowed = 'move'
@@ -104,6 +111,7 @@ export default function QuotationsListModule({
   }
 
   function handleDragOver(e: React.DragEvent, colStatus: KanbanColStatus) {
+    if (readOnly) return
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
     if (dragOverCol !== colStatus) {
@@ -118,6 +126,10 @@ export default function QuotationsListModule({
   function handleDrop(e: React.DragEvent, targetCol: KanbanColStatus) {
     e.preventDefault()
     setDragOverCol(null)
+    if (readOnly) {
+      if (onShowToast) onShowToast('Admin perspective: Quotations are view-only.')
+      return
+    }
     const dealId = e.dataTransfer.getData('text/plain') || draggedDealId
     setDraggedDealId(null)
 
@@ -150,9 +162,16 @@ export default function QuotationsListModule({
       {/* Header */}
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Quotations Master</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <h1 className={styles.title}>Quotations Master</h1>
+            {readOnly && (
+              <span className={styles.viewOnlyBadge}>👁️ View Only (Admin Audit)</span>
+            )}
+          </div>
           <p className={styles.subtitle}>
-            {filteredQuotations.length} deals loaded from database. Drag and drop cards to move stages or click to open.
+            {readOnly
+              ? `${filteredQuotations.length} deals loaded from database. View deal economics and customer pipeline.`
+              : `${filteredQuotations.length} deals loaded from database. Drag and drop cards to move stages or click to open.`}
           </p>
         </div>
 
@@ -170,16 +189,18 @@ export default function QuotationsListModule({
           >
             {viewMode === 'kanban' ? 'Table View' : 'Kanban View'}
           </button>
-          <button
-            className={styles.btnNewQuote}
-            onClick={() => {
-              onSelectQuotation('new')
-              onNavigate('builder')
-            }}
-            title="Create a new quotation"
-          >
-            + New Quotation
-          </button>
+          {!readOnly && (
+            <button
+              className={styles.btnNewQuote}
+              onClick={() => {
+                onSelectQuotation('new')
+                onNavigate('builder')
+              }}
+              title="Create a new quotation"
+            >
+              + New Quotation
+            </button>
+          )}
         </div>
       </div>
 
@@ -213,12 +234,13 @@ export default function QuotationsListModule({
                     return (
                       <div
                         key={deal.id}
-                        draggable={true}
+                        draggable={!readOnly}
                         onDragStart={(e) => handleDragStart(e, deal.id)}
                         onDragEnd={handleDragEnd}
                         className={`${styles.dealCard} ${isDragging ? styles.dealCardDragging : ''}`}
                         onClick={() => handleOpenDeal(deal.id)}
-                        title={`Drag to move stage or click to open ${deal.id} - ${deal.customerName}`}
+                        style={{ cursor: readOnly ? 'pointer' : 'grab' }}
+                        title={readOnly ? `Click to view deal ${deal.id} - ${deal.customerName}` : `Drag to move stage or click to open ${deal.id} - ${deal.customerName}`}
                       >
                         <div className={styles.dealCardHeader}>
                           <span className={styles.dealId}>{deal.id}</span>
@@ -293,12 +315,24 @@ export default function QuotationsListModule({
                     <td style={{ textAlign: 'right' }}>
                       <button
                         className={styles.btnActionSmall}
+                        style={{ marginRight: 6 }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          exportQuotationPDF(d)
+                          onShowToast?.(`Exporting PDF for quotation ${d.id}...`)
+                        }}
+                        title="Download Quotation PDF"
+                      >
+                        📄 PDF
+                      </button>
+                      <button
+                        className={styles.btnActionSmall}
                         onClick={(e) => {
                           e.stopPropagation()
                           handleOpenDeal(d.id)
                         }}
                       >
-                        Open Deal
+                        {readOnly ? 'View Deal' : 'Open Deal'}
                       </button>
                     </td>
                   </tr>
@@ -310,17 +344,19 @@ export default function QuotationsListModule({
       )}
 
       {/* ── Action Buttons ── */}
-      <div className={styles.actionsRow}>
-        <button
-          className={styles.btnNewQuote}
-          onClick={() => {
-            onSelectQuotation('new')
-            onNavigate('builder')
-          }}
-        >
-          + Create New Quotation
-        </button>
-      </div>
+      {!readOnly && (
+        <div className={styles.actionsRow}>
+          <button
+            className={styles.btnNewQuote}
+            onClick={() => {
+              onSelectQuotation('new')
+              onNavigate('builder')
+            }}
+          >
+            + Create New Quotation
+          </button>
+        </div>
+      )}
     </div>
   )
 }

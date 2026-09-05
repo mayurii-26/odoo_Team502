@@ -373,7 +373,7 @@ export default function GovernanceModule({
                     <strong>Level 1: Sales Manager</strong>
                   </div>
                 </td>
-                <td>Alex Rivera (Sales Operations Lead)</td>
+                <td>Sales Manager (as configured)</td>
                 <td>
                   <span className={styles.badgeReview}>
                     <span>⏳</span> Routes to Manager Queue
@@ -395,7 +395,7 @@ export default function GovernanceModule({
                     <strong>Level 2: Dual Executive Sign-off</strong>
                   </div>
                 </td>
-                <td>Alex Rivera (Sales VP) + David Miller (Finance VP)</td>
+                <td>Sales VP + Finance VP (as configured)</td>
                 <td>
                   <span className={styles.badgeRiskHigh}>
                     <span>⚠️</span> Dual Executive Clearance

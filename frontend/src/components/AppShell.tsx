@@ -12,6 +12,7 @@ import {
   GovernanceRule,
   UserAccount,
   UserRole,
+  WorkflowAuditEntry,
 } from './types'
 import {
   INITIAL_QUOTATIONS,
@@ -20,7 +21,7 @@ import {
   INITIAL_GOVERNANCE,
   INITIAL_USERS,
 } from './mockData'
-import { fetchWorkspaceBootstrap, updateQuotationLive } from '@/lib/api'
+import { fetchWorkspaceBootstrap, updateQuotationLive, recordWorkflowAuditLog } from '@/lib/api'
 
 /* ── Module Component Imports ─────────────────────────────── */
 import DashboardModule from './DashboardModule'
@@ -211,6 +212,11 @@ function SlidersIcon() {
   )
 }
 
+/* ── Baseline Workflow Audit Trail Logs ───────────────────── */
+// Audit logs are loaded from the PostgreSQL backend via the bootstrap API.
+// This is an empty initial state — populated once the API responds.
+const INITIAL_WORKFLOW_AUDIT_LOGS: WorkflowAuditEntry[] = []
+
 interface AppShellProps {
   user: UserSession
   onLogout: () => void
@@ -227,6 +233,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
   const [invoices, setInvoices] = useState<any[]>([])
   const [subscriptions, setSubscriptions] = useState<any[]>([])
   const [approvals, setApprovals] = useState<any[]>([])
+  const [auditLogs, setAuditLogs] = useState<WorkflowAuditEntry[]>(INITIAL_WORKFLOW_AUDIT_LOGS)
   const [reportsData, setReportsData] = useState<any>(null)
   const [isDbLoaded, setIsDbLoaded] = useState<boolean>(true)
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false)
@@ -270,8 +277,8 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
     }
     if (userRole === 'admin') {
       return [
-        'dashboard', 'admin_access', 'admin_messages', 'admin_directory', 'admin_recommendations',
-        'governance', 'users', 'quotations', 'builder', 'reports', 'deal_health', 'catalog'
+        'dashboard', 'admin_access', 'admin_messages', 'admin_directory', 'admin_recommendations', 'admin_audit',
+        'governance', 'quotations', 'builder', 'reports', 'deal_health', 'catalog'
       ].includes(mod)
     }
     // sales_rep and default
@@ -304,7 +311,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
     }
   }, [user.role])
 
-  const [selectedQuotationId, setSelectedQuotationId] = useState<string>('Q-1042')
+  const [selectedQuotationId, setSelectedQuotationId] = useState<string>('')
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   function showToast(msg: string) {
@@ -313,6 +320,13 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
   }
 
   function handleNavigateModule(mod: ActiveModule, pushHistory = true) {
+    if (isAdmin && mod === 'users') {
+      mod = 'admin_directory'
+    }
+    if (isAdmin && mod === 'builder' && selectedQuotationId === 'new') {
+      showToast('Administrators have read-only quotation audit access.')
+      mod = 'quotations'
+    }
     setActiveModule(mod)
     if (typeof window !== 'undefined') {
       try {
@@ -344,6 +358,13 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
     return () => window.removeEventListener('popstate', handleModulePopState)
   }, [user.role])
 
+  function handleUserProvisioned(newUser: UserAccount) {
+    setUsers(prev => [
+      newUser,
+      ...prev.filter(u => u.email.toLowerCase() !== newUser.email.toLowerCase()),
+    ])
+  }
+
   // Fetch live PostgreSQL database data on mount
   async function loadDatabaseData(isManual = false) {
     if (isManual) setIsRefreshing(true)
@@ -356,7 +377,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             dealName: `${dq.customer_company || dq.customer_name} - $${Number(dq.total_amount).toLocaleString()}`,
             customerName: dq.customer_company || dq.customer_name,
             customerTier: dq.customer_tier || 'Gold',
-            salesRep: dq.sales_rep || 'Jane Smith',
+            salesRep: dq.sales_rep || '',
             status: mapBackendStatusToFrontend(dq.status),
             createdAt: dq.created_at || '2026-03-01',
             validUntil: dq.expires_at || '2026-04-01',
@@ -423,6 +444,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             name: u.name || u.fullName,
             email: u.email,
             role: u.role,
+            reporting_manager: u.reporting_manager,
             status: u.status || (u.is_active ? 'Active' : 'Pending Invite'),
           }))
           setUsers(adaptedUsers)
@@ -441,6 +463,23 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
         }
         if (data.reports) {
           setReportsData(data.reports)
+        }
+        if (data.audit_logs && data.audit_logs.length > 0) {
+          const adaptedAudit: WorkflowAuditEntry[] = data.audit_logs.map((al: any) => ({
+            id: String(al.id || `audit-${Date.now()}`),
+            timestamp: al.timestamp || 'Sep 5, 2026, 12:00:00 PM',
+            actorName: al.actorName || al.user_name || al.actor_name || 'System Admin',
+            actorRole: al.actorRole || al.user_role || al.actor_role || 'admin',
+            actionType: al.actionType || al.action || 'ACTIVITY',
+            targetQuotationId: al.targetQuotationId || (al.entity_id ? `Q-${al.entity_id}` : 'Q-1042'),
+            customerName: al.customerName || 'Enterprise Client',
+            details: al.details || al.action || al.actionType || 'Workflow Action',
+          }))
+          setAuditLogs(prev => {
+            const existingIds = new Set(prev.map(p => p.id))
+            const newOnes = adaptedAudit.filter(a => !existingIds.has(a.id))
+            return [...newOnes, ...prev]
+          })
         }
 
         setIsDbLoaded(true)
@@ -473,6 +512,64 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
         notes: updated.managerComment || updated.customerComment,
       }).catch(() => null)
     } catch {}
+  }
+
+  async function handleRecordAuditLog(entry: {
+    user?: string
+    actorName?: string
+    role?: string
+    actorRole?: string
+    action?: string
+    actionType?: any
+    quotationId?: string
+    targetQuotationId?: string
+    customerName?: string
+    details: string
+  }) {
+    const actor = entry.actorName || entry.user || user.fullName || 'System User'
+    const actRole = (entry.actorRole || entry.role || user.role || 'sales_rep') as UserRole
+    const actType = (entry.actionType || entry.action || 'QUOTE_UPDATED') as any
+    const quoteId = entry.targetQuotationId || entry.quotationId || selectedQuotationId || 'Q-1042'
+    const targetQuote = quotations.find(q => q.id === quoteId)
+    const custName = entry.customerName || targetQuote?.customerName || 'Acme Corporation'
+
+    const now = new Date()
+    const formattedTime =
+      now.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }) +
+      ', ' +
+      now.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      })
+
+    const newLog: WorkflowAuditEntry = {
+      id: `audit-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: formattedTime,
+      actorName: actor,
+      actorRole: actRole,
+      actionType: actType,
+      targetQuotationId: quoteId,
+      customerName: custName,
+      details: entry.details,
+    }
+
+    setAuditLogs(prev => [newLog, ...prev])
+
+    // Asynchronously persist to PostgreSQL backend audit_logs table
+    recordWorkflowAuditLog({
+      action: String(actType),
+      entity_type: 'quotation',
+      target_quotation_id: quoteId,
+      actor_name: actor,
+      actor_role: String(actRole),
+      details: entry.details,
+    }).catch(() => null)
   }
 
   function handleAddProduct(prod: Product) {
@@ -527,6 +624,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
     admin_messages: 'Message Anyone Console',
     admin_directory: 'All Users & Directory',
     admin_recommendations: 'AI Recommendation Settings & Scoring Weights',
+    admin_audit: 'Workflow Audit Trail (Manager & Rep Actions)',
   }
 
   const roleLabelMap: Record<UserRole, string> = {
@@ -538,7 +636,25 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
     user: 'User',
   }
 
-  const pendingApprovalsCount = quotations.filter(q => q.status === 'Under Review').length
+  const pendingApprovalsCount = quotations.filter(q => {
+    if (isSalesRep) {
+      const rep = (q.salesRep || q.approvalWorkflow?.assignedRep || '').trim().toLowerCase()
+      const userFull = (user.fullName || '').trim().toLowerCase()
+      const userEmail = (user.email || '').trim().toLowerCase()
+      const userEmailName = userEmail.split('@')[0].replace(/[._-]/g, ' ')
+      const userFirstName = userFull.split(' ')[0]
+      const repFirstName = rep.split(' ')[0]
+      const isMine =
+        rep === userFull ||
+        rep === userEmail ||
+        rep === userEmailName ||
+        (Boolean(userFirstName) && Boolean(repFirstName) && userFirstName === repFirstName) ||
+        userFull.includes(rep) ||
+        rep.includes(userFull)
+      return isMine && (q.status === 'Under Review' || q.approvalWorkflow?.status === 'Pending Manager' || q.approvalWorkflow?.status === 'Pending Finance' || q.approvalWorkflow?.status === 'Returned')
+    }
+    return q.status === 'Under Review'
+  }).length
 
   return (
     <div className={styles.shell}>
@@ -554,21 +670,6 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
               </span>
               <span className={styles.brandTagline}>Sales Operations</span>
             </div>
-          </div>
-        </div>
-
-        {/* User Persona Badge */}
-        <div className={styles.userBadgeCard}>
-          <div className={styles.userAvatar}>
-            {user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
-          </div>
-          <div className={styles.userInfo}>
-            <div className={styles.userName} title={user.fullName || user.email}>
-              {user.fullName || user.email}
-            </div>
-            <span className={styles.userRolePill}>
-              {roleLabelMap[user.role] || user.role}
-            </span>
           </div>
         </div>
 
@@ -796,6 +897,17 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
                     <span>Recommendation Settings</span>
                   </div>
                 </button>
+
+                <button
+                  className={`${styles.navLink} ${activeModule === 'admin_audit' ? styles.navLinkActive : ''}`}
+                  onClick={() => handleNavigateModule('admin_audit')}
+                >
+                  <div className={styles.navLinkContent}>
+                    <span className={styles.navIconWrap}><ActivityIcon /></span>
+                    <span>Workflow Audit Trail</span>
+                  </div>
+                  <span className={styles.navBadge}>{auditLogs.length}</span>
+                </button>
               </div>
 
               <div className={styles.navGroup}>
@@ -807,16 +919,6 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
                   <div className={styles.navLinkContent}>
                     <span className={styles.navIconWrap}><ShieldIcon /></span>
                     <span>Governance Rules</span>
-                  </div>
-                </button>
-
-                <button
-                  className={`${styles.navLink} ${activeModule === 'users' ? styles.navLinkActive : ''}`}
-                  onClick={() => handleNavigateModule('users')}
-                >
-                  <div className={styles.navLinkContent}>
-                    <span className={styles.navIconWrap}><UsersIcon /></span>
-                    <span>Team Management</span>
                   </div>
                 </button>
               </div>
@@ -968,6 +1070,21 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
 
         {/* Sidebar Footer */}
         <div className={styles.sidebarFooter}>
+          {/* User Persona Badge */}
+          <div className={styles.userBadgeCard}>
+            <div className={styles.userAvatar}>
+              {user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
+            </div>
+            <div className={styles.userInfo}>
+              <div className={styles.userName} title={user.fullName || user.email}>
+                {user.fullName || user.email}
+              </div>
+              <span className={styles.userRolePill}>
+                {roleLabelMap[user.role] || user.role}
+              </span>
+            </div>
+          </div>
+
           <div className={styles.dbStatusPill}>
             <span className={styles.dbDot} />
             <span>Database Live {isDbLoaded ? `(${quotations.length} deals)` : 'Connecting...'}</span>
@@ -988,38 +1105,6 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             <span className={styles.breadRoot}>DealFlow360</span>
             <span className={styles.breadDivider}>/</span>
             <span className={styles.breadCurrent}>{moduleTitles[activeModule] || 'Workspace'}</span>
-          </div>
-
-          <div className={styles.topBarRight}>
-            {/* Quick Role Switcher for instant role preview */}
-            <select
-              className={styles.roleSwitcherSelect}
-              value={user.role}
-              onChange={e => {
-                const newRole = e.target.value as UserRole
-                onSwitchRole(newRole)
-                showToast(`Switched view to ${roleLabelMap[newRole]}`)
-                handleNavigateModule('dashboard')
-              }}
-              title="Switch user perspective"
-            >
-              <option value="user">User</option>
-              <option value="sales_rep">Sales Representative</option>
-              <option value="finance">Financial Officer</option>
-              <option value="sales_manager">Sales Manager</option>
-              <option value="admin">Administrator</option>
-              <option value="customer">Customer (Acme Corp)</option>
-            </select>
-
-            <button
-              className={styles.refreshBtn}
-              onClick={() => loadDatabaseData(true)}
-              disabled={isRefreshing}
-              title="Refresh data from database"
-            >
-              <RotateCwIcon className={isRefreshing ? styles.refreshIconRotating : ''} />
-              <span>{isRefreshing ? 'Syncing...' : 'Sync DB'}</span>
-            </button>
           </div>
         </header>
 
@@ -1049,6 +1134,8 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
               onUpdateQuotation={handleUpdateQuotation}
               onNavigate={handleNavigateModule}
               onShowToast={showToast}
+              user={user}
+              onRecordAudit={handleRecordAuditLog}
             />
           )}
 
@@ -1063,7 +1150,11 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
           )}
 
           {/* Root Admin Modules (from Local Stash) */}
-          {(activeModule === 'admin_access' || activeModule === 'admin_messages' || activeModule === 'admin_directory' || activeModule === 'admin_recommendations') && (
+          {(activeModule === 'admin_access' ||
+            activeModule === 'admin_messages' ||
+            activeModule === 'admin_directory' ||
+            activeModule === 'admin_recommendations' ||
+            activeModule === 'admin_audit') && (
             <AdminModule
               adminTab={
                 activeModule === 'admin_messages'
@@ -1072,6 +1163,8 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
                   ? 'directory'
                   : activeModule === 'admin_recommendations'
                   ? 'recommendations'
+                  : activeModule === 'admin_audit'
+                  ? 'audit'
                   : 'access'
               }
               onNavigateTab={tab =>
@@ -1082,12 +1175,16 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
                     ? 'admin_directory'
                     : tab === 'recommendations'
                     ? 'admin_recommendations'
+                    : tab === 'audit'
+                    ? 'admin_audit'
                     : 'admin_access'
                 )
               }
               onSwitchRole={onSwitchRole}
               onShowToast={showToast}
               users={users}
+              auditLogs={auditLogs}
+              onUserProvisioned={handleUserProvisioned}
             />
           )}
 
@@ -1099,6 +1196,10 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
               onUpdateQuotation={handleUpdateQuotation}
               onNavigate={handleNavigateModule}
               onShowToast={showToast}
+              user={user}
+              users={users}
+              auditLogs={auditLogs}
+              onRecordAudit={handleRecordAuditLog}
             />
           )}
 
@@ -1143,6 +1244,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
               onNavigate={handleNavigateModule}
               onUpdateQuotation={handleUpdateQuotation}
               onShowToast={showToast}
+              readOnly={isAdmin}
             />
           )}
 
@@ -1154,6 +1256,10 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
               onUpdateQuotation={handleUpdateQuotation}
               onNavigate={handleNavigateModule}
               onShowToast={showToast}
+              readOnly={isAdmin}
+              currentUser={user}
+              users={users}
+              onRecordAudit={handleRecordAuditLog}
             />
           )}
 

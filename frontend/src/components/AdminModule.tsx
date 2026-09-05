@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import styles from './AdminModule.module.css'
-import { DirectoryUser, UserRole, RecommendationWeights, UserAccount } from './types'
+import { DirectoryUser, UserRole, RecommendationWeights, UserAccount, WorkflowAuditEntry } from './types'
 import {
   fetchRecommendationWeights,
   saveRecommendationWeights,
@@ -11,12 +11,14 @@ import {
 } from '@/lib/api'
 
 interface AdminModuleProps {
-  adminTab: 'access' | 'messages' | 'directory' | 'recommendations'
-  onNavigateTab: (tab: 'access' | 'messages' | 'directory' | 'recommendations') => void
+  adminTab: 'access' | 'messages' | 'directory' | 'recommendations' | 'audit'
+  onNavigateTab?: (tab: 'access' | 'messages' | 'directory' | 'recommendations' | 'audit') => void
   onSwitchRole: (role: UserRole) => void
   onShowToast: (msg: string) => void
   onImpersonateUser?: (email: string, role: UserRole, name: string, company: string) => void
   users?: UserAccount[]
+  auditLogs?: WorkflowAuditEntry[]
+  onUserProvisioned?: (user: UserAccount) => void
 }
 
 const DEFAULT_WEIGHTS: RecommendationWeights = {
@@ -36,130 +38,11 @@ const DEFAULT_WEIGHTS: RecommendationWeights = {
   },
 }
 
-/* ── Initial Unified Directory Mock Data ─────────────────────── */
-const INITIAL_DIRECTORY: DirectoryUser[] = [
-  {
-    id: 'u-1',
-    name: 'Sarah Connor',
-    email: 'admin@dealflow360.com',
-    role: 'admin',
-    roleLabel: 'Administrator',
-    company: 'DealFlow360 HQ',
-    status: 'Active',
-    lastActive: 'Just now',
-    avatarInitials: 'SC',
-  },
-  {
-    id: 'u-2',
-    name: 'David Miller',
-    email: 'finance@dealflow360.com',
-    role: 'finance',
-    roleLabel: 'Finance User',
-    company: 'DealFlow360 Finance & Audit',
-    status: 'Active',
-    lastActive: '12 mins ago',
-    avatarInitials: 'DM',
-  },
-  {
-    id: 'u-3',
-    name: 'Alex Rivera',
-    email: 'manager@dealflow360.com',
-    role: 'sales_manager',
-    roleLabel: 'Sales Manager',
-    company: 'DealFlow360 Commercial Ops',
-    status: 'Active',
-    lastActive: '25 mins ago',
-    avatarInitials: 'AR',
-  },
-  {
-    id: 'u-4',
-    name: 'Jane Smith',
-    email: 'sales@dealflow360.com',
-    role: 'sales_rep',
-    roleLabel: 'Sales Representative',
-    company: 'DealFlow360 Direct Sales',
-    status: 'Active',
-    lastActive: '5 mins ago',
-    avatarInitials: 'JS',
-  },
-  {
-    id: 'u-5',
-    name: 'John Davis (rk)',
-    email: 'customer@acme.com',
-    role: 'customer',
-    roleLabel: 'Customer Contact',
-    company: 'Acme Corporation',
-    status: 'Active',
-    lastActive: 'Today, 11:30 AM',
-    avatarInitials: 'RK',
-  },
-  {
-    id: 'u-6',
-    name: 'Robert Vance',
-    email: 'robert.vance@dealflow360.com',
-    role: 'finance',
-    roleLabel: 'Finance Director',
-    company: 'DealFlow360 Treasury',
-    status: 'Active',
-    lastActive: 'Yesterday',
-    avatarInitials: 'RV',
-  },
-  {
-    id: 'u-7',
-    name: 'Elena Rostova',
-    email: 'elena.r@dealflow360.com',
-    role: 'sales_manager',
-    roleLabel: 'Sales Manager (Enterprise)',
-    company: 'DealFlow360 Strategic Accounts',
-    status: 'Active',
-    lastActive: '1 hour ago',
-    avatarInitials: 'ER',
-  },
-  {
-    id: 'u-8',
-    name: 'Rachel Green',
-    email: 'rachel@nexusglobal.com',
-    role: 'customer',
-    roleLabel: 'Customer Contact',
-    company: 'Nexus Global',
-    status: 'Active',
-    lastActive: '2 days ago',
-    avatarInitials: 'RG',
-  },
-  {
-    id: 'u-9',
-    name: 'Carlos Mendez',
-    email: 'carlos.m@dealflow360.com',
-    role: 'sales_rep',
-    roleLabel: 'Senior Sales Rep',
-    company: 'DealFlow360 Field Sales',
-    status: 'Active',
-    lastActive: '3 hours ago',
-    avatarInitials: 'CM',
-  },
-  {
-    id: 'u-10',
-    name: 'Thomas Wayne',
-    email: 't.wayne@omnicorp.com',
-    role: 'customer',
-    roleLabel: 'Customer Contact',
-    company: 'OmniCorp Industries',
-    status: 'Active',
-    lastActive: 'Sep 3, 2026',
-    avatarInitials: 'TW',
-  },
-  {
-    id: 'u-11',
-    name: 'Marcus Vance',
-    email: 'marcus.v@dealflow360.com',
-    role: 'sales_rep',
-    roleLabel: 'Sales Representative',
-    company: 'DealFlow360 Direct Sales',
-    status: 'Pending Invite',
-    lastActive: 'Invited (Pending)',
-    avatarInitials: 'MV',
-  },
-]
+/* ── Initial Unified Directory ───────────────────────────────
+ * Directory is loaded from the PostgreSQL backend via the users prop.
+ * This empty default is replaced as soon as the bootstrap API responds.
+ * ─────────────────────────────────────────────────────────── */
+const INITIAL_DIRECTORY: DirectoryUser[] = []
 
 /* ── Initial Sent Messages ───────────────────────────────────── */
 interface SentDirectMessage {
@@ -173,38 +56,8 @@ interface SentDirectMessage {
   status: 'Delivered & Emailed' | 'Read'
 }
 
-const INITIAL_SENT_MESSAGES: SentDirectMessage[] = [
-  {
-    id: 'msg-1',
-    recipient: '💰 Finance Team (David Miller, Robert Vance)',
-    recipientCategory: 'finance',
-    subject: 'Q3 Margin Audit & High-Discount Quote Reviews',
-    body: 'Please conduct an expedited review of all quotes flagged with blended risk score > 45. Direct approval required before fulfillment allocation.',
-    priority: 'High',
-    timestamp: 'Today, 2:15 PM',
-    status: 'Delivered & Emailed',
-  },
-  {
-    id: 'msg-2',
-    recipient: '📊 Alex Rivera (Sales Manager)',
-    recipientCategory: 'sales_manager',
-    subject: 'Approval Thresholds Updated for Enterprise Tier',
-    body: 'Hardware discount ceilings have been recalibrated to 18% max without CFO countersignature. Please review your pending queue in Screen 6.',
-    priority: 'Normal',
-    timestamp: 'Today, 10:45 AM',
-    status: 'Read',
-  },
-  {
-    id: 'msg-3',
-    recipient: '🏢 John Davis (Acme Corp)',
-    recipientCategory: 'customer',
-    subject: 'Quotation Q-1042 Counter-Terms Under Assessment',
-    body: 'We have received your requested 15% warranty discount and next-month delivery preference. Our account lead Jane Smith is preparing the revised breakdown.',
-    priority: 'Normal',
-    timestamp: 'Yesterday, 4:30 PM',
-    status: 'Read',
-  },
-]
+// Sent messages are generated at runtime when admin dispatches communications.
+const INITIAL_SENT_MESSAGES: SentDirectMessage[] = []
 
 export default function AdminModule({
   adminTab,
@@ -213,7 +66,13 @@ export default function AdminModule({
   onShowToast,
   onImpersonateUser,
   users,
+  auditLogs = [],
+  onUserProvisioned,
 }: AdminModuleProps) {
+  // Audit Trail filtering state
+  const [auditSearch, setAuditSearch] = useState('')
+  const [auditRoleFilter, setAuditRoleFilter] = useState('all')
+  const [auditActionFilter, setAuditActionFilter] = useState('all')
   // Directory & Users State from live PostgreSQL
   const [directory, setDirectory] = useState<DirectoryUser[]>(() => {
     if (users && users.length > 0) {
@@ -234,6 +93,7 @@ export default function AdminModule({
           email: u.email,
           role: mappedRole,
           roleLabel: u.role,
+          reportingManager: u.reporting_manager || (mappedRole === 'sales_rep' ? 'Alex Rivera' : undefined),
           company: mappedRole === 'customer' ? 'Customer Account' : 'DealFlow360 HQ',
           status: (u.status === 'Active' ? 'Active' : 'Pending Invite') as any,
           lastActive: 'Active in Database',
@@ -264,6 +124,7 @@ export default function AdminModule({
             email: u.email,
             role: mappedRole,
             roleLabel: u.role,
+            reportingManager: u.reporting_manager || (mappedRole === 'sales_rep' ? 'Alex Rivera' : undefined),
             company: mappedRole === 'customer' ? 'Customer Account' : 'DealFlow360 HQ',
             status: (u.status === 'Active' ? 'Active' : 'Pending Invite') as any,
             lastActive: 'Active in Database',
@@ -274,31 +135,38 @@ export default function AdminModule({
     }
   }, [users])
 
-  // Tab 1: Access Provisioning Form State
-  const [provisionName, setProvisionName] = useState('Liam Thorne')
-  const [provisionEmail, setProvisionEmail] = useState('liam.finance@dealflow360.com')
-  const [provisionRole, setProvisionRole] = useState<UserRole>('finance')
-  const [provisionCompany, setProvisionCompany] = useState('DealFlow360 Finance & Treasury')
-  const [provisionPassword, setProvisionPassword] = useState('DealFlow#2026')
+  // Tab 1: Access Provisioning Form State (Clean - no hardcoded values)
+  const [provisionName, setProvisionName] = useState('')
+  const [provisionEmail, setProvisionEmail] = useState('')
+  const [provisionRole, setProvisionRole] = useState<UserRole>('sales_rep')
+  const [provisionCompany, setProvisionCompany] = useState('')
+  const [provisionPassword, setProvisionPassword] = useState(() => 'DF-' + Math.random().toString(36).substring(2, 6).toUpperCase() + '9#')
   const [sendMailChecked, setSendMailChecked] = useState(true)
-  const [emailReceipt, setEmailReceipt] = useState<{
-    name: string
-    email: string
-    role: UserRole
-    roleLabel: string
-    password: string
-    timestamp: string
-  } | null>(null)
+  const [provisionReportingManager, setProvisionReportingManager] = useState('Alex Rivera')
+  const [customManagerText, setCustomManagerText] = useState('')
 
-  // Tab 2: Messaging State
-  const [messages, setMessages] = useState<SentDirectMessage[]>(INITIAL_SENT_MESSAGES)
-  const [recipient, setRecipient] = useState('finance@dealflow360.com')
-  const [recipientName, setRecipientName] = useState('David Miller (Finance User)')
-  const [msgSubject, setMsgSubject] = useState('Fiscal Year End Reconciliation Instructions')
-  const [msgPriority, setMsgPriority] = useState<'Normal' | 'High' | 'Urgent'>('High')
-  const [msgBody, setMsgBody] = useState(
-    'Please verify all outstanding unallocated hardware lines prior to the Friday cutoff.'
-  )
+  // Dynamically compute available Sales Managers for assignment to Sales Reps
+  const availableManagers = React.useMemo(() => {
+    const list = directory.filter(u => u.role === 'sales_manager')
+    const items: Array<{ name: string; email: string }> = []
+    items.push({ name: 'Alex Rivera', email: 'alex.rivera@dealflow360.com' })
+    items.push({ name: 'Elena Rostova', email: 'elena.rostova@dealflow360.com' })
+    list.forEach(m => {
+      if (!items.some(it => it.name.toLowerCase() === m.name.toLowerCase() || it.email.toLowerCase() === m.email.toLowerCase())) {
+        items.push({ name: m.name, email: m.email })
+      }
+    })
+    return items
+  }, [directory])
+
+
+  // Tab 2: Messaging State (Clean - no hardcoded values)
+  const [messages, setMessages] = useState<SentDirectMessage[]>([])
+  const [recipient, setRecipient] = useState('')
+  const [recipientName, setRecipientName] = useState('')
+  const [msgSubject, setMsgSubject] = useState('')
+  const [msgPriority, setMsgPriority] = useState<'Normal' | 'High' | 'Urgent'>('Normal')
+  const [msgBody, setMsgBody] = useState('')
 
   // Tab 3: Directory Filter State
   const [searchQuery, setSearchQuery] = useState('')
@@ -400,24 +268,9 @@ export default function AdminModule({
     onShowToast('Generated new high-entropy temporary password.')
   }
 
-  /* ── Tab 1: Role Selection Sync ────────────────────────────── */
+  /* ── Tab 1: Role Selection (Do NOT overwrite user's entered email) ── */
   function handleRoleChange(newRole: UserRole) {
     setProvisionRole(newRole)
-    if (newRole === 'finance') {
-      setProvisionCompany('DealFlow360 Finance & Treasury')
-      if (provisionEmail.includes('@dealflow360')) {
-        setProvisionEmail('liam.finance@dealflow360.com')
-      }
-    } else if (newRole === 'sales_manager') {
-      setProvisionCompany('DealFlow360 Commercial Sales Ops')
-      setProvisionEmail('liam.manager@dealflow360.com')
-    } else if (newRole === 'sales_rep') {
-      setProvisionCompany('DealFlow360 Direct Sales')
-      setProvisionEmail('liam.sales@dealflow360.com')
-    } else if (newRole === 'customer') {
-      setProvisionCompany('Apex Enterprises')
-      setProvisionEmail('procurement@apexenterprises.com')
-    }
   }
 
   const [isProvisioning, setIsProvisioning] = useState(false)
@@ -426,8 +279,8 @@ export default function AdminModule({
   /* ── Tab 1: Grant Access & Send Mail ───────────────────────── */
   async function handleGrantAccess(e: React.FormEvent) {
     e.preventDefault()
-    if (!provisionEmail || !provisionName) {
-      onShowToast('Please specify a valid user name and email address.')
+    if (!provisionEmail.trim()) {
+      onShowToast('Please enter a valid recipient email address.')
       return
     }
 
@@ -435,66 +288,93 @@ export default function AdminModule({
 
     const roleLabels: Record<UserRole, string> = {
       admin: 'Administrator',
-      finance: 'Finance User',
+      finance: 'Financial Officer',
       sales_manager: 'Sales Manager',
       sales_rep: 'Sales Representative',
       customer: 'Customer Contact',
       user: 'Standard User',
     }
 
-    const roleLabel = roleLabels[provisionRole]
+    const roleLabel = roleLabels[provisionRole] || 'User'
+    const cleanEmail = provisionEmail.trim().toLowerCase()
+    const derivedName =
+      provisionName.trim() ||
+      cleanEmail
+        .split('@')[0]
+        .replace(/[._-]/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase())
+    const passToUse =
+      provisionPassword.trim() ||
+      'DF-' + Math.random().toString(36).substring(2, 8).toUpperCase() + '!'
+    const companyToUse =
+      provisionCompany.trim() ||
+      (provisionRole === 'customer' ? 'Customer Account' : 'DealFlow360 Enterprise')
+
+    const managerToAssign = provisionRole === 'sales_rep'
+      ? (provisionReportingManager === 'Custom' ? (customManagerText.trim() || 'Alex Rivera') : provisionReportingManager)
+      : undefined
 
     try {
       // Call backend API to provision user in PostgreSQL and dispatch credentials email via Resend
       const res = await provisionUserFromAdmin({
-        name: provisionName.trim(),
-        email: provisionEmail.trim(),
+        name: derivedName,
+        email: cleanEmail,
         role: provisionRole,
-        company_name: provisionCompany || 'DealFlow360',
-        password: provisionPassword || 'password123',
+        company_name: companyToUse,
+        password: passToUse,
+        reporting_manager: managerToAssign,
       })
 
-      const initials = provisionName
-        .split(' ')
-        .map(part => part[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
+      const initials =
+        derivedName
+          .split(' ')
+          .map(part => part[0])
+          .join('')
+          .toUpperCase()
+          .slice(0, 2) || 'DF'
 
       const newUser: DirectoryUser = {
         id: `u-${res.user?.id || Date.now()}`,
-        name: provisionName,
-        email: provisionEmail.trim().toLowerCase(),
+        name: derivedName,
+        email: cleanEmail,
         role: provisionRole,
         roleLabel,
-        company: provisionCompany || 'DealFlow360',
+        reportingManager: managerToAssign,
+        company: companyToUse,
         status: 'Active',
         lastActive: 'Just provisioned',
-        avatarInitials: initials || 'DF',
+        avatarInitials: initials,
       }
 
       setDirectory(prev => [
         newUser,
-        ...prev.filter(
-          u => u.id !== newUser.id && u.email.toLowerCase() !== newUser.email.toLowerCase()
-        ),
+        ...prev.filter(u => u.email.toLowerCase() !== cleanEmail),
       ])
 
-      // Generate Mail Dispatch Receipt
-      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      setEmailReceipt({
-        name: provisionName,
-        email: provisionEmail,
-        role: provisionRole,
-        roleLabel,
-        password: provisionPassword || 'password123',
-        timestamp: `Today, ${now}`,
-      })
+      if (onUserProvisioned) {
+        onUserProvisioned({
+          id: res.user?.id || Date.now(),
+          name: derivedName,
+          email: cleanEmail,
+          role: roleLabel,
+          reporting_manager: managerToAssign,
+          status: 'Active',
+        })
+      }
+
+
+
+      // Clean form inputs so admin can provision next user
+      setProvisionEmail('')
+      setProvisionName('')
+      setProvisionCompany('')
+      setCustomManagerText('')
+      setProvisionPassword('DF-' + Math.random().toString(36).substring(2, 6).toUpperCase() + '9#')
 
       if (res.mail_status?.success) {
-        onShowToast(`✓ Access granted & credentials email sent to ${provisionEmail}!`)
+        onShowToast(`✓ User ${derivedName} (${cleanEmail}) provisioned & credentials email dispatched!`)
       } else {
-        onShowToast(`✓ Access granted & user saved in database with role ${roleLabel}!`)
+        onShowToast(`✓ User ${derivedName} (${cleanEmail}) provisioned in database with role ${roleLabel}!`)
       }
     } catch (err: any) {
       onShowToast(`Provisioning result: ${err.message || 'Saved in database.'}`)
@@ -618,37 +498,6 @@ export default function AdminModule({
       </div>
 
 
-      {/* ── Sub-Tabs Navigation ── */}
-      <div className={styles.adminNavTabs}>
-        <button
-          type="button"
-          className={`${styles.adminNavTab} ${adminTab === 'access' ? styles.adminNavTabActive : ''}`}
-          onClick={() => onNavigateTab('access')}
-        >
-          <span>🛡️</span> Role Access &amp; Provisioning
-        </button>
-        <button
-          type="button"
-          className={`${styles.adminNavTab} ${adminTab === 'messages' ? styles.adminNavTabActive : ''}`}
-          onClick={() => onNavigateTab('messages')}
-        >
-          <span>💬</span> Message Anyone
-        </button>
-        <button
-          type="button"
-          className={`${styles.adminNavTab} ${adminTab === 'directory' ? styles.adminNavTabActive : ''}`}
-          onClick={() => onNavigateTab('directory')}
-        >
-          <span>👥</span> All Users &amp; Directory
-        </button>
-        <button
-          type="button"
-          className={`${styles.adminNavTab} ${adminTab === 'recommendations' ? styles.adminNavTabActive : ''}`}
-          onClick={() => onNavigateTab('recommendations')}
-        >
-          <span>⚙️</span> Recommendation Settings
-        </button>
-      </div>
 
       {/* ============================================================
           TAB 1: ROLE ACCESS & PROVISIONING
@@ -672,26 +521,13 @@ export default function AdminModule({
             </div>
 
             <form onSubmit={handleGrantAccess} className={styles.formGrid}>
-              {/* Full Name */}
-              <div className={styles.inputGroup}>
-                <label className={styles.label}>User Full Name *</label>
-                <input
-                  type="text"
-                  className={styles.input}
-                  placeholder="e.g. David Miller"
-                  value={provisionName}
-                  onChange={e => setProvisionName(e.target.value)}
-                  required
-                />
-              </div>
-
-              {/* Email Address */}
+              {/* Email Address - Primary required field */}
               <div className={styles.inputGroup}>
                 <label className={styles.label}>Recipient Work Email *</label>
                 <input
                   type="email"
                   className={styles.input}
-                  placeholder="e.g. user@dealflow360.com"
+                  placeholder="e.g. nikhil@company.com"
                   value={provisionEmail}
                   onChange={e => setProvisionEmail(e.target.value)}
                   required
@@ -706,26 +542,67 @@ export default function AdminModule({
                   value={provisionRole}
                   onChange={e => handleRoleChange(e.target.value as UserRole)}
                 >
-                  <option value="finance">💰 Finance User (Invoices, Approvals & Reconciliation)</option>
-                  <option value="sales_manager">📊 Sales Manager (Tier Approvals, Discount Overrides & Team Deals)</option>
-                  <option value="sales_rep">💼 Sales Representative (Quotations & Deal Flow)</option>
-                  <option value="customer">🏢 Customer Contact (Quotation Review & Negotiation Portal)</option>
+                  <option value="sales_manager">📊 Sales Manager (Assign to Reps, Discount Approvals & Reports)</option>
+                  <option value="sales_rep">💼 Sales Representative (Create Quotations, Deal Flow & Customer Chat)</option>
+                  <option value="finance">💰 Financial Officer (Margin Clearances & Terms Certification)</option>
+                  <option value="customer">🏢 Customer Contact (Review, Counter-Offers & Order Confirmation)</option>
                 </select>
+              </div>
+
+              {/* Conditional Reporting Sales Manager for Sales Representatives */}
+              {provisionRole === 'sales_rep' && (
+                <div className={styles.inputGroup}>
+                  <label className={styles.label}>Reporting Sales Manager *</label>
+                  <select
+                    className={styles.select}
+                    value={provisionReportingManager}
+                    onChange={e => setProvisionReportingManager(e.target.value)}
+                  >
+                    {availableManagers.map(m => (
+                      <option key={m.name} value={m.name}>
+                        {m.name} ({m.email})
+                      </option>
+                    ))}
+                    <option value="Custom">+ Custom Sales Manager...</option>
+                  </select>
+                  {provisionReportingManager === 'Custom' && (
+                    <input
+                      type="text"
+                      className={styles.input}
+                      placeholder="e.g. Alex Rivera or manager@company.com"
+                      value={customManagerText}
+                      onChange={e => setCustomManagerText(e.target.value)}
+                      required
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* Full Name (Optional - auto-derived if blank) */}
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>User Full Name (Optional)</label>
+                <input
+                  type="text"
+                  className={styles.input}
+                  placeholder="e.g. Nikhil Shirsathe (auto-derived from email if blank)"
+                  value={provisionName}
+                  onChange={e => setProvisionName(e.target.value)}
+                />
               </div>
 
               {/* Company / Department */}
               <div className={styles.inputGroup}>
-                <label className={styles.label}>Department / Organization</label>
+                <label className={styles.label}>Department / Company (Optional)</label>
                 <input
                   type="text"
                   className={styles.input}
-                  placeholder="e.g. DealFlow360 Finance & Treasury"
+                  placeholder="e.g. DealFlow360 Commercial Sales Ops"
                   value={provisionCompany}
                   onChange={e => setProvisionCompany(e.target.value)}
                 />
               </div>
 
-              {/* Auto-generated Password */}
+              {/* Temporary Password */}
               <div className={styles.inputGroup}>
                 <div className={styles.label}>
                   <span>Temporary Access Password</span>
@@ -743,7 +620,7 @@ export default function AdminModule({
                     className={styles.input}
                     value={provisionPassword}
                     onChange={e => setProvisionPassword(e.target.value)}
-                    required
+                    placeholder="Auto-generated if left blank"
                   />
                 </div>
               </div>
@@ -758,7 +635,7 @@ export default function AdminModule({
                     onChange={e => setSendMailChecked(e.target.checked)}
                   />
                   <label htmlFor="chk-send-mail">
-                    ✉️ Immediately dispatch username & password directly through mail
+                    ✉️ Immediately dispatch credentials directly to recipient mail
                   </label>
                 </div>
               </div>
@@ -766,189 +643,14 @@ export default function AdminModule({
               {/* Submit CTA */}
               <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-start', paddingTop: 8 }}>
                 <button type="submit" className={styles.btnPrimaryClay} disabled={isProvisioning}>
-                  <span>✉️</span> {isProvisioning ? 'Provisioning & Sending Mail...' : 'Grant Access & Send Credentials via Mail'}
+                  <span>✉️</span> {isProvisioning ? 'Creating User & Sending Mail...' : 'Create User & Dispatch Credentials Mail'}
                 </button>
               </div>
             </form>
           </div>
 
-          {/* Simulated Email Dispatch Receipt Modal / Preview */}
-          {emailReceipt && (
-            <div className={styles.emailReceiptCard}>
-              <div className={styles.receiptHeader}>
-                <span className={styles.receiptBadge}>
-                  <span>✓</span> Direct Credentials Email Dispatched via SMTP Mail Server
-                </span>
-                <span style={{ fontSize: 12, color: '#64748b' }}>{emailReceipt.timestamp}</span>
-              </div>
 
-              <div className={styles.receiptMeta}>
-                <div className={styles.receiptField}>
-                  <span className={styles.receiptFieldLabel}>Recipient (To)</span>
-                  <span className={styles.receiptFieldValue}>{emailReceipt.email}</span>
-                </div>
-                <div className={styles.receiptField}>
-                  <span className={styles.receiptFieldLabel}>Assigned Role</span>
-                  <span className={styles.receiptFieldValue}>{emailReceipt.roleLabel}</span>
-                </div>
-                <div className={styles.receiptField}>
-                  <span className={styles.receiptFieldLabel}>Subject Line</span>
-                  <span className={styles.receiptFieldValue}>
-                    Welcome to DealFlow360 — Your {emailReceipt.roleLabel} Login Credentials
-                  </span>
-                </div>
-              </div>
 
-              <div className={styles.receiptBodyBox}>
-                <p style={{ margin: '0 0 8px', fontWeight: 600 }}>
-                  Hello {emailReceipt.name},
-                </p>
-                <p style={{ margin: '0 0 8px' }}>
-                  Your enterprise access has been approved and provisioned by the Administrator with the role of{' '}
-                  <strong>{emailReceipt.roleLabel}</strong>. You can now log into DealFlow360 using the credentials below:
-                </p>
-                <div
-                  style={{
-                    background: '#f1f5f9',
-                    padding: '10px 14px',
-                    borderRadius: 8,
-                    fontFamily: 'monospace',
-                    fontSize: 13,
-                    margin: '8px 0',
-                    border: '1px solid #cbd5e1',
-                  }}
-                >
-                  <div><strong>Portal URL:</strong> http://localhost:3000</div>
-                  <div><strong>Username (Email):</strong> {emailReceipt.email}</div>
-                  <div><strong>Temporary Password:</strong> {emailReceipt.password}</div>
-                </div>
-                <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
-                  Please change your password upon initial sign-in. This access key is governed by corporate RBAC policies.
-                </p>
-              </div>
-
-              <div className={styles.receiptActions}>
-                <button
-                  type="button"
-                  className={styles.btnPrimaryClay}
-                  style={{ padding: '8px 20px', fontSize: 13 }}
-                  onClick={() => {
-                    onSwitchRole(emailReceipt.role)
-                    onShowToast(`Impersonating ${emailReceipt.name} (${emailReceipt.roleLabel}). Session switched.`)
-                  }}
-                >
-                  🚀 Test Login Now as {emailReceipt.roleLabel}
-                </button>
-                <button
-                  type="button"
-                  className={styles.btnSmallClay}
-                  onClick={() => setEmailReceipt(null)}
-                >
-                  Dismiss Receipt
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Provisioned Users Table */}
-          <div className={styles.clayCard}>
-            <div className={styles.cardHeader}>
-              <div>
-                <h3 className={styles.cardTitle}>
-                  <span>👥</span> Active Provisioned Accounts
-                </h3>
-                <p className={styles.cardSubtitle}>
-                  Recently provisioned roles with live login impersonation and credential re-dispatch.
-                </p>
-              </div>
-            </div>
-
-            <div className={styles.tableWrap}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>User / Account</th>
-                    <th>Email Address</th>
-                    <th>Assigned Role</th>
-                    <th>Status</th>
-                    <th>Credentials Delivery</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {directory.slice(0, 7).map((u, idx) => (
-                    <tr key={`${u.id}-${u.email}-${idx}`}>
-                      <td>
-                        <div className={styles.userInfo}>
-                          <div className={styles.userAvatar}>{u.avatarInitials}</div>
-                          <div className={styles.userNameBlock}>
-                            <span className={styles.userNameText}>{u.name}</span>
-                            <span className={styles.userCompanyText}>{u.company}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td style={{ fontFamily: 'monospace', fontSize: 12.5 }}>{u.email}</td>
-                      <td>
-                        <span
-                          className={`${styles.rolePill} ${u.role === 'finance'
-                              ? styles.roleFinance
-                              : u.role === 'sales_manager'
-                                ? styles.roleSalesManager
-                                : u.role === 'customer'
-                                  ? styles.roleCustomer
-                                  : u.role === 'admin'
-                                    ? styles.roleAdmin
-                                    : styles.roleSalesRep
-                            }`}
-                        >
-                          {u.roleLabel}
-                        </span>
-                      </td>
-                      <td>
-                        <span
-                          className={
-                            u.status === 'Active' ? styles.statusActive : styles.statusPending
-                          }
-                        >
-                          {u.status}
-                        </span>
-                      </td>
-                      <td>
-                        <span style={{ fontSize: 12, color: '#059669', fontWeight: 600 }}>
-                          ✉️ Emailed directly
-                        </span>
-                      </td>
-                      <td>
-                        <div className={styles.tableActions}>
-                          <button
-                            type="button"
-                            className={`${styles.tableBtn} ${styles.tableBtnPrimary}`}
-                            onClick={() => {
-                              onSwitchRole(u.role)
-                              onShowToast(`Switched session to ${u.name} (${u.roleLabel}).`)
-                            }}
-                            title={`Test Login as ${u.name}`}
-                          >
-                            🔑 Login As
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.tableBtn}
-                            onClick={() => {
-                              onShowToast(`Resent username & temporary credentials email directly to ${u.email}.`)
-                            }}
-                            title="Resend Mail"
-                          >
-                            ✉️ Resend Mail
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
         </>
       )}
 
@@ -1295,6 +997,11 @@ export default function AdminModule({
                             <div className={styles.userAvatar}>{user.avatarInitials}</div>
                             <div className={styles.userNameBlock}>
                               <span className={styles.userNameText}>{user.name}</span>
+                              {user.reportingManager && user.role === 'sales_rep' && (
+                                <span style={{ fontSize: 11, color: '#1e40af', display: 'flex', alignItems: 'center', gap: 3, marginTop: 2, fontWeight: 600 }}>
+                                  👔 Reports to: {user.reportingManager}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -1335,7 +1042,7 @@ export default function AdminModule({
                               onClick={() => {
                                 setRecipient(user.email)
                                 setRecipientName(`${user.name} (${user.roleLabel})`)
-                                onNavigateTab('messages')
+                                onNavigateTab?.('messages')
                                 onShowToast(`Ready to message ${user.name}.`)
                               }}
                               title={`Direct Message ${user.name}`}
@@ -1749,6 +1456,274 @@ export default function AdminModule({
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ============================================================
+          TAB 5: WORKFLOW AUDIT TRAIL
+          "managers actions and their representatives actions should be
+           visible to admin. with time and date. create complete workflow."
+         ============================================================ */}
+      {adminTab === 'audit' && (
+        <>
+          {/* Main Governance Card */}
+          <div className={styles.clayCard}>
+            <div className={styles.cardHeader}>
+              <div>
+                <h2 className={styles.cardTitle}>
+                  <span>⏱️</span> Complete Workflow Audit Trail &amp; Manager/Rep Activity Logs
+                </h2>
+                <p className={styles.cardSubtitle}>
+                  Real-time immutable chronological logging of all actions performed by Sales Managers, Sales Representatives, Financial Officers, and Customers with exact dates, times, and notes.
+                </p>
+              </div>
+              <button
+                type="button"
+                className={styles.btnSmallClay}
+                onClick={() => {
+                  const csvRows = [
+                    ['ID', 'Timestamp', 'Actor', 'Role', 'Action', 'Quotation', 'Customer', 'Details'],
+                    ...auditLogs.map(l => [
+                      l.id,
+                      `"${l.timestamp}"`,
+                      `"${l.actorName}"`,
+                      l.actorRole,
+                      l.actionType,
+                      l.targetQuotationId,
+                      `"${l.customerName}"`,
+                      `"${(l.details || '').replace(/"/g, '""')}"`,
+                    ]),
+                  ]
+                  const blob = new Blob([csvRows.map(r => r.join(',')).join('\n')], { type: 'text/csv' })
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = `dealflow360_workflow_audit_${new Date().toISOString().split('T')[0]}.csv`
+                  a.click()
+                  onShowToast('Audit trail exported to CSV!')
+                }}
+              >
+                📥 Export Audit CSV
+              </button>
+            </div>
+
+            {/* KPI Overview Cards */}
+            <div className={styles.statsGrid}>
+              <div className={styles.statCard}>
+                <span className={styles.statVal}>{auditLogs.length}</span>
+                <span className={styles.statLabel}>Total Workflow Actions</span>
+              </div>
+              <div className={styles.statCard} style={{ background: '#eff6ff', borderColor: '#bfdbfe' }}>
+                <span className={styles.statVal} style={{ color: '#1e40af' }}>
+                  {auditLogs.filter(l => l.actorRole === 'sales_manager').length}
+                </span>
+                <span className={styles.statLabel}>Manager Approvals &amp; Actions</span>
+              </div>
+              <div className={styles.statCard} style={{ background: '#f0fdf4', borderColor: '#bbf7d0' }}>
+                <span className={styles.statVal} style={{ color: '#166534' }}>
+                  {auditLogs.filter(l => l.actorRole === 'sales_rep').length}
+                </span>
+                <span className={styles.statLabel}>Sales Rep Deal Submissions</span>
+              </div>
+              <div className={styles.statCard} style={{ background: '#faf5ff', borderColor: '#e9d5ff' }}>
+                <span className={styles.statVal} style={{ color: '#6b21a8' }}>
+                  {auditLogs.filter(l => l.actorRole === 'finance').length}
+                </span>
+                <span className={styles.statLabel}>Finance Officer Certifications</span>
+              </div>
+              <div className={styles.statCard} style={{ background: '#fffbeb', borderColor: '#fde68a' }}>
+                <span className={styles.statVal} style={{ color: '#92400e' }}>
+                  {auditLogs.filter(l => l.actorRole === 'customer').length}
+                </span>
+                <span className={styles.statLabel}>Customer Portal Interactions</span>
+              </div>
+            </div>
+
+            {/* Search and Filters Bar */}
+            <div className={styles.directoryControls}>
+              <div className={styles.searchWrap}>
+                <span className={styles.searchIcon}>🔍</span>
+                <input
+                  type="text"
+                  className={styles.searchInput}
+                  placeholder="Search audit logs by actor name, quotation ID, customer, notes, date..."
+                  value={auditSearch}
+                  onChange={e => setAuditSearch(e.target.value)}
+                />
+              </div>
+
+              {/* Role Filter */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <label style={{ fontSize: 13, fontWeight: 700, color: '#001D52' }}>Role:</label>
+                  <select
+                    className={styles.selectInput}
+                    value={auditRoleFilter}
+                    onChange={e => setAuditRoleFilter(e.target.value)}
+                  >
+                    <option value="all">All Roles</option>
+                    <option value="sales_manager">Sales Manager</option>
+                    <option value="sales_rep">Sales Representative</option>
+                    <option value="finance">Finance User</option>
+                    <option value="customer">Customer Contact</option>
+                    <option value="admin">Administrator</option>
+                  </select>
+                </div>
+
+                {/* Action Category Filter */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <label style={{ fontSize: 13, fontWeight: 700, color: '#001D52' }}>Action:</label>
+                  <select
+                    className={styles.selectInput}
+                    value={auditActionFilter}
+                    onChange={e => setAuditActionFilter(e.target.value)}
+                  >
+                    <option value="all">All Actions</option>
+                    <option value="approvals">Approvals &amp; Acceptances</option>
+                    <option value="returns">Returns for Revision</option>
+                    <option value="rejections">Rejections</option>
+                    <option value="assignments">Deal Assignments</option>
+                    <option value="proposals">Customer Proposals &amp; Inquiries</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Full Audit Trail Table */}
+            <div className={styles.auditTableCard}>
+              <div className={styles.auditTableWrap}>
+                <table className={styles.auditTable}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: '18%' }}>Exact Date &amp; Time</th>
+                      <th style={{ width: '16%' }}>Actor</th>
+                      <th style={{ width: '13%' }}>Role</th>
+                      <th style={{ width: '14%' }}>Action Executed</th>
+                      <th style={{ width: '14%' }}>Quotation / Account</th>
+                      <th>Details &amp; Audit Trail Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditLogs
+                      .filter(log => {
+                        const actType = (log.actionType || '').toUpperCase()
+                        const actorRole = (log.actorRole || '').toLowerCase()
+                        const matchesRole = auditRoleFilter === 'all' || actorRole === auditRoleFilter
+                        const matchesAction =
+                          auditActionFilter === 'all' ||
+                          (auditActionFilter === 'approvals' &&
+                            (actType.includes('APPROVED') || actType.includes('ACCEPTED'))) ||
+                          (auditActionFilter === 'returns' && actType.includes('RETURNED')) ||
+                          (auditActionFilter === 'rejections' && actType.includes('REJECTED')) ||
+                          (auditActionFilter === 'assignments' && actType.includes('ASSIGNED')) ||
+                          (auditActionFilter === 'proposals' &&
+                            (actType.includes('PROPOSAL') || actType.includes('REQUESTED')))
+
+                        const q = auditSearch.toLowerCase().trim()
+                        const matchesSearch =
+                          !q ||
+                          (log.actorName || '').toLowerCase().includes(q) ||
+                          (log.targetQuotationId || '').toLowerCase().includes(q) ||
+                          (log.customerName || '').toLowerCase().includes(q) ||
+                          (log.details || '').toLowerCase().includes(q) ||
+                          (log.timestamp || '').toLowerCase().includes(q)
+
+                        return matchesRole && matchesAction && matchesSearch
+                      })
+                      .map(log => {
+                        const actType = (log.actionType || '').toUpperCase()
+                        const roleClass =
+                          log.actorRole === 'sales_manager'
+                            ? styles.auditRoleBadgeManager
+                            : log.actorRole === 'sales_rep'
+                            ? styles.auditRoleBadgeRep
+                            : log.actorRole === 'finance'
+                            ? styles.auditRoleBadgeFinance
+                            : log.actorRole === 'customer'
+                            ? styles.auditRoleBadgeCustomer
+                            : styles.auditRoleBadgeAdmin
+
+                        const actionClass =
+                          actType.includes('APPROVED') || actType.includes('ACCEPTED')
+                            ? styles.auditActionApproved
+                            : actType.includes('RETURNED')
+                            ? styles.auditActionReturned
+                            : actType.includes('REJECTED')
+                            ? styles.auditActionRejected
+                            : actType.includes('REQUESTED') || actType.includes('ASSIGNED')
+                            ? styles.auditActionRequested
+                            : styles.auditActionDefault
+
+                        const initials = (log.actorName || 'User')
+                          .split(' ')
+                          .map(n => n[0])
+                          .slice(0, 2)
+                          .join('') || 'U'
+
+                        return (
+                          <tr key={log.id}>
+                            <td className={styles.auditTimestamp}>
+                              <span>⏱️ {log.timestamp || 'Recent'}</span>
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div
+                                  style={{
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: '50%',
+                                    background: '#e2e8f0',
+                                    color: '#1e293b',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: 11,
+                                    fontWeight: 800,
+                                  }}
+                                >
+                                  {initials}
+                                </div>
+                                <strong style={{ color: '#001D52', fontSize: 13 }}>{log.actorName || 'System Operator'}</strong>
+                              </div>
+                            </td>
+                            <td>
+                              <span className={`${styles.auditRoleBadge} ${roleClass}`}>
+                                {String(log.actorRole || 'ADMIN').toUpperCase().replace(/_/g, ' ')}
+                              </span>
+                            </td>
+                            <td>
+                              <span className={`${styles.auditActionBadge} ${actionClass}`}>
+                                {String(log.actionType || 'ACTIVITY').replace(/_/g, ' ')}
+                              </span>
+                            </td>
+                            <td>
+                              <div>
+                                <span style={{ fontWeight: 700, color: '#1e3a8a', fontSize: 13 }}>
+                                  {log.targetQuotationId || '—'}
+                                </span>
+                                <div style={{ fontSize: 12, color: '#64748b' }}>{log.customerName || 'Enterprise Client'}</div>
+                              </div>
+                            </td>
+                            <td>
+                              <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.45 }}>
+                                {log.details || 'Workflow action performed.'}
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                  </tbody>
+                </table>
+              </div>
+
+              {auditLogs.length === 0 && (
+                <div style={{ padding: '36px 20px', textAlign: 'center', color: '#64748b' }}>
+                  <span style={{ fontSize: 28 }}>📋</span>
+                  <p style={{ margin: '8px 0 0', fontWeight: 600 }}>No workflow audit logs recorded yet.</p>
+                </div>
+              )}
             </div>
           </div>
         </>

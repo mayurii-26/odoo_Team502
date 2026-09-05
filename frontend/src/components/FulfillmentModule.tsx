@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import styles from './FulfillmentWireframe.module.css'
 import { Quotation, Warehouse, ActiveModule } from './types'
+import { exportFulfillmentSlipPDF } from '../lib/pdfGenerator'
 
 interface FulfillmentModuleProps {
   quotation: Quotation
@@ -23,15 +24,15 @@ export default function FulfillmentModule({
 }: FulfillmentModuleProps) {
   // Starts on Screen #7 (List), clicking an order row opens Screen #8 (Detail)
   const [currentView, setCurrentView] = useState<'list' | 'detail'>('list')
-  const [selectedOrderId, setSelectedOrderId] = useState<string>('Q-1042')
+  const [selectedOrderId, setSelectedOrderId] = useState<string>(() => quotations[0]?.id || '')
   const [isSplitAccepted, setIsSplitAccepted] = useState<boolean>(false)
 
   // Live stock per warehouse from PostgreSQL
   const stockRows = warehouses.length > 0 ? warehouses.map((w) => {
     const mainItem = quotation?.items?.[0]
-    const prodName = mainItem ? mainItem.name : 'Laptop Pro 14'
-    const pId = mainItem ? mainItem.productId : '1'
-    const avail = (w.inventory && w.inventory[pId]) || (w.inventory && Object.values(w.inventory)[0]) || 55
+    const prodName = mainItem ? mainItem.name : (Object.keys(w.inventory || {})[0] ? `Product #${Object.keys(w.inventory || {})[0]}` : 'N/A')
+    const pId = mainItem ? mainItem.productId : (Object.keys(w.inventory || {})[0] || '1')
+    const avail = (w.inventory && w.inventory[pId]) || (w.inventory && Object.values(w.inventory)[0]) || 0
     const inStock = Math.round(avail * 1.1)
     const reserved = Math.max(0, inStock - avail)
     return {
@@ -66,17 +67,21 @@ export default function FulfillmentModule({
 
   function handleAcceptSplit() {
     setIsSplitAccepted(true)
+    const w0 = warehouses[0]?.name || 'Main Warehouse'
+    const w1 = warehouses[1]?.name || 'Secondary Depot'
+    const mainItem = quotation?.items?.[0]
+    const itemName = mainItem?.name || 'Item'
     onUpdateQuotation({
       ...quotation,
       fulfillment: {
         status: 'Dispatched',
         allocations: [
-          { warehouse: 'Main Warehouse', item: 'Laptop Pro 14', qty: 18, available: 22 },
-          { warehouse: 'East Depot', item: 'Laptop Pro 14', qty: 6, available: 4 },
+          { warehouse: w0, item: itemName, qty: 18, available: 22 },
+          { warehouse: w1, item: itemName, qty: 6, available: 4 },
         ],
       },
     })
-    onShowToast('Accepted suggested multi-warehouse split! Picklists generated for Main & East Depot.')
+    onShowToast(`Accepted suggested multi-warehouse split! Picklists generated for ${w0} & ${w1}.`)
   }
 
   function handleManualOverride() {
@@ -88,16 +93,20 @@ export default function FulfillmentModule({
      Opened by clicking an order row on the Fulfillment list
      ────────────────────────────────────────────────────────── */
   if (currentView === 'detail') {
+    // Resolve customer name from live quotations list
+    const selectedOrder = quotations.find(q => q.id === selectedOrderId)
+    const detailCustomerName = selectedOrder?.customerName || selectedOrderId
+
     return (
       <div className={styles.container}>
         {/* Header */}
         <div className={styles.header}>
           <div>
             <h1 className={styles.title}>
-              Fulfillment Detail: {selectedOrderId} ({selectedOrderId === 'Q-1039' ? 'Zenith Co' : 'Acme Corp'})
+              Fulfillment Detail: {selectedOrderId} ({detailCustomerName})
             </h1>
             <p className={styles.subtitle}>
-              Opened by clicking an order row on the Fulfillment list
+              Warehouse allocation and shipment split for this order
             </p>
           </div>
           <button className={styles.btnBack} onClick={() => setCurrentView('list')}>
@@ -132,12 +141,24 @@ export default function FulfillmentModule({
         {/* Golden / Amber Alert Banner */}
         <div className={styles.alertBanner}>
           <span>
-            &quot;Consolidate Remaining Backorder&quot; prompt appears automatically once East Depot restocks.
+            &quot;Consolidate Remaining Backorder&quot; prompt appears automatically once secondary depot restocks.
           </span>
         </div>
 
         {/* Action Buttons Row */}
         <div className={styles.actionsRow}>
+          <button
+            className={styles.btnAcceptSplit}
+            style={{ background: '#001D52', color: '#ffffff', borderColor: '#001D52' }}
+            onClick={() => {
+              exportFulfillmentSlipPDF(selectedOrderId, detailCustomerName, splitDetails)
+              onShowToast(`Warehouse dispatch packing slip exported for ${selectedOrderId}!`)
+            }}
+            title="Download Dispatch & Packing Slip as PDF"
+          >
+            📄 Packing Slip PDF
+          </button>
+
           <button className={styles.btnAcceptSplit} onClick={handleAcceptSplit}>
             {isSplitAccepted ? '✓ Split Accepted' : 'Accept Suggested Split'}
           </button>

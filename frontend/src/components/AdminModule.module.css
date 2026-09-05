@@ -119,6 +119,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 28px;
+  line-height: 1;
+  box-sizing: border-box;
 }
 
 .input,
@@ -135,6 +138,8 @@
               inset -2px -2px 5px #ffffff;
   transition: all 0.2s ease;
   outline: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .input:focus,
@@ -174,6 +179,17 @@
   box-shadow: 2px 3px 6px rgba(0, 29, 82, 0.06),
               inset 1px 1px 2px #ffffff;
   transition: all 0.18s ease;
+}
+
+.label .btnSmallClay {
+  height: 24px;
+  padding: 0 10px;
+  font-size: 11.5px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 1px 2px 4px rgba(0, 29, 82, 0.06);
 }
 
 .btnSmallClay:hover {
@@ -917,4 +933,130 @@
   align-items: center;
   gap: 6px;
 }
+
+/* ── Workflow Audit Trail Specific Styles ─────────────────── */
+.auditTableCard {
+  background: #ffffff;
+  border: 1.5px solid #ADCAFF;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 8px 14px 28px rgba(0, 29, 82, 0.08),
+              inset 4px 4px 8px #ffffff,
+              inset -4px -4px 8px rgba(173, 202, 255, 0.28);
+}
+
+.auditTableWrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.auditTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  text-align: left;
+}
+
+.auditTable th {
+  background: #001D52;
+  color: #ffffff;
+  font-weight: 700;
+  padding: 13px 18px;
+  font-size: 12.5px;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  border-bottom: 2px solid #70A2FF;
+}
+
+.auditTable td {
+  padding: 14px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #1e293b;
+  vertical-align: middle;
+}
+
+.auditTable tr:hover td {
+  background: #f8faff;
+}
+
+.auditTimestamp {
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.auditRoleBadge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.auditRoleBadgeManager {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.auditRoleBadgeRep {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.auditRoleBadgeFinance {
+  background: #f3e8ff;
+  color: #6b21a8;
+  border: 1px solid #e9d5ff;
+}
+
+.auditRoleBadgeCustomer {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.auditRoleBadgeAdmin {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.auditActionBadge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.auditActionApproved {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.auditActionReturned {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.auditActionRejected {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.auditActionRequested {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.auditActionDefault {
+  background: #f1f5f9;
+  color: #475569;
+}
+
 

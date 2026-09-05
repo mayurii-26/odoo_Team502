@@ -38,6 +38,19 @@
   font-weight: 400;
 }
 
+.viewOnlyBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  color: #1D4ED8;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 9999px;
+}
+
 .searchInput {
   padding: 7px 12px;
   border-radius: 6px;

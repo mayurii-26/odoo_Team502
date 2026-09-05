@@ -100,17 +100,23 @@ export default function DealHealthModule({
       <div className={styles.summaryGrid}>
         <div className={styles.summaryCard}>
           <h2 className={styles.cardTitle}>Stalled Deals</h2>
-          <p className={styles.cardSubtitle}>5 quotes idle 7+ days</p>
+          <p className={styles.cardSubtitle}>
+            {dealIssues.filter(d => d.issue.toLowerCase().includes('idle') || d.action === 'Review Required').length} quotes idle 7+ days
+          </p>
         </div>
 
         <div className={styles.summaryCard}>
           <h2 className={styles.cardTitle}>Discount Anomalies</h2>
-          <p className={styles.cardSubtitle}>2 above rep average</p>
+          <p className={styles.cardSubtitle}>
+            {dealIssues.filter(d => d.issue.toLowerCase().includes('high risk') || d.issue.toLowerCase().includes('discount')).length} above rep average
+          </p>
         </div>
 
         <div className={styles.summaryCard}>
           <h2 className={styles.cardTitle}>Delivery Slippage</h2>
-          <p className={styles.cardSubtitle}>3 promise dates at risk</p>
+          <p className={styles.cardSubtitle}>
+            {dealIssues.filter(d => d.action === 'Escalated to Manager').length} promise date{dealIssues.filter(d => d.action === 'Escalated to Manager').length !== 1 ? 's' : ''} at risk
+          </p>
         </div>
       </div>
 

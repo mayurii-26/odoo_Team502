@@ -38,7 +38,11 @@ export interface Quotation {
   dealName: string
   customerName: string
   customerTier: 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'ENTERPRISE' | 'MID_MARKET' | 'SMB' | string
+  currency?: string
   salesRep: string
+  salesRepEmail?: string
+  reportingManager?: string
+  taggedFinanceOfficer?: string
   status: QuotationStatus
   createdAt: string
   validUntil: string
@@ -52,6 +56,17 @@ export interface Quotation {
     reason: string
     marginImpact: string
     applied: boolean
+  }
+  approvalWorkflow?: {
+    assignedRep: string
+    reportingManager: string
+    taggedFinanceOfficer?: string
+    submittedAt: string
+    status: 'Pending Manager' | 'Pending Finance' | 'Approved' | 'Rejected' | 'Returned'
+    managerStatus: 'Pending' | 'Approved' | 'Rejected' | 'Returned'
+    financeStatus?: 'Pending' | 'Approved' | 'Rejected' | 'Not Required'
+    managerNotes?: string
+    financeNotes?: string
   }
   approvalDetails?: {
     approvedBy?: string
@@ -110,6 +125,7 @@ export interface UserAccount {
   name: string
   email: string
   role: string
+  reporting_manager?: string
   status: 'Active' | 'Pending Invite'
   inviteExpires?: string
 }
@@ -121,6 +137,7 @@ export interface DirectoryUser {
   role: UserRole
   roleLabel: string
   company: string
+  reportingManager?: string
   status: 'Active' | 'Pending Invite' | 'Suspended'
   lastActive: string
   avatarInitials: string
@@ -147,6 +164,30 @@ export type ActiveModule =
   | 'admin_messages'
   | 'admin_directory'
   | 'admin_recommendations'
+  | 'admin_audit'
+
+export interface WorkflowAuditEntry {
+  id: string
+  timestamp: string // Formatted ISO / date-time e.g. "Sep 6, 2026, 12:45:10 AM"
+  actorName: string
+  actorRole: UserRole | string
+  actionType:
+    | 'DEAL_ASSIGNED'
+    | 'APPROVAL_REQUESTED'
+    | 'MANAGER_APPROVED'
+    | 'MANAGER_RETURNED'
+    | 'MANAGER_REJECTED'
+    | 'FINANCE_TAGGED'
+    | 'FINANCE_APPROVED'
+    | 'FINANCE_REJECTED'
+    | 'CUSTOMER_PROPOSAL'
+    | 'CUSTOMER_ACCEPTED'
+    | 'QUOTE_CREATED'
+    | 'QUOTE_UPDATED'
+  targetQuotationId: string
+  customerName: string
+  details: string
+}
 
 export interface RecommendationWeights {
   upsell: {

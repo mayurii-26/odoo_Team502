@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import styles from './ReportsWireframe.module.css'
 import { Quotation, ActiveModule } from './types'
+import { exportReportsPDF, exportReportsCSV } from '../lib/pdfGenerator'
 
 interface ReportsProps {
   reportsData?: any
@@ -22,33 +23,43 @@ export default function ReportsModule({
   const [product, setProduct] = useState('all')
 
   // Live PostgreSQL Analytics Values
-  const quotesCount = quotations.length > 0 ? quotations.length : (reportsData?.total_quotes || 60)
-  const totalRev = reportsData?.total_revenue ? `$${(reportsData.total_revenue / 1000000).toFixed(2)}M` : '$1.45M'
-  const winRate = reportsData?.win_rate ? `${reportsData.win_rate}%` : '64.2%'
-  const avgDeal = reportsData?.avg_deal_size ? `$${reportsData.avg_deal_size.toLocaleString()}` : '$24,500'
+  const quotesCount = quotations.length > 0 ? quotations.length : (reportsData?.total_quotes ?? null)
+  const totalRevRaw = reportsData?.total_revenue ?? null
+  const totalRev = totalRevRaw != null ? `$${(totalRevRaw / 1000000).toFixed(2)}M` : null
+  const winRateRaw = reportsData?.win_rate ?? null
+  const winRate = winRateRaw != null ? `${winRateRaw}%` : null
+  const avgDealRaw = reportsData?.avg_deal_size ?? null
+  const avgDeal = avgDealRaw != null ? `$${avgDealRaw.toLocaleString()}` : null
 
-  const quotesCreated = `${quotesCount} deals in database`
+  const quotesCreated = quotesCount != null ? `${quotesCount} deals in database` : 'Loading...'
 
   const avgApprovalTime =
     approvalStatus === 'approved'
-      ? '4.2 hours'
+      ? reportsData?.avg_approval_time_approved || 'N/A'
       : salesTeam === 'enterprise'
-      ? '8.1 hours'
-      : '6.4 hours'
+      ? reportsData?.avg_approval_time_enterprise || 'N/A'
+      : reportsData?.avg_approval_time || 'N/A'
 
   const topProduct =
     product === 'hardware'
-      ? 'Industrial IoT Gateway'
+      ? reportsData?.top_product_hardware || 'N/A'
       : product === 'software'
-      ? 'Platform Enterprise 1yr'
-      : 'Care Plan 2yr'
+      ? reportsData?.top_product_software || 'N/A'
+      : reportsData?.top_product || 'N/A'
 
   function handleExportPDF() {
-    onShowToast('Exporting Admin / Reporting Dashboard as PDF...')
+    exportReportsPDF(reportsData, quotations, {
+      period,
+      salesTeam,
+      approvalStatus,
+      product,
+    })
+    onShowToast('Executive Reporting Dashboard exported as PDF!')
   }
 
   function handleExportXLS() {
-    onShowToast('Exporting Admin / Reporting metrics to Excel (.xlsx)...')
+    exportReportsCSV(reportsData, quotations)
+    onShowToast('Exported metrics spreadsheet (.csv) successfully.')
   }
 
   return (
@@ -125,6 +136,23 @@ export default function ReportsModule({
         <div className={styles.summaryCard}>
           <h2 className={styles.cardTitle}>Quotes Created</h2>
           <p className={styles.cardSubtitle}>{quotesCreated}</p>
+        </div>
+
+        <div className={styles.summaryCard}>
+          <h2 className={styles.cardTitle}>Total Revenue</h2>
+          <p className={styles.cardSubtitle}>{totalRev ?? 'Loading...'}</p>
+        </div>
+
+        <div className={styles.summaryCard}>
+          <h2 className={styles.cardTitle}>Win Rate</h2>
+          <p className={styles.cardSubtitle}>{winRate ?? 'Loading...'}</p>
+        </div>
+      </div>
+
+      <div className={styles.summaryGrid} style={{ marginTop: 0 }}>
+        <div className={styles.summaryCard}>
+          <h2 className={styles.cardTitle}>Avg Deal Size</h2>
+          <p className={styles.cardSubtitle}>{avgDeal ?? 'Loading...'}</p>
         </div>
 
         <div className={styles.summaryCard}>

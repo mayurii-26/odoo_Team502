@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react'
 import styles from './InvoicesWireframe.module.css'
 import { Quotation, ActiveModule } from './types'
+import { exportInvoicePDF } from '../lib/pdfGenerator'
 
 interface InvoicesModuleProps {
   quotation: Quotation
@@ -62,14 +63,14 @@ export default function InvoicesModule({
         id: inv.id,
         invoice_number: inv.invoice_number || `INV-${inv.id}`,
         quotation_id: inv.quotation_id,
-        customer_name: inv.customer_name || 'Enterprise Client',
+        customer_name: inv.customer_name || '',
         amount: Number(inv.amount || 0),
         amount_paid: Number(inv.amount_paid || 0),
         amount_due: Number(inv.amount_due || 0),
         status: inv.status || 'POSTED',
         payment_status: (inv.payment_status?.toUpperCase() === 'PAID' ? 'PAID' : 'UNPAID') as any,
-        issue_date: inv.issue_date || '2026-03-01',
-        due_date: inv.due_date || '2026-03-31',
+        issue_date: inv.issue_date || '',
+        due_date: inv.due_date || '',
       }))
     }
     return []
@@ -83,14 +84,14 @@ export default function InvoicesModule({
           id: inv.id,
           invoice_number: inv.invoice_number || `INV-${inv.id}`,
           quotation_id: inv.quotation_id,
-          customer_name: inv.customer_name || 'Enterprise Client',
+          customer_name: inv.customer_name || '',
           amount: Number(inv.amount || 0),
           amount_paid: Number(inv.amount_paid || 0),
           amount_due: Number(inv.amount_due || 0),
           status: inv.status || 'POSTED',
           payment_status: (inv.payment_status?.toUpperCase() === 'PAID' ? 'PAID' : 'UNPAID') as any,
-          issue_date: inv.issue_date || '2026-03-01',
-          due_date: inv.due_date || '2026-03-31',
+          issue_date: inv.issue_date || '',
+          due_date: inv.due_date || '',
         }))
       )
     }
@@ -284,9 +285,12 @@ export default function InvoicesModule({
 
           <button
             className={styles.btnSecondary}
-            onClick={() => onShowToast(`Reconciliation statement downloaded for ${selectedInvoice.invoice_number}.`)}
+            onClick={() => {
+              exportInvoicePDF(selectedInvoice)
+              onShowToast(`Exporting invoice & receipt PDF for ${selectedInvoice.invoice_number}...`)
+            }}
           >
-            Download PDF Receipt
+            📄 Download PDF Receipt
           </button>
         </div>
 
@@ -407,6 +411,18 @@ export default function InvoicesModule({
                     </span>
                   </td>
                   <td style={{ textAlign: 'right' }}>
+                    <button
+                      className={styles.btnActionSmall}
+                      style={{ marginRight: 6 }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        exportInvoicePDF(row)
+                        onShowToast(`Exporting invoice PDF for ${row.invoice_number}...`)
+                      }}
+                      title="Download PDF Invoice"
+                    >
+                      📄 PDF
+                    </button>
                     <button
                       className={styles.btnActionSmall}
                       onClick={(e) => {

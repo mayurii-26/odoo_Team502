@@ -21,11 +21,12 @@ router = APIRouter()
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 class ProvisionUserRequest(BaseModel):
-    name: str
     email: EmailStr
     role: str
-    company_name: Optional[str] = "DealFlow360"
-    password: Optional[str] = "password123"
+    name: Optional[str] = None
+    company_name: Optional[str] = None
+    password: Optional[str] = None
+    reporting_manager: Optional[str] = None
 
 class AdminDirectMessageRequest(BaseModel):
     recipient_name: str
@@ -50,6 +51,7 @@ def list_all_users(db: Session = Depends(get_db)):
             "name": u.name,
             "email": u.email,
             "role": u.role,
+            "reporting_manager": getattr(u, "reporting_manager", None),
             "status": u.status,
             "created_at": u.created_at.isoformat() if u.created_at else None,
             "last_login_at": u.last_login_at.isoformat() if u.last_login_at else None,
@@ -63,9 +65,16 @@ def provision_user_and_send_email(payload: ProvisionUserRequest, db: Session = D
     Admin endpoint to create/update user in PostgreSQL and dispatch credentials email via Resend.
     """
     clean_email = payload.email.strip().lower()
-    clean_name = payload.name.strip()
-    raw_password = payload.password or "password123"
+    if payload.name and payload.name.strip():
+        clean_name = payload.name.strip()
+        if clean_name.islower():
+            clean_name = clean_name.title()
+    else:
+        username_part = clean_email.split("@")[0].replace(".", " ").replace("_", " ").replace("-", " ")
+        clean_name = username_part.title()
+    raw_password = payload.password or "DealFlow#2026"
     hashed_pwd = hash_password(raw_password)
+    rep_manager = payload.reporting_manager.strip() if payload.reporting_manager and payload.reporting_manager.strip() else None
 
     role_label_map = {
         "admin": "Administrator",
@@ -85,6 +94,8 @@ def provision_user_and_send_email(payload: ProvisionUserRequest, db: Session = D
         user.role = payload.role
         user.password_hash = hashed_pwd
         user.status = "ACTIVE"
+        if rep_manager is not None:
+            user.reporting_manager = rep_manager
         user.updated_at = datetime.utcnow()
         db.commit()
         db.refresh(user)
@@ -96,6 +107,7 @@ def provision_user_and_send_email(payload: ProvisionUserRequest, db: Session = D
             email=clean_email,
             password_hash=hashed_pwd,
             role=payload.role,
+            reporting_manager=rep_manager,
             status="ACTIVE",
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
@@ -130,7 +142,8 @@ def provision_user_and_send_email(payload: ProvisionUserRequest, db: Session = D
         role_label=role_label,
         password=raw_password,
         login_url=FRONTEND_URL,
-        company_name=payload.company_name or "DealFlow360"
+        company_name=payload.company_name or "DealFlow360",
+        reporting_manager=user.reporting_manager
     )
 
     mail_res = send_email(
@@ -148,6 +161,7 @@ def provision_user_and_send_email(payload: ProvisionUserRequest, db: Session = D
             "email": user.email,
             "role": user.role,
             "role_label": role_label,
+            "reporting_manager": user.reporting_manager,
             "status": user.status,
             "company_name": payload.company_name,
         },

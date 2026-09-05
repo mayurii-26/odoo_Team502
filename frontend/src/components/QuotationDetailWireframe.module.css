@@ -91,53 +91,82 @@
   gap: 10px;
 }
 
-/* ── Top Meta Inputs Row (Customer, Price List, Expiry) ── */
+.readOnlyBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  color: #1E40AF;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 9999px;
+}
+
+.readOnlyNotice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+/* ── Top Meta Inputs Card (Customer, Sales Rep, Price List, Expiry) ── */
 .metaCard {
   background: #FFFFFF;
   border: 1px solid #E2E8F0;
-  border-radius: 10px;
-  padding: 16px 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
-.inputsRow {
+.inputsRow, .inputGroupGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 20px;
   width: 100%;
+  align-items: start;
 }
 
-@media (max-width: 900px) {
-  .inputsRow {
+@media (max-width: 992px) {
+  .inputsRow, .inputGroupGrid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 560px) {
-  .inputsRow {
+@media (max-width: 580px) {
+  .inputsRow, .inputGroupGrid {
     grid-template-columns: 1fr;
   }
 }
 
-.inputField {
+.inputField, .inputGroup {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
 }
 
 .inputLabel {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11.5px;
+  font-weight: 700;
   color: #475569;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
 }
 
-.inputBox {
+.inputBox, .textInput, .selectInput {
   background: #F8FAFC;
   border: 1px solid #CBD5E1;
-  border-radius: 6px;
-  padding: 8px 12px;
+  border-radius: 8px;
+  padding: 9px 12px;
   color: #0F172A;
   font-size: 13.5px;
   font-weight: 500;
@@ -145,78 +174,188 @@
   transition: all 0.15s ease;
   width: 100%;
   box-sizing: border-box;
+  height: 42px;
+  font-family: inherit;
 }
 
-.inputBox:focus {
-  border-color: #0284C7;
+.inputBox:hover, .textInput:hover, .selectInput:hover {
+  border-color: #94A3B8;
   background: #FFFFFF;
-  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+}
+
+.inputBox:focus, .textInput:focus, .selectInput:focus {
+  border-color: #2563EB;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.repBadgeRow {
+  display: flex;
+  align-items: center;
+  height: 42px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.badgeRep {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1E293B;
+  height: 42px;
+  box-sizing: border-box;
+}
+
+.badgeRepFinance {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #047857;
+  height: 42px;
+  box-sizing: border-box;
+}
+
+/* ── Live Currency Normalizer Selector ──────────────────── */
+.currencyPillWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  padding: 4px 10px;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.currencyPillWrap:hover {
+  border-color: #2563EB;
+  background: #FFFFFF;
+}
+
+.currencyIcon {
+  font-size: 14px;
+}
+
+.currencySelect {
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1E293B;
+  outline: none;
+  cursor: pointer;
+  padding-right: 4px;
+}
+
+.rateTag {
+  font-size: 11px;
+  font-weight: 600;
+  color: #2563EB;
+  background: rgba(37, 99, 235, 0.08);
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
 }
 
 /* ── Quotation Items Table Card ────────────────────────── */
-.tableCard {
+.card, .tableCard {
   background: #FFFFFF;
   border: 1px solid #E2E8F0;
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
-.tableHeaderBar {
+.tableHeaderRow, .tableHeaderBar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 20px;
+  padding: 18px 24px;
   border-bottom: 1px solid #E2E8F0;
-  background: #FAFAFA;
+  background: #FFFFFF;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
-.tableTitle {
-  font-size: 14px;
+.cardTitle, .tableTitle {
+  font-size: 16px;
   font-weight: 700;
   color: #0F172A;
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
-.addProductRow {
+.cardSubtitle {
+  font-size: 12.5px;
+  color: #64748B;
+  margin: 3px 0 0;
+}
+
+.addItemBar, .addProductRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .productSelect {
-  background: #FFFFFF;
+  background: #F8FAFC;
   border: 1px solid #CBD5E1;
-  border-radius: 6px;
-  padding: 6px 12px;
+  border-radius: 8px;
+  padding: 8px 12px;
   font-size: 13px;
   color: #0F172A;
   outline: none;
   cursor: pointer;
-  max-width: 240px;
+  min-width: 280px;
+  height: 40px;
+  transition: all 0.15s ease;
+}
+
+.productSelect:hover {
+  border-color: #94A3B8;
+  background: #FFFFFF;
 }
 
 .productSelect:focus {
-  border-color: #0284C7;
+  border-color: #2563EB;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
 
 .btnAddItem {
-  background: #0284C7;
+  background: #2563EB;
   color: #FFFFFF;
-  border: none;
-  border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 12.5px;
+  border: 1px solid #2563EB;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: background 0.15s ease;
+  height: 40px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .btnAddItem:hover {
-  background: #0369A1;
+  background: #1D4ED8;
+  border-color: #1D4ED8;
+  transform: translateY(-1px);
 }
 
 .tableWrap {
@@ -274,58 +413,75 @@
 }
 
 .numInput {
-  background: #FFFFFF;
+  background: #F8FAFC;
   border: 1px solid #CBD5E1;
   border-radius: 6px;
   color: #0F172A;
-  padding: 6px 8px;
-  width: 70px;
+  padding: 6px 10px;
+  width: 72px;
   font-size: 13px;
   font-weight: 600;
   outline: none;
-  transition: border-color 0.15s ease;
+  transition: all 0.15s ease;
+  height: 36px;
+  box-sizing: border-box;
 }
 
 .numInput:focus {
-  border-color: #0284C7;
+  border-color: #2563EB;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
 .priceInput {
-  background: #FFFFFF;
+  background: #F8FAFC;
   border: 1px solid #CBD5E1;
   border-radius: 6px;
   color: #0F172A;
-  padding: 6px 8px;
-  width: 90px;
+  padding: 6px 10px;
+  width: 96px;
   font-size: 13px;
   font-weight: 600;
   outline: none;
+  transition: all 0.15s ease;
+  height: 36px;
+  box-sizing: border-box;
 }
 
 .priceInput:focus {
-  border-color: #0284C7;
+  border-color: #2563EB;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
 .discountWrap {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748B;
 }
 
 .discountInput {
-  background: #FFFFFF;
+  background: #F8FAFC;
   border: 1px solid #CBD5E1;
   border-radius: 6px;
   color: #0F172A;
-  padding: 6px 8px;
-  width: 60px;
+  padding: 6px 10px;
+  width: 64px;
   font-size: 13px;
   font-weight: 600;
   outline: none;
+  transition: all 0.15s ease;
+  height: 36px;
+  box-sizing: border-box;
 }
 
 .discountInput:focus {
-  border-color: #0284C7;
+  border-color: #2563EB;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
 .statusOk {
@@ -987,4 +1143,66 @@
   margin-top: 20px;
   padding-top: 14px;
   border-top: 1px solid #E2E8F0;
+}
+
+.badgeRep {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: #EEF2FF;
+  border: 1px solid #C7D2FE;
+  color: #3730A3;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+}
+
+.approvalSummaryBox {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 14px;
+  font-size: 12.5px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modalFormGroup {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.modalLabel {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.modalSelect, .modalTextarea {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #CBD5E1;
+  font-size: 13px;
+  color: #0F172A;
+  background: #FFFFFF;
+}
+
+.modalTextarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #1E293B;
+  font-weight: 500;
+  cursor: pointer;
 }

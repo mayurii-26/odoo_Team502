@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import styles from './AppShell.module.css'
 import { Quotation, ActiveModule } from './types'
+import { exportBillingStatementPDF } from '../lib/pdfGenerator'
 
 interface BillingModuleProps {
   quotation: Quotation
@@ -46,7 +47,13 @@ export default function BillingModule({
           </p>
         </div>
         <div className={styles.btnGroup}>
-          <button className={styles.btnSecondary} onClick={() => onShowToast('Invoice PDF generated.')}>
+          <button
+            className={styles.btnSecondary}
+            onClick={() => {
+              exportBillingStatementPDF(quotation)
+              onShowToast('Bifurcated billing statement & invoice PDF generated.')
+            }}
+          >
             📄 Download Invoice PDF
           </button>
           {paymentStatus !== 'Paid' ? (
@@ -109,9 +116,11 @@ export default function BillingModule({
       <div className={styles.card}>
         <div className={styles.cardHeader}>
           <div>
-            <strong style={{ fontSize: 15 }}>Invoice #INV-1042 — Line Item Bifurcation</strong>
+            <strong style={{ fontSize: 15 }}>
+              Invoice #{quotation.billing?.invoiceId || `INV-${quotation.id}`} — Line Item Bifurcation
+            </strong>
             <div style={{ fontSize: 12, color: '#64748b' }}>
-              Billed to: Acme Corporation | Payment terms: Net-30
+              Billed to: {quotation.customerName || 'Customer'} | Payment terms: Net-30
             </div>
           </div>
         </div>

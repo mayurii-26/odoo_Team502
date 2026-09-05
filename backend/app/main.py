@@ -4,6 +4,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1 import quotations, workspace, auth, admin, users
+from app.services.currency_normalizer import router as currency_router
 
 app = FastAPI(
     title="DealFlow360 API",
@@ -31,6 +32,8 @@ app.include_router(workspace.router, prefix="/api/v1/workspace", tags=["Workspac
 app.include_router(workspace.router, prefix="/api/workspace", tags=["Workspace"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin (v1)"])
+app.include_router(currency_router, prefix="/api/v1", tags=["Currency Normalizer (v1)"])
+app.include_router(currency_router, prefix="/api", tags=["Currency Normalizer"])
 
 @app.get("/health", tags=["System"])
 def health_check():

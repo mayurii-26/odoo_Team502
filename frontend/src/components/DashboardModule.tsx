@@ -43,7 +43,7 @@ export default function DashboardModule({
             title="Click to view all users"
           >
             <div className={styles.cardTitle}>Total Users & Directory</div>
-            <div className={styles.cardCount}>6 Accounts Active</div>
+            <div className={styles.cardCount}>{openQuotationsCount > 0 ? `${openQuotationsCount} Active Accounts` : 'View Directory'}</div>
           </div>
 
           <div
@@ -52,7 +52,7 @@ export default function DashboardModule({
             title="Click to manage role access"
           >
             <div className={styles.cardTitle}>Role Access & Provisioning</div>
-            <div className={styles.cardCount}>5 Roles Governed</div>
+            <div className={styles.cardCount}>Manage Roles</div>
           </div>
 
           <div
@@ -61,7 +61,7 @@ export default function DashboardModule({
             title="Click to compose message"
           >
             <div className={styles.cardTitle}>Direct Announcements</div>
-            <div className={styles.cardCount}>3 Broadcasts Sent</div>
+            <div className={styles.cardCount}>Broadcast Message</div>
           </div>
         </div>
 
@@ -89,18 +89,21 @@ export default function DashboardModule({
         <div className={styles.activitySection}>
           <h2 className={styles.activityTitle}>System Governance & Admin Logs</h2>
           <ul className={styles.activityList}>
-            <li className={styles.activityItem}>
-              <span className={styles.activityDot} />
-              <span>Security policy updated: 15% discount threshold configured for Sales Manager role</span>
-            </li>
-            <li className={styles.activityItem}>
-              <span className={styles.activityDot} />
-              <span>Direct announcement dispatched to all active Sales Representatives</span>
-            </li>
-            <li className={styles.activityItem}>
-              <span className={styles.activityDot} />
-              <span>User account &apos;David Miller&apos; provisioned with Finance &amp; Audit privileges</span>
-            </li>
+            {quotations.slice(0, 3).map((q, i) => (
+              <li key={i} className={styles.activityItem}>
+                <span className={styles.activityDot} />
+                <span>
+                  {q.id} — {q.customerName}: {q.status}
+                  {q.approvalWorkflow?.managerNotes ? ` — "${q.approvalWorkflow.managerNotes}"` : ''}
+                </span>
+              </li>
+            ))}
+            {quotations.length === 0 && (
+              <li className={styles.activityItem}>
+                <span className={styles.activityDot} />
+                <span>No recent system activity. Data loads from PostgreSQL backend.</span>
+              </li>
+            )}
           </ul>
         </div>
       </div>
@@ -125,7 +128,9 @@ export default function DashboardModule({
             title="Click to view quotation"
           >
             <div className={styles.cardTitle}>My Active Quotation</div>
-            <div className={styles.cardCount}>{firstQuoteId} — $124,500</div>
+            <div className={styles.cardCount}>
+              {firstQuoteId !== 'Q-1042' ? firstQuoteId : openQuotationsCount > 0 ? `${openQuotationsCount} Proposal${openQuotationsCount !== 1 ? 's' : ''}` : 'No active proposals'}
+            </div>
           </div>
 
           <div
@@ -134,7 +139,9 @@ export default function DashboardModule({
             title="Click to view negotiation status"
           >
             <div className={styles.cardTitle}>Negotiation Status</div>
-            <div className={styles.cardCount}>In Review (Counter-Offer)</div>
+            <div className={styles.cardCount}>
+              {pendingApprovalsCount > 0 ? `${pendingApprovalsCount} Under Review` : 'Up to date'}
+            </div>
           </div>
 
           <div
@@ -143,7 +150,7 @@ export default function DashboardModule({
             title="Click to view messages"
           >
             <div className={styles.cardTitle}>Direct Messages</div>
-            <div className={styles.cardCount}>2 New Messages</div>
+            <div className={styles.cardCount}>View Messages</div>
           </div>
         </div>
 
@@ -171,18 +178,21 @@ export default function DashboardModule({
         <div className={styles.activitySection}>
           <h2 className={styles.activityTitle}>Quotation &amp; Deal History</h2>
           <ul className={styles.activityList}>
-            <li className={styles.activityItem}>
-              <span className={styles.activityDot} />
-              <span>Sales Rep Jane Smith submitted proposal {firstQuoteId} with bundle discounts</span>
-            </li>
-            <li className={styles.activityItem}>
-              <span className={styles.activityDot} />
-              <span>Counter-offer submitted requesting 15% discount on Extended Warranty</span>
-            </li>
-            <li className={styles.activityItem}>
-              <span className={styles.activityDot} />
-              <span>Requested delivery timeline adjusted to October 15, 2026</span>
-            </li>
+            {quotations.slice(0, 3).map((q, i) => (
+              <li key={i} className={styles.activityItem}>
+                <span className={styles.activityDot} />
+                <span>
+                  {q.id} — {q.customerName}: {q.status}
+                  {q.createdAt ? ` (${q.createdAt})` : ''}
+                </span>
+              </li>
+            ))}
+            {quotations.length === 0 && (
+              <li className={styles.activityItem}>
+                <span className={styles.activityDot} />
+                <span>No quotation history available yet.</span>
+              </li>
+            )}
           </ul>
         </div>
       </div>
@@ -253,18 +263,21 @@ export default function DashboardModule({
         <div className={styles.activitySection}>
           <h2 className={styles.activityTitle}>Management Activity</h2>
           <ul className={styles.activityList}>
-            <li className={styles.activityItem}>
-              <span className={styles.activityDot} />
-              <span>Discount escalation: Jane Smith requested 18% discount for Acme Corp</span>
-            </li>
-            <li className={styles.activityItem}>
-              <span className={styles.activityDot} />
-              <span>Deal Q-1043 approved and dispatched for customer signature</span>
-            </li>
-            <li className={styles.activityItem}>
-              <span className={styles.activityDot} />
-              <span>Monthly team quota pacing currently at 114% of target</span>
-            </li>
+            {quotations.slice(0, 3).map((q, i) => (
+              <li key={i} className={styles.activityItem}>
+                <span className={styles.activityDot} />
+                <span>
+                  {q.id} — {q.customerName}: {q.status}
+                  {q.salesRep ? ` (Rep: ${q.salesRep})` : ''}
+                </span>
+              </li>
+            ))}
+            {quotations.length === 0 && (
+              <li className={styles.activityItem}>
+                <span className={styles.activityDot} />
+                <span>No recent pipeline activity. Data loads from PostgreSQL backend.</span>
+              </li>
+            )}
           </ul>
         </div>
       </div>
@@ -289,7 +302,7 @@ export default function DashboardModule({
             title="Click to view invoices"
           >
             <div className={styles.cardTitle}>Invoices Ledger</div>
-            <div className={styles.cardCount}>3 Awaiting Payment</div>
+            <div className={styles.cardCount}>{pendingApprovalsCount > 0 ? `${pendingApprovalsCount} Awaiting Payment` : 'View Ledger'}</div>
           </div>
 
           <div
@@ -298,7 +311,7 @@ export default function DashboardModule({
             title="Click to view deal health"
           >
             <div className={styles.cardTitle}>Margin Risk Warnings</div>
-            <div className={styles.cardCount}>{atRiskDealsCount} low-margin quotes</div>
+            <div className={styles.cardCount}>{atRiskDealsCount} low-margin quote{atRiskDealsCount !== 1 ? 's' : ''}</div>
           </div>
 
           <div
@@ -307,7 +320,7 @@ export default function DashboardModule({
             title="Click to view governance"
           >
             <div className={styles.cardTitle}>Governance Limits</div>
-            <div className={styles.cardCount}>20% Max Threshold</div>
+            <div className={styles.cardCount}>View Rules</div>
           </div>
         </div>
 
@@ -335,18 +348,21 @@ export default function DashboardModule({
         <div className={styles.activitySection}>
           <h2 className={styles.activityTitle}>Financial Reconciliation Logs</h2>
           <ul className={styles.activityList}>
-            <li className={styles.activityItem}>
-              <span className={styles.activityDot} />
-              <span>Invoice INV-2026-081 marked as Paid via Automated Bank Wire</span>
-            </li>
-            <li className={styles.activityItem}>
-              <span className={styles.activityDot} />
-              <span>Deal Q-1044 audited with blended margin confirmed at 36.4%</span>
-            </li>
-            <li className={styles.activityItem}>
-              <span className={styles.activityDot} />
-              <span>Quarterly revenue recognition batch scheduled for midnight</span>
-            </li>
+            {quotations.filter(q => q.status === 'Fulfilled' || q.status === 'Confirmed').slice(0, 3).map((q, i) => (
+              <li key={i} className={styles.activityItem}>
+                <span className={styles.activityDot} />
+                <span>
+                  {q.id} — {q.customerName}: {q.status}
+                  {q.billing?.invoiceId ? ` · Invoice ${q.billing.invoiceId}` : ''}
+                </span>
+              </li>
+            ))}
+            {quotations.filter(q => q.status === 'Fulfilled' || q.status === 'Confirmed').length === 0 && (
+              <li className={styles.activityItem}>
+                <span className={styles.activityDot} />
+                <span>No completed transactions yet. Financial data loads from PostgreSQL backend.</span>
+              </li>
+            )}
           </ul>
         </div>
       </div>
@@ -360,7 +376,7 @@ export default function DashboardModule({
       <div className={styles.header}>
         <h1 className={styles.title}>Sales Representative Pipeline</h1>
         <p className={styles.subtitle}>
-          Welcome {user?.fullName || 'Jane Smith'}. Personal deal pipeline, active customer quotes, and execution queue
+          Welcome {user?.fullName || user?.email || 'Sales Rep'}. Personal deal pipeline, active customer quotes, and execution queue
         </p>
       </div>
 
@@ -373,7 +389,7 @@ export default function DashboardModule({
           title="Click to view approvals"
         >
           <div className={styles.cardTitle}>Pending Approvals</div>
-          <div className={styles.cardCount}>{pendingApprovalsCount} quotations</div>
+          <div className={styles.cardCount}>{pendingApprovalsCount} quotation{pendingApprovalsCount !== 1 ? 's' : ''}</div>
         </div>
 
         {/* Card 2: Open Quotations */}
@@ -383,7 +399,7 @@ export default function DashboardModule({
           title="Click to view quotations"
         >
           <div className={styles.cardTitle}>My Open Quotations</div>
-          <div className={styles.cardCount}>{openQuotationsCount} active deals</div>
+          <div className={styles.cardCount}>{openQuotationsCount} active deal{openQuotationsCount !== 1 ? 's' : ''}</div>
         </div>
 
         {/* Card 3: At-Risk Deals */}
@@ -428,18 +444,21 @@ export default function DashboardModule({
       <div className={styles.activitySection}>
         <h2 className={styles.activityTitle}>Recent Pipeline Activity</h2>
         <ul className={styles.activityList}>
-          <li className={styles.activityItem}>
-            <span className={styles.activityDot} />
-            <span>Acme Corp quotation approved by Sales Operations</span>
-          </li>
-          <li className={styles.activityItem}>
-            <span className={styles.activityDot} />
-            <span>Beta Industries requested volume pricing revision</span>
-          </li>
-          <li className={styles.activityItem}>
-            <span className={styles.activityDot} />
-            <span>North America warehouse inventory allocated for Order #2291</span>
-          </li>
+          {quotations.slice(0, 3).map((q, i) => (
+            <li key={i} className={styles.activityItem}>
+              <span className={styles.activityDot} />
+              <span>
+                {q.id} — {q.customerName}: {q.status}
+                {q.createdAt ? ` (${q.createdAt})` : ''}
+              </span>
+            </li>
+          ))}
+          {quotations.length === 0 && (
+            <li className={styles.activityItem}>
+              <span className={styles.activityDot} />
+              <span>No pipeline activity yet. Create your first quotation to get started.</span>
+            </li>
+          )}
         </ul>
       </div>
     </div>

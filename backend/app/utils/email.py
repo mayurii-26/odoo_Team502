@@ -1,8 +1,8 @@
-# ============================================================
-# DealFlow360 — Email Utility (Resend)
-# ============================================================
 import os
+import smtplib
 import logging
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from typing import Optional, Dict, Any
 from dotenv import load_dotenv
 
@@ -13,33 +13,104 @@ RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 EMAIL_FROM = os.getenv("EMAIL_FROM", "DealFlow360 <onboarding@resend.dev>")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
-def send_email(to: str, subject: str, html: str) -> Dict[str, Any]:
+def get_email_config():
+    load_dotenv(override=True)
+    return {
+        "resend_api_key": os.getenv("RESEND_API_KEY", ""),
+        "email_from": os.getenv("EMAIL_FROM", "DealFlow360 <onboarding@resend.dev>"),
+        "smtp_host": os.getenv("SMTP_HOST", ""),
+        "smtp_port": int(os.getenv("SMTP_PORT", "587")),
+        "smtp_user": os.getenv("SMTP_USER", ""),
+        "smtp_password": os.getenv("SMTP_PASSWORD") or os.getenv("SMTP_PASS", ""),
+        "smtp_from": os.getenv("SMTP_FROM") or os.getenv("EMAIL_FROM") or os.getenv("SMTP_USER", ""),
+    }
+
+def send_via_smtp(to: str, subject: str, html: str) -> Dict[str, Any]:
     """
-    Sends an email using the Resend API.
-    Returns a dict with success boolean, id, or error details.
+    Sends an email directly through configured SMTP mail server.
     """
-    if not RESEND_API_KEY:
-        logger.warning(f"[EMAIL MOCK] No RESEND_API_KEY provided. Simulated sending email to {to}: '{subject}'")
-        return {"success": True, "simulated": True, "to": to, "subject": subject}
+    cfg = get_email_config()
+    smtp_host = cfg["smtp_host"]
+    smtp_user = cfg["smtp_user"]
+    smtp_port = cfg["smtp_port"]
+    smtp_pass = cfg["smtp_password"]
+    smtp_from = cfg["smtp_from"]
+
+    if not smtp_host or not smtp_user:
+        return {"success": False, "error": "SMTP_HOST or SMTP_USER not configured"}
 
     try:
-        import resend
-        resend.api_key = RESEND_API_KEY
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        sender = smtp_from or smtp_user
+        msg["From"] = sender
+        msg["To"] = to
 
-        params = {
-            "from": EMAIL_FROM,
-            "to": [to],
-            "subject": subject,
-            "html": html,
-        }
-        response = resend.Emails.send(params)
-        logger.info(f"[EMAIL SENT] Successfully sent email to {to} via Resend. ID: {response.get('id') if isinstance(response, dict) else response}")
-        return {"success": True, "response": response, "to": to}
+        # Attach HTML part
+        part = MIMEText(html, "html", "utf-8")
+        msg.attach(part)
+
+        if smtp_port == 465:
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=15)
+        else:
+            server = smtplib.SMTP(smtp_host, smtp_port, timeout=15)
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+
+        if smtp_pass:
+            server.login(smtp_user, smtp_pass)
+
+        server.sendmail(sender, [to], msg.as_string())
+        server.quit()
+        logger.info(f"[SMTP SENT] Successfully sent email to {to} via SMTP server {smtp_host}")
+        return {"success": True, "method": "smtp", "to": to}
     except Exception as e:
         err_msg = str(e)
-        logger.error(f"[EMAIL ERROR] Failed to send email to {to} via Resend: {err_msg}")
-        # Return structured error so caller can inspect and fallback gracefully
+        logger.error(f"[SMTP ERROR] Failed to send email to {to} via SMTP: {err_msg}")
         return {"success": False, "error": err_msg, "to": to}
+
+def send_email(to: str, subject: str, html: str) -> Dict[str, Any]:
+    """
+    Sends an email using configured SMTP first, then Resend API fallback.
+    Returns a dict with success boolean, method, or error details.
+    """
+    cfg = get_email_config()
+    smtp_host = cfg["smtp_host"]
+    smtp_user = cfg["smtp_user"]
+    resend_key = cfg["resend_api_key"]
+    email_from = cfg["email_from"]
+
+    # 1. If SMTP is configured, attempt direct SMTP delivery
+    if smtp_host and smtp_user:
+        smtp_res = send_via_smtp(to, subject, html)
+        if smtp_res.get("success"):
+            return smtp_res
+        logger.warning(f"SMTP delivery failed, falling back to Resend: {smtp_res.get('error')}")
+
+    # 2. Attempt Resend API delivery
+    if resend_key:
+        try:
+            import resend
+            resend.api_key = resend_key
+
+            params = {
+                "from": email_from,
+                "to": [to],
+                "subject": subject,
+                "html": html,
+            }
+            response = resend.Emails.send(params)
+            logger.info(f"[EMAIL SENT] Successfully sent email to {to} via Resend. ID: {response.get('id') if isinstance(response, dict) else response}")
+            return {"success": True, "method": "resend", "response": response, "to": to}
+        except Exception as e:
+            err_msg = str(e)
+            logger.error(f"[EMAIL ERROR] Failed to send email to {to} via Resend: {err_msg}")
+            return {"success": False, "method": "resend", "error": err_msg, "to": to}
+
+    # 3. Fallback simulation if no email providers are set up
+    logger.warning(f"[EMAIL SIMULATED] No SMTP or Resend credentials provided. Simulated email to {to}: '{subject}'")
+    return {"success": True, "simulated": True, "to": to, "subject": subject}
 
 
 def build_verification_email_html(full_name: str, verification_url: str, token: str) -> str:
@@ -176,12 +247,14 @@ def build_provisioning_email_html(
     role_label: str,
     password: str,
     login_url: str,
-    company_name: str = "DealFlow360"
+    company_name: str = "DealFlow360",
+    reporting_manager: Optional[str] = None
 ) -> str:
     """
     Constructs a modern, branded Role Provisioning & Credentials email for newly alloted users.
     """
     name_display = full_name or "Colleague"
+    manager_row = f'<div style="margin-top: 8px;"><strong>Reporting Sales Manager:</strong> {reporting_manager}</div>' if reporting_manager else ''
     return f"""
     <!DOCTYPE html>
     <html>
@@ -254,25 +327,6 @@ def build_provisioning_email_html(
           padding: 20px;
           margin: 24px 0;
         }}
-        .cred-row {{
-          display: flex;
-          justify-content: space-between;
-          padding: 8px 0;
-          border-bottom: 1px solid #EDF2F7;
-          font-size: 14px;
-        }}
-        .cred-row:last-child {{
-          border-bottom: none;
-        }}
-        .cred-label {{
-          color: #64748B;
-          font-weight: 500;
-        }}
-        .cred-val {{
-          color: #0F172A;
-          font-weight: 600;
-          font-family: monospace;
-        }}
         .btn-wrapper {{
           text-align: center;
           margin: 32px 0;
@@ -317,6 +371,7 @@ def build_provisioning_email_html(
             <div style="margin-bottom: 8px;"><strong>Email:</strong> {email}</div>
             <div style="margin-bottom: 8px;"><strong>Password:</strong> <span style="background: #E2E8F0; padding: 2px 8px; border-radius: 4px; font-family: monospace;">{password}</span></div>
             <div><strong>Role Access:</strong> {role_label}</div>
+            {manager_row}
           </div>
 
           <div class="btn-wrapper">

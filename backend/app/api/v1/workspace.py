@@ -18,6 +18,7 @@ from app.models.health import DealHealthSnapshot
 from app.models.customer import Customer, CustomerContact
 from app.models.user import User
 from app.models.discount import DiscountTier, DiscountRule
+from app.models.audit import AuditLog
 
 router = APIRouter()
 
@@ -37,12 +38,27 @@ class SaveFullQuotationPayload(BaseModel):
     customer_company: Optional[str] = None
     status: Optional[str] = None
     notes: Optional[str] = None
+    sales_rep_name: Optional[str] = None
+    sales_rep_email: Optional[str] = None
     lines: List[QuotationLineSaveItem] = []
 
 class ApprovalActionPayload(BaseModel):
     action: str  # "APPROVE" or "REJECT"
     comments: Optional[str] = None
     approver_name: Optional[str] = "Sales Manager"
+
+class CreateAuditLogPayload(BaseModel):
+    user_id: Optional[int] = None
+    actor_name: Optional[str] = "System Operator"
+    actor_role: Optional[str] = "admin"
+    action: str
+    entity_type: str = "quotation"
+    entity_id: Optional[int] = 1042
+    target_quotation_id: Optional[str] = None
+    customer_name: Optional[str] = None
+    old_value: Optional[str] = None
+    new_value: Optional[str] = None
+    details: Optional[str] = None
 
 # â"â" Helpers to format model objects to frontend shapes â"â"â"â"â"â"â"
 def format_quotation(q: Quotation, db: Session) -> Dict[str, Any]:
@@ -114,6 +130,8 @@ def format_quotation(q: Quotation, db: Session) -> Dict[str, Any]:
         "created_at": q.created_at.strftime("%Y-%m-%d") if q.created_at else "2026-03-01",
         "expires_at": q.valid_until.strftime("%Y-%m-%d") if q.valid_until else "2026-04-01",
         "sales_rep": sales_rep_name,
+        "sales_rep_email": sales_rep.email if sales_rep else "sales@dealflow360.com",
+        "sales_rep_id": sales_rep.id if sales_rep else 1,
         "customer_notes": q.customer_notes or "",
         "internal_notes": q.internal_notes or "",
         "lines": formatted_lines
@@ -234,7 +252,7 @@ def get_workspace_bootstrap(db: Session = Depends(get_db)):
         })
 
     # 7. Users
-    db_users = db.query(User).all()
+    db_users = db.query(User).order_by(desc(User.id)).all()
     users_list = []
     for u in db_users:
         users_list.append({
@@ -243,6 +261,7 @@ def get_workspace_bootstrap(db: Session = Depends(get_db)):
             "fullName": u.name,
             "name": u.name,
             "role": u.role,
+            "reporting_manager": getattr(u, "reporting_manager", None),
             "status": "Active" if u.status == "ACTIVE" else "Pending Invite",
             "is_active": u.status == "ACTIVE",
             "department": "Sales Operations"
@@ -287,6 +306,24 @@ def get_workspace_bootstrap(db: Session = Depends(get_db)):
         }
     }
 
+    # 10. Timestamped Audit Trail (Manager, Rep, Finance actions)
+    db_audit = db.query(AuditLog).order_by(desc(AuditLog.id)).limit(100).all()
+    audit_logs_list = []
+    for a in db_audit:
+        u = db.query(User).filter(User.id == a.user_id).first() if a.user_id else None
+        role_label = u.role.lower() if u and u.role else "admin"
+        ts = a.created_at.strftime("%b %d, %Y, %I:%M:%S %p") if a.created_at else datetime.utcnow().strftime("%b %d, %Y, %I:%M:%S %p")
+        audit_logs_list.append({
+            "id": f"aud-{a.id}",
+            "timestamp": ts,
+            "actorName": u.name if u else "System Admin",
+            "actorRole": role_label,
+            "actionType": a.action,
+            "targetQuotationId": f"Q-{a.entity_id}" if a.entity_type == "quotation" else f"#{a.entity_id}",
+            "customerName": "Enterprise Client",
+            "details": a.new_value or f"{a.action} executed on {a.entity_type} #{a.entity_id}"
+        })
+
     return {
         "status": "success",
         "data": {
@@ -298,7 +335,8 @@ def get_workspace_bootstrap(db: Session = Depends(get_db)):
             "approvals": approvals_list,
             "users": users_list,
             "governance": governance_data,
-            "reports": reports_summary
+            "reports": reports_summary,
+            "audit_logs": audit_logs_list
         }
     }
 
@@ -335,6 +373,14 @@ def update_full_quotation(quote_id: str, payload: SaveFullQuotationPayload, db: 
         quote.status = payload.status
     if payload.notes is not None:
         quote.internal_notes = payload.notes
+    if payload.sales_rep_email:
+        rep_u = db.query(User).filter(User.email == payload.sales_rep_email).first()
+        if rep_u:
+            quote.sales_rep_id = rep_u.id
+    elif payload.sales_rep_name:
+        rep_u = db.query(User).filter(User.name == payload.sales_rep_name).first()
+        if rep_u:
+            quote.sales_rep_id = rep_u.id
 
     # Update line items if provided
     if payload.lines is not None and len(payload.lines) > 0:
@@ -457,3 +503,47 @@ def process_approval(approval_id: int, payload: ApprovalActionPayload, db: Sessi
 
     db.commit()
     return {"status": "success", "new_status": req.status}
+
+@router.post("/audit-log")
+def create_audit_log(payload: CreateAuditLogPayload, db: Session = Depends(get_db)):
+    user = None
+    if payload.user_id:
+        user = db.query(User).filter(User.id == payload.user_id).first()
+    elif payload.actor_name:
+        user = db.query(User).filter(User.name == payload.actor_name).first()
+
+    clean_entity_id = payload.entity_id or 1042
+    if payload.target_quotation_id:
+        digits = "".join(filter(str.isdigit, payload.target_quotation_id))
+        if digits:
+            clean_entity_id = int(digits)
+
+    new_log = AuditLog(
+        user_id=user.id if user else None,
+        entity_type=payload.entity_type,
+        entity_id=clean_entity_id,
+        action=payload.action,
+        old_value=payload.old_value,
+        new_value=payload.new_value or payload.details,
+        ip_address="127.0.0.1",
+        timestamp=datetime.utcnow(),
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
+    )
+    db.add(new_log)
+    db.commit()
+    db.refresh(new_log)
+
+    return {
+        "status": "success",
+        "log": {
+            "id": f"aud-{new_log.id}",
+            "timestamp": new_log.created_at.strftime("%b %d, %Y, %I:%M:%S %p"),
+            "actorName": payload.actor_name or (user.name if user else "System Operator"),
+            "actorRole": payload.actor_role or (user.role.lower() if user else "admin"),
+            "actionType": new_log.action,
+            "targetQuotationId": payload.target_quotation_id or (f"Q-{new_log.entity_id}" if new_log.entity_type == "quotation" else str(new_log.entity_id)),
+            "customerName": payload.customer_name or "Enterprise Client",
+            "details": payload.details or f"{new_log.action} on {new_log.entity_type}"
+        }
+    }

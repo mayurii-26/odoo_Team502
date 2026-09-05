@@ -50,37 +50,24 @@ export default function ProductCatalogModule({
         quantityOnHand: p.stock || 50,
       }))
     }
-    return [
-      {
-        id: 'prod-1',
-        name: 'Laptop Pro 14',
-        category: 'Hardware',
-        variants: '3(RAM)',
-        price: '$1,200',
-        unit: 'Each',
-        tax: '15%',
-        status: 'Active',
-        description: 'Enterprise ultra-portable 14" laptop with high-performance processor',
-        isSubscription: false,
-        recurringInterval: 'Monthly',
-        quantityOnHand: 45,
-      },
-    ]
+    return []
   }, [products])
 
-  const [selectedProduct, setSelectedProduct] = useState<ProductItem>(productList[0] || {
-    id: 'prod-1',
-    name: 'Laptop Pro 14',
+  const emptyProduct: ProductItem = {
+    id: '',
+    name: '',
     category: 'Hardware',
     variants: 'Standard',
-    price: '$1,200',
+    price: '$0.00',
     unit: 'Each',
     tax: '15%',
     status: 'Active',
     description: '',
     isSubscription: false,
-    quantityOnHand: 45,
-  })
+    quantityOnHand: 0,
+  }
+
+  const [selectedProduct, setSelectedProduct] = useState<ProductItem>(productList[0] || emptyProduct)
 
   function handleRowClick(prod: ProductItem) {
     setSelectedProduct(prod)

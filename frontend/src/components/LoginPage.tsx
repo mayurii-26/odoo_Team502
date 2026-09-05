@@ -7,56 +7,23 @@ import { UserSession, UserRole } from './types'
 import { IconEye, IconEyeOff } from './Icons'
 import { registerCustomer, resendVerification, verifyEmailToken, loginUser } from '@/lib/api'
 
-/* ── Pre-configured Demo Test Accounts (Clean - No Icons) ─────────── */
-export const DEMO_ACCOUNTS = [
-  {
-    email: 'admin@dealflow360.demo',
-    password: 'password123',
-    fullName: 'Rajesh Varma',
-    role: 'admin' as const,
-    companyName: 'DealFlow360 HQ',
-    label: 'Administrator',
-  },
-  {
-    email: 'sales1@dealflow360.demo',
-    password: 'password123',
-    fullName: 'Aarav Sharma',
-    role: 'sales_rep' as const,
-    companyName: 'DealFlow360 Direct Sales',
-    label: 'Sales Rep',
-  },
-  {
-    email: 'customer1@acme.demo',
-    password: 'password123',
-    fullName: 'Kavita Rao',
-    role: 'customer' as const,
-    companyName: 'Acme Corp',
-    label: 'Customer',
-  },
-  {
-    email: 'manager1@dealflow360.demo',
-    password: 'password123',
-    fullName: 'Rohan Kapoor',
-    role: 'sales_manager' as const,
-    companyName: 'DealFlow360 Commercial Ops',
-    label: 'Sales Manager',
-  },
-  {
-    email: 'finance1@dealflow360.demo',
-    password: 'password123',
-    fullName: 'Vikram Malhotra',
-    role: 'finance' as const,
-    companyName: 'DealFlow360 Finance & Treasury',
-    label: 'Financial Officer',
-  },
-  {
-    email: 'user@dealflow360.com',
-    password: 'password123',
-    fullName: 'Alex User',
-    role: 'user' as const,
-    companyName: 'DealFlow360 User',
-    label: 'User',
-  },
+/* ── Demo Test Accounts — populated from backend or environment ─────────
+ * These only provide the role label for the login switcher UI.
+ * Actual credentials (email/password) are entered by the user or fetched
+ * from the backend. Names are resolved at login time from the API response.
+ * ----------------------------------------------------------------------- */
+export const DEMO_ACCOUNTS: {
+  email: string
+  password: string
+  role: UserRole
+  label: string
+}[] = [
+  { email: 'admin@dealflow360.demo',   password: 'password123', role: 'admin',         label: 'Administrator' },
+  { email: 'sales1@dealflow360.demo',  password: 'password123', role: 'sales_rep',     label: 'Sales Rep' },
+  { email: 'customer1@acme.demo',      password: 'password123', role: 'customer',      label: 'Customer' },
+  { email: 'manager1@dealflow360.demo',password: 'password123', role: 'sales_manager', label: 'Sales Manager' },
+  { email: 'finance1@dealflow360.demo',password: 'password123', role: 'finance',       label: 'Financial Officer' },
+  { email: 'user@dealflow360.com',     password: 'password123', role: 'user',          label: 'User' },
 ]
 
 /* ── DealFlow360 Official Brand Logo ──────────────────────────────── */
@@ -363,9 +330,9 @@ export default function LoginPage() {
       const res = await loginUser({ email: email.trim(), password })
       handleLoginSuccess({
         email: res.email,
-        fullName: res.fullName || res.full_name || 'Jane Smith',
+        fullName: res.fullName || res.full_name || res.email,
         role: res.role,
-        companyName: res.companyName || res.company_name || 'DealFlow360',
+        companyName: res.companyName || res.company_name || '',
       })
     } catch (err: any) {
       setError(err.message || 'Invalid credentials. Select a demo account below.')
