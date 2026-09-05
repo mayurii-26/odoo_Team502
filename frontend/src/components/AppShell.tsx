@@ -273,7 +273,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
       return ['dashboard', 'approvals', 'fulfillment', 'invoices', 'billing', 'messages'].includes(mod)
     }
     if (userRole === 'sales_manager') {
-      return ['dashboard', 'approvals', 'deal_health', 'messages'].includes(mod)
+      return ['dashboard', 'quotations', 'builder', 'approvals', 'deal_health', 'messages'].includes(mod)
     }
     if (userRole === 'admin') {
       return [
@@ -820,6 +820,17 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
               </button>
 
               <button
+                className={`${styles.navLink} ${activeModule === 'quotations' ? styles.navLinkActive : ''}`}
+                onClick={() => handleNavigateModule('quotations')}
+              >
+                <div className={styles.navLinkContent}>
+                  <span className={styles.navIconWrap}><FileTextIcon /></span>
+                  <span>Pipeline &amp; Deals</span>
+                </div>
+                <span className={styles.navBadge}>{quotations.length}</span>
+              </button>
+
+              <button
                 className={`${styles.navLink} ${activeModule === 'deal_health' ? styles.navLinkActive : ''}`}
                 onClick={() => handleNavigateModule('deal_health')}
               >
@@ -1244,7 +1255,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
               onNavigate={handleNavigateModule}
               onUpdateQuotation={handleUpdateQuotation}
               onShowToast={showToast}
-              readOnly={isAdmin}
+              readOnly={false}
             />
           )}
 
@@ -1256,7 +1267,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
               onUpdateQuotation={handleUpdateQuotation}
               onNavigate={handleNavigateModule}
               onShowToast={showToast}
-              readOnly={isAdmin}
+              readOnly={false}
               currentUser={user}
               users={users}
               onRecordAudit={handleRecordAuditLog}
