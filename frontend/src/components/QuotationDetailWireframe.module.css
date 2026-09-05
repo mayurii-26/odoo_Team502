@@ -1,0 +1,339 @@
+/* ===================================================
+   QuotationDetailWireframe.module.css
+   Claymorphism Theme (Screen #4)
+   Palette:
+   - Deep Navy:       #001D52
+   - Cornflower Blue: #70A2FF
+   - Baby Blue Ice:   #ADCAFF
+   - Lavender:        #D6E4FF
+   =================================================== */
+
+.container {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #001D52;
+}
+
+/* ── Header ────────────────────────────────────────────── */
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #001D52;
+  letter-spacing: -0.4px;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #3b5a8c;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ── Top Inputs Row (Customer & Price List) ────────────── */
+.inputsRow {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .inputsRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.inputField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inputLabel {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #001D52;
+  letter-spacing: -0.2px;
+}
+
+/* Clay Inset Input Box */
+.inputBox {
+  background: #F8FAFF;
+  border: 1.5px solid #ADCAFF;
+  border-radius: 14px;
+  padding: 11px 16px;
+  color: #001D52;
+  font-size: 14px;
+  font-weight: 500;
+  outline: none;
+  transition: all 0.18s ease;
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: inset 2px 2px 5px rgba(0, 29, 82, 0.07),
+              inset -2px -2px 5px #ffffff;
+}
+
+.inputBox:focus {
+  border-color: #70A2FF;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(112, 162, 255, 0.25),
+              inset 2px 2px 5px rgba(0, 29, 82, 0.05);
+}
+
+/* ── Quotation Items Table ─────────────────────────────── */
+.tableCard {
+  background: #ffffff;
+  border: 1.5px solid rgba(173, 202, 255, 0.7);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 8px 14px 28px rgba(0, 29, 82, 0.08),
+              inset 4px 4px 8px #ffffff,
+              inset -4px -4px 8px rgba(173, 202, 255, 0.25);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: left;
+}
+
+.table th {
+  background: #001D52;
+  padding: 14px 20px;
+  font-weight: 700;
+  color: #ffffff;
+  border-bottom: 2px solid #70A2FF;
+  font-size: 13px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 15px 20px;
+  border-bottom: 1px solid #D6E4FF;
+  color: #001D52;
+  vertical-align: middle;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tr:hover td {
+  background: #F4F8FF;
+}
+
+/* Clay Inset Numerical Inputs */
+.qtyInput {
+  background: #F8FAFF;
+  border: 1.5px solid #ADCAFF;
+  border-radius: 10px;
+  color: #001D52;
+  padding: 6px 10px;
+  width: 60px;
+  font-size: 13.5px;
+  font-weight: 600;
+  outline: none;
+  box-shadow: inset 1px 1px 3px rgba(0, 29, 82, 0.08), inset -1px -1px 3px #ffffff;
+}
+
+.qtyInput:focus {
+  border-color: #70A2FF;
+  background: #ffffff;
+}
+
+.discountInput {
+  background: #F8FAFF;
+  border: 1.5px solid #ADCAFF;
+  border-radius: 10px;
+  color: #001D52;
+  padding: 6px 10px;
+  width: 70px;
+  font-size: 13.5px;
+  font-weight: 600;
+  outline: none;
+  box-shadow: inset 1px 1px 3px rgba(0, 29, 82, 0.08), inset -1px -1px 3px #ffffff;
+}
+
+.discountInput:focus {
+  border-color: #70A2FF;
+  background: #ffffff;
+}
+
+.statusOk {
+  color: #15803d;
+  font-weight: 700;
+  background: #ecfdf5;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid #a7f3d0;
+}
+
+.statusOver {
+  color: #991b1b;
+  font-weight: 700;
+  background: #fef2f2;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+}
+
+/* ── Golden / Amber Alert Clay Banner ──────────────────── */
+.alertBanner {
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+  border-radius: 16px;
+  padding: 14px 22px;
+  color: #92400e;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  box-shadow: 4px 8px 18px rgba(146, 64, 14, 0.08),
+              inset 2px 2px 4px rgba(255, 255, 255, 0.8),
+              inset -2px -2px 4px rgba(253, 230, 138, 0.35);
+}
+
+/* ── Upsell and Cross-Sell Suggestions Section ─────────── */
+.upsellSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.upsellTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #001D52;
+  margin: 0;
+  letter-spacing: -0.2px;
+}
+
+.upsellGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  width: 100%;
+}
+
+@media (max-width: 860px) {
+  .upsellGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Puffy Clay Upsell Card */
+.upsellCard {
+  background: #ffffff;
+  border: 1.5px solid rgba(173, 202, 255, 0.7);
+  border-radius: 18px;
+  padding: 18px 22px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  min-height: 90px;
+  box-shadow: 6px 10px 22px rgba(0, 29, 82, 0.07),
+              inset 3px 3px 6px #ffffff,
+              inset -3px -3px 6px rgba(173, 202, 255, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.upsellCard::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3.5px;
+  background: linear-gradient(90deg, #70A2FF, #ADCAFF);
+}
+
+.upsellCard:hover {
+  transform: translateY(-3px);
+  border-color: #70A2FF;
+  box-shadow: 8px 16px 26px rgba(0, 29, 82, 0.1),
+              inset 3px 3px 6px #ffffff,
+              inset -3px -3px 6px rgba(112, 162, 255, 0.3);
+}
+
+.upsellItemName {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #001D52;
+}
+
+.upsellSubtext {
+  font-size: 13.5px;
+  color: #3b5a8c;
+  font-weight: 500;
+}
+
+/* ── Action Buttons Row ────────────────────────────────── */
+.actionsRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.btnSaveDraft {
+  background: #ffffff;
+  color: #001D52;
+  border: 1.5px solid #ADCAFF;
+  border-radius: 14px;
+  padding: 11px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 4px 6px 14px rgba(0, 29, 82, 0.06),
+              inset 2px 2px 4px #ffffff,
+              inset -2px -2px 4px rgba(173, 202, 255, 0.25);
+}
+
+.btnSaveDraft:hover {
+  border-color: #70A2FF;
+  transform: translateY(-2px);
+  box-shadow: 6px 10px 18px rgba(0, 29, 82, 0.1);
+}
+
+.btnSubmitApproval {
+  background: #70A2FF;
+  color: #001D52;
+  border: 1.5px solid #ffffff;
+  border-radius: 14px;
+  padding: 11px 26px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 4px 8px 18px rgba(112, 162, 255, 0.38),
+              inset 2px 2px 5px rgba(255, 255, 255, 0.75),
+              inset -2px -2px 5px rgba(0, 29, 82, 0.25);
+}
+
+.btnSubmitApproval:hover {
+  background: #84b1ff;
+  transform: translateY(-2px);
+  box-shadow: 6px 12px 24px rgba(112, 162, 255, 0.48),
+              inset 2px 2px 5px rgba(255, 255, 255, 0.85);
+}

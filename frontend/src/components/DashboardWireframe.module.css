@@ -1,0 +1,218 @@
+/* ===================================================
+   DashboardWireframe.module.css
+   Claymorphism Theme (Screen #2)
+   Palette:
+   - Deep Navy:       #001D52
+   - Cornflower Blue: #70A2FF
+   - Baby Blue Ice:   #ADCAFF
+   - Lavender:        #D6E4FF
+   =================================================== */
+
+.canvas {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0;
+  padding: 4px 0 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  color: #001D52;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* ── Header ────────────────────────────────────────────── */
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #001D52;
+  letter-spacing: -0.4px;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #3b5a8c;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ── 3 Overview Cards Row ──────────────────────────────── */
+.cardsRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(240px, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+
+@media (max-width: 860px) {
+  .cardsRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Puffy Claymorphic Card */
+.card {
+  background: #ffffff;
+  border: 1.5px solid rgba(173, 202, 255, 0.7);
+  border-radius: 20px;
+  padding: 24px 26px;
+  min-height: 130px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 8px 14px 28px rgba(0, 29, 82, 0.08),
+              inset 4px 4px 8px #ffffff,
+              inset -4px -4px 8px rgba(173, 202, 255, 0.28);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #70A2FF, #ADCAFF);
+  border-radius: 20px 20px 0 0;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  border-color: #70A2FF;
+  box-shadow: 12px 20px 32px rgba(0, 29, 82, 0.12),
+              inset 4px 4px 8px #ffffff,
+              inset -4px -4px 8px rgba(112, 162, 255, 0.32);
+}
+
+.cardTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #001D52;
+  letter-spacing: -0.2px;
+}
+
+.cardCount {
+  font-size: 14px;
+  color: #3b5a8c;
+  font-weight: 500;
+}
+
+/* ── Action Buttons Row ────────────────────────────────── */
+.actionsRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+/* Primary Clay Button */
+.btnNewQuote {
+  background: #70A2FF;
+  color: #001D52;
+  border: 1.5px solid #ffffff;
+  border-radius: 14px;
+  padding: 11px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 4px 8px 18px rgba(112, 162, 255, 0.38),
+              inset 2px 2px 5px rgba(255, 255, 255, 0.75),
+              inset -2px -2px 5px rgba(0, 29, 82, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btnNewQuote:hover {
+  background: #84b1ff;
+  transform: translateY(-2px);
+  box-shadow: 6px 12px 24px rgba(112, 162, 255, 0.48),
+              inset 2px 2px 5px rgba(255, 255, 255, 0.85),
+              inset -2px -2px 5px rgba(0, 29, 82, 0.3);
+}
+
+/* Secondary Clay Button */
+.btnViewApprovals {
+  background: #ffffff;
+  color: #001D52;
+  border: 1.5px solid #ADCAFF;
+  border-radius: 14px;
+  padding: 11px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 4px 8px 16px rgba(0, 29, 82, 0.06),
+              inset 2px 2px 4px #ffffff,
+              inset -2px -2px 4px rgba(173, 202, 255, 0.25);
+}
+
+.btnViewApprovals:hover {
+  border-color: #70A2FF;
+  transform: translateY(-2px);
+  box-shadow: 6px 12px 20px rgba(0, 29, 82, 0.1),
+              inset 2px 2px 4px #ffffff,
+              inset -2px -2px 4px rgba(112, 162, 255, 0.25);
+}
+
+/* ── Recent Activity Section ───────────────────────────── */
+.activitySection {
+  margin-top: 8px;
+  background: #ffffff;
+  border: 1.5px solid rgba(173, 202, 255, 0.7);
+  border-radius: 20px;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 8px 14px 28px rgba(0, 29, 82, 0.08),
+              inset 4px 4px 8px #ffffff,
+              inset -4px -4px 8px rgba(173, 202, 255, 0.25);
+}
+
+.activityTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #001D52;
+  margin: 0;
+  letter-spacing: -0.2px;
+}
+
+.activityList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.activityList li {
+  font-size: 14px;
+  color: #2c4974;
+  line-height: 1.5;
+  padding: 10px 16px;
+  background: #F4F8FF;
+  border: 1px solid #D6E4FF;
+  border-radius: 12px;
+  box-shadow: inset 1px 1px 3px rgba(0, 29, 82, 0.04), inset -1px -1px 3px #ffffff;
+  transition: transform 0.12s ease;
+}
+
+.activityList li:hover {
+  transform: translateX(4px);
+  border-color: #ADCAFF;
+  background: #EBF2FF;
+}

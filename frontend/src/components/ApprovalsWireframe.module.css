@@ -1,0 +1,347 @@
+/* ===================================================
+   ApprovalsWireframe.module.css
+   Claymorphism Theme (Screen #5)
+   Palette:
+   - Deep Navy:       #001D52
+   - Cornflower Blue: #70A2FF
+   - Baby Blue Ice:   #ADCAFF
+   - Lavender:        #D6E4FF
+   =================================================== */
+
+.container {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #001D52;
+}
+
+/* ── Header ────────────────────────────────────────────── */
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #001D52;
+  letter-spacing: -0.4px;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #3b5a8c;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ── Status Counter Clay Badges / Pills Row ─────────────── */
+.badgesRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+
+.badgePending {
+  background: #FFF3D6;
+  color: #92400e;
+  border: 1.5px solid #FDE68A;
+  border-radius: 14px;
+  padding: 8px 20px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 4px 6px 14px rgba(146, 64, 14, 0.1),
+              inset 2px 2px 4px rgba(255, 255, 255, 0.8),
+              inset -2px -2px 4px rgba(253, 230, 138, 0.4);
+}
+
+.badgePending:hover {
+  transform: translateY(-2px);
+  box-shadow: 6px 10px 18px rgba(146, 64, 14, 0.18);
+}
+
+.badgeReturned {
+  background: #FFE4E4;
+  color: #991b1b;
+  border: 1.5px solid #FECACA;
+  border-radius: 14px;
+  padding: 8px 20px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 4px 6px 14px rgba(153, 27, 27, 0.1),
+              inset 2px 2px 4px rgba(255, 255, 255, 0.8),
+              inset -2px -2px 4px rgba(254, 202, 202, 0.4);
+}
+
+.badgeReturned:hover {
+  transform: translateY(-2px);
+  box-shadow: 6px 10px 18px rgba(153, 27, 27, 0.18);
+}
+
+.badgeApproved {
+  background: #DCFCE7;
+  color: #166534;
+  border: 1.5px solid #BBF7D0;
+  border-radius: 14px;
+  padding: 8px 20px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 4px 6px 14px rgba(22, 101, 52, 0.1),
+              inset 2px 2px 4px rgba(255, 255, 255, 0.8),
+              inset -2px -2px 4px rgba(187, 247, 208, 0.4);
+}
+
+.badgeApproved:hover {
+  transform: translateY(-2px);
+  box-shadow: 6px 10px 18px rgba(22, 101, 52, 0.18);
+}
+
+/* ── Filter Button ─────────────────────────────────────── */
+.filterRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.btnFilter {
+  background: #ffffff;
+  color: #001D52;
+  border: 1.5px solid #ADCAFF;
+  border-radius: 12px;
+  padding: 8px 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 3px 5px 12px rgba(0, 29, 82, 0.05),
+              inset 2px 2px 4px #ffffff,
+              inset -2px -2px 4px rgba(173, 202, 255, 0.2);
+}
+
+.btnFilter:hover {
+  border-color: #70A2FF;
+  transform: translateY(-1px);
+}
+
+.btnFilterActive {
+  background: #70A2FF !important;
+  border-color: #ffffff !important;
+  color: #001D52 !important;
+  font-weight: 700 !important;
+  box-shadow: 4px 6px 14px rgba(112, 162, 255, 0.35),
+              inset 2px 2px 4px rgba(255, 255, 255, 0.7),
+              inset -2px -2px 4px rgba(0, 29, 82, 0.2) !important;
+}
+
+/* ── Approvals Table Clay Card ─────────────────────────── */
+.tableCard {
+  background: #ffffff;
+  border: 1.5px solid rgba(173, 202, 255, 0.7);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 8px 14px 28px rgba(0, 29, 82, 0.08),
+              inset 4px 4px 8px #ffffff,
+              inset -4px -4px 8px rgba(173, 202, 255, 0.25);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: left;
+}
+
+.table th {
+  background: #001D52;
+  padding: 14px 20px;
+  font-weight: 700;
+  color: #ffffff;
+  border-bottom: 2px solid #70A2FF;
+  font-size: 13px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 15px 20px;
+  border-bottom: 1px solid #D6E4FF;
+  color: #001D52;
+  vertical-align: middle;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.tableRow {
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.tableRow:hover {
+  background: #F4F8FF;
+}
+
+.tableRowSelected {
+  background: #EBF2FF !important;
+  border-left: 4px solid #70A2FF;
+}
+
+/* ── Golden Alert Banner ───────────────────────────────── */
+.alertBanner {
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+  border-radius: 16px;
+  padding: 14px 22px;
+  color: #92400e;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  box-shadow: 4px 8px 18px rgba(146, 64, 14, 0.08),
+              inset 2px 2px 4px rgba(255, 255, 255, 0.8),
+              inset -2px -2px 4px rgba(253, 230, 138, 0.35);
+}
+
+/* ── Detail Drawer / Clay Card for Selected Item ───────── */
+.detailCard {
+  background: #ffffff;
+  border: 1.5px solid #70A2FF;
+  border-radius: 20px;
+  padding: 24px 28px;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 10px 18px 32px rgba(0, 29, 82, 0.1),
+              inset 4px 4px 8px #ffffff,
+              inset -4px -4px 8px rgba(173, 202, 255, 0.28);
+  animation: fadeIn 0.18s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.detailHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.detailTitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #001D52;
+}
+
+.detailText {
+  font-size: 14px;
+  color: #2c4974;
+  line-height: 1.55;
+}
+
+.actionsGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.btnApprove {
+  background: #16a34a;
+  color: #ffffff;
+  border: 1.5px solid #ffffff;
+  border-radius: 12px;
+  padding: 9px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 3px 6px 14px rgba(22, 163, 74, 0.25),
+              inset 2px 2px 4px rgba(255, 255, 255, 0.5),
+              inset -2px -2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.btnApprove:hover {
+  background: #15803d;
+  transform: translateY(-2px);
+}
+
+.btnReturn {
+  background: #f59e0b;
+  color: #ffffff;
+  border: 1.5px solid #ffffff;
+  border-radius: 12px;
+  padding: 9px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 3px 6px 14px rgba(245, 158, 11, 0.25),
+              inset 2px 2px 4px rgba(255, 255, 255, 0.5),
+              inset -2px -2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.btnReturn:hover {
+  background: #d97706;
+  transform: translateY(-2px);
+}
+
+.btnReject {
+  background: #dc2626;
+  color: #ffffff;
+  border: 1.5px solid #ffffff;
+  border-radius: 12px;
+  padding: 9px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 3px 6px 14px rgba(220, 38, 38, 0.25),
+              inset 2px 2px 4px rgba(255, 255, 255, 0.5),
+              inset -2px -2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.btnReject:hover {
+  background: #b91c1c;
+  transform: translateY(-2px);
+}
+
+.btnCloseDetail {
+  background: #ffffff;
+  color: #001D52;
+  border: 1.5px solid #ADCAFF;
+  border-radius: 12px;
+  padding: 9px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 3px 5px 12px rgba(0, 29, 82, 0.05),
+              inset 2px 2px 4px #ffffff,
+              inset -2px -2px 4px rgba(173, 202, 255, 0.2);
+}
+
+.btnCloseDetail:hover {
+  border-color: #70A2FF;
+  transform: translateY(-1px);
+}

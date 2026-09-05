@@ -1,0 +1,476 @@
+/* ===================================================
+   DealFlow360 — AppShell & Global Styles
+   Claymorphism Theme with Custom Color Palette:
+   - Deep Navy:       #001D52
+   - Cornflower Blue: #70A2FF
+   - Baby Blue Ice:   #ADCAFF
+   - Lavender:        #D6E4FF
+   =================================================== */
+
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #D6E4FF 0%, #E6EFFF 45%, #F4F8FF 100%);
+  color: #001D52;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Deep Navy Clay Header ─────────────────────────────── */
+/* ── Deep Navy Clay Header ─────────────────────────────── */
+.topNavSingleRow {
+  background: #001D52;
+  padding: 8px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 2.5px solid #70A2FF;
+  box-shadow: 0 6px 22px rgba(0, 29, 82, 0.35);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.brandNavLeft {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: 1;
+  min-width: 0;
+}
+
+.brandText {
+  font-size: 19px;
+  font-weight: 800;
+  color: #ffffff;
+  cursor: pointer;
+  letter-spacing: -0.4px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.brandText span {
+  color: #70A2FF;
+  text-shadow: 0 0 12px rgba(112, 162, 255, 0.6);
+}
+
+.navItemsList {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.navItemsList::-webkit-scrollbar {
+  display: none;
+}
+
+.navBtn {
+  background: transparent;
+  color: #ADCAFF;
+  border: 1.5px solid transparent;
+  border-radius: 14px;
+  padding: 8px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.navBtn:hover {
+  background: rgba(112, 162, 255, 0.16);
+  color: #ffffff;
+  border-color: rgba(173, 202, 255, 0.35);
+}
+
+/* Claymorphic Active Tab Pill — Full breathing room without clipping */
+.navBtnActive {
+  background: #70A2FF !important;
+  color: #001D52 !important;
+  font-weight: 800 !important;
+  border: 1.5px solid #ffffff !important;
+  border-radius: 14px !important;
+  padding: 8px 28px !important;
+  min-width: 120px;
+  text-align: center;
+  box-shadow: 0 3px 12px rgba(112, 162, 255, 0.45),
+              inset 2px 2px 4px rgba(255, 255, 255, 0.75),
+              inset -2px -2px 4px rgba(0, 29, 82, 0.25) !important;
+}
+
+.navRightTools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* Claymorphic Log Out Button */
+.logoutBtnCompact {
+  background: rgba(255, 255, 255, 0.08);
+  color: #D6E4FF;
+  border: 1.5px solid #ADCAFF;
+  border-radius: 10px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: inset 1px 1px 3px rgba(255, 255, 255, 0.2),
+              inset -1px -1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.logoutBtnCompact:hover {
+  background: #f87171;
+  color: #ffffff;
+  border-color: #ef4444;
+  box-shadow: 0 4px 12px rgba(248, 113, 113, 0.35),
+              inset 1px 1px 3px rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+/* ── Main Workspace Body ───────────────────────────────── */
+.workspace {
+  flex: 1;
+  max-width: 1240px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Common Header Card for Inner Modules ─────────────── */
+.moduleHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.moduleTitle {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  color: #001D52;
+  margin: 0;
+}
+
+.moduleSubtitle {
+  font-size: 14px;
+  color: #3b5a8c;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.btnGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── Claymorphic Primary & Secondary Buttons ───────────── */
+.btnPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #001D52;
+  background: #70A2FF;
+  border: 1.5px solid #ffffff;
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: 4px 8px 18px rgba(112, 162, 255, 0.35),
+              inset 2px 2px 5px rgba(255, 255, 255, 0.7),
+              inset -2px -2px 5px rgba(0, 29, 82, 0.25);
+  transition: all 0.15s ease;
+}
+
+.btnPrimary:hover {
+  background: #84b1ff;
+  box-shadow: 6px 12px 22px rgba(112, 162, 255, 0.45),
+              inset 2px 2px 5px rgba(255, 255, 255, 0.8),
+              inset -2px -2px 5px rgba(0, 29, 82, 0.3);
+  transform: translateY(-2px);
+}
+
+.btnPrimary:active {
+  transform: translateY(1px);
+  box-shadow: inset 2px 2px 5px rgba(0, 29, 82, 0.3),
+              inset -2px -2px 5px rgba(255, 255, 255, 0.4);
+}
+
+.btnSuccess {
+  background: #22c55e;
+  color: #ffffff;
+  border-color: #86efac;
+  box-shadow: 4px 8px 18px rgba(34, 197, 94, 0.35),
+              inset 2px 2px 5px rgba(255, 255, 255, 0.6),
+              inset -2px -2px 5px rgba(0, 0, 0, 0.25);
+}
+
+.btnSuccess:hover {
+  background: #16a34a;
+}
+
+.btnDanger {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #fca5a5;
+  box-shadow: 4px 8px 18px rgba(239, 68, 68, 0.35),
+              inset 2px 2px 5px rgba(255, 255, 255, 0.6),
+              inset -2px -2px 5px rgba(0, 0, 0, 0.25);
+}
+
+.btnDanger:hover {
+  background: #dc2626;
+}
+
+.btnSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #001D52;
+  background: #ffffff;
+  border: 1.5px solid #ADCAFF;
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: 4px 6px 14px rgba(0, 29, 82, 0.06),
+              inset 2px 2px 4px #ffffff,
+              inset -2px -2px 4px rgba(173, 202, 255, 0.25);
+  transition: all 0.15s ease;
+}
+
+.btnSecondary:hover {
+  border-color: #70A2FF;
+  transform: translateY(-2px);
+  box-shadow: 6px 10px 18px rgba(0, 29, 82, 0.09),
+              inset 2px 2px 4px #ffffff,
+              inset -2px -2px 4px rgba(112, 162, 255, 0.25);
+}
+
+/* ── Claymorphic Metric Cards Grid ─────────────────────── */
+.gridMetrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+}
+
+.cardMetric {
+  background: #ffffff;
+  border: 1.5px solid rgba(173, 202, 255, 0.6);
+  border-radius: 20px;
+  padding: 22px;
+  box-shadow: 8px 14px 28px rgba(0, 29, 82, 0.07),
+              inset 4px 4px 8px #ffffff,
+              inset -4px -4px 8px rgba(173, 202, 255, 0.25);
+  transition: transform 0.18s ease;
+}
+
+.cardMetric:hover {
+  transform: translateY(-2px);
+}
+
+.metricTitle {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #3b5a8c;
+}
+
+.metricValue {
+  font-size: 28px;
+  font-weight: 800;
+  color: #001D52;
+  margin: 6px 0 6px;
+  letter-spacing: -0.5px;
+}
+
+.metricSubtext {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.subtextSuccess { color: #16a34a; }
+.subtextWarning { color: #d97706; }
+.subtextDanger  { color: #dc2626; }
+.subtextInfo    { color: #001D52; }
+
+/* ── Claymorphic Card & Tables ─────────────────────────── */
+.card {
+  background: #ffffff;
+  border: 1.5px solid rgba(173, 202, 255, 0.6);
+  border-radius: 22px;
+  box-shadow: 10px 18px 32px rgba(0, 29, 82, 0.08),
+              inset 5px 5px 10px #ffffff,
+              inset -5px -5px 10px rgba(173, 202, 255, 0.25);
+  overflow: hidden;
+}
+
+.cardHeader {
+  padding: 18px 24px;
+  border-bottom: 1.5px solid #D6E4FF;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(180deg, #F5F8FF 0%, #EBF2FF 100%);
+}
+
+.cardTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #001D52;
+}
+
+.cardBody {
+  padding: 24px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: left;
+}
+
+.table th {
+  background: #EBF2FF;
+  padding: 14px 20px;
+  font-weight: 700;
+  color: #001D52;
+  border-bottom: 1.5px solid #ADCAFF;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 15px 20px;
+  border-bottom: 1px solid #EBF2FF;
+  color: #001D52;
+  vertical-align: middle;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tr:hover {
+  background: #F4F8FF;
+}
+
+/* ── Claymorphic Badges ────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 10px;
+  line-height: 1.2;
+  box-shadow: 2px 3px 6px rgba(0, 29, 82, 0.08),
+              inset 1px 1px 3px rgba(255, 255, 255, 0.6),
+              inset -1px -1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.badgeDraft { background: #EBF2FF; color: #001D52; border: 1px solid #ADCAFF; }
+.badgeReview { background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; }
+.badgeApproved { background: #D6E4FF; color: #001D52; border: 1px solid #70A2FF; }
+.badgeNegotiating { background: #F3E8FF; color: #6B21A8; border: 1px solid #E9D5FF; }
+.badgeConfirmed { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
+
+.badgeRiskLow { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
+.badgeRiskMedium { background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; }
+.badgeRiskHigh { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
+
+/* ── Inset Clay Form Controls ──────────────────────────── */
+.formRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formLabel {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #001D52;
+}
+
+.formInput {
+  background: #F4F8FF;
+  border: 1.5px solid #ADCAFF;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  color: #001D52;
+  outline: none;
+  box-shadow: inset 2px 2px 5px rgba(0, 29, 82, 0.05),
+              inset -2px -2px 5px #ffffff;
+  transition: all 0.15s ease;
+}
+
+.formInput:focus {
+  border-color: #70A2FF;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(112, 162, 255, 0.2),
+              inset 1px 1px 3px rgba(0, 29, 82, 0.05);
+}
+
+/* ── Toast Notification ────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #001D52;
+  color: #ffffff;
+  padding: 14px 24px;
+  border-radius: 14px;
+  border: 1.5px solid #70A2FF;
+  box-shadow: 0 12px 30px rgba(0, 29, 82, 0.3),
+              inset 2px 2px 4px rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 100;
+  animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

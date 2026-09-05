@@ -1,0 +1,262 @@
+/* ===================================================
+   SubscriptionsWireframe.module.css
+   Claymorphism Theme (Screens #9 & #10)
+   Palette:
+   - Deep Navy:       #001D52
+   - Cornflower Blue: #70A2FF
+   - Baby Blue Ice:   #ADCAFF
+   - Lavender:        #D6E4FF
+   =================================================== */
+
+.container {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #001D52;
+}
+
+/* ── Header ────────────────────────────────────────────── */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #001D52;
+  letter-spacing: -0.4px;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #3b5a8c;
+  margin: 4px 0 0;
+  font-weight: 500;
+}
+
+.btnBack {
+  background: #ffffff;
+  color: #001D52;
+  border: 1.5px solid #ADCAFF;
+  border-radius: 12px;
+  padding: 7px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  box-shadow: 3px 5px 12px rgba(0, 29, 82, 0.05),
+              inset 2px 2px 4px #ffffff,
+              inset -2px -2px 4px rgba(173, 202, 255, 0.2);
+}
+
+.btnBack:hover {
+  border-color: #70A2FF;
+  transform: translateY(-1px);
+}
+
+/* ── Section Headings ──────────────────────────────────── */
+.sectionHeading {
+  font-size: 16px;
+  font-weight: 700;
+  color: #001D52;
+  margin: 8px 0 0;
+  letter-spacing: -0.2px;
+}
+
+/* ── Status Counter Badges / Clay Pills Row ─────────────── */
+.badgesRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+
+.badgeActive {
+  background: #DCFCE7;
+  color: #166534;
+  border: 1.5px solid #BBF7D0;
+  border-radius: 14px;
+  padding: 8px 20px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 4px 6px 14px rgba(22, 101, 52, 0.1),
+              inset 2px 2px 4px rgba(255, 255, 255, 0.8),
+              inset -2px -2px 4px rgba(187, 247, 208, 0.4);
+}
+
+.badgeActive:hover {
+  transform: translateY(-2px);
+  box-shadow: 6px 10px 18px rgba(22, 101, 52, 0.18);
+}
+
+.badgePaused {
+  background: #FFF3D6;
+  color: #92400e;
+  border: 1.5px solid #FDE68A;
+  border-radius: 14px;
+  padding: 8px 20px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 4px 6px 14px rgba(146, 64, 14, 0.1),
+              inset 2px 2px 4px rgba(255, 255, 255, 0.8),
+              inset -2px -2px 4px rgba(253, 230, 138, 0.4);
+}
+
+.badgePaused:hover {
+  transform: translateY(-2px);
+  box-shadow: 6px 10px 18px rgba(146, 64, 14, 0.18);
+}
+
+.badgeCancelled {
+  background: #FFE4E4;
+  color: #991b1b;
+  border: 1.5px solid #FECACA;
+  border-radius: 14px;
+  padding: 8px 20px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 4px 6px 14px rgba(153, 27, 27, 0.1),
+              inset 2px 2px 4px rgba(255, 255, 255, 0.8),
+              inset -2px -2px 4px rgba(254, 202, 202, 0.4);
+}
+
+.badgeCancelled:hover {
+  transform: translateY(-2px);
+  box-shadow: 6px 10px 18px rgba(153, 27, 27, 0.18);
+}
+
+/* ── Tables ────────────────────────────────────────────── */
+.tableCard {
+  background: #ffffff;
+  border: 1.5px solid rgba(173, 202, 255, 0.7);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 8px 14px 28px rgba(0, 29, 82, 0.08),
+              inset 4px 4px 8px #ffffff,
+              inset -4px -4px 8px rgba(173, 202, 255, 0.25);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: left;
+}
+
+.table th {
+  background: #001D52;
+  padding: 14px 20px;
+  font-weight: 700;
+  color: #ffffff;
+  border-bottom: 2px solid #70A2FF;
+  font-size: 13px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 15px 20px;
+  border-bottom: 1px solid #D6E4FF;
+  color: #001D52;
+  vertical-align: middle;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.tableRow {
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.tableRow:hover {
+  background: #F4F8FF;
+}
+
+/* ── Action Buttons Row ────────────────────────────────── */
+.actionsRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.btnNewPlan {
+  background: #70A2FF;
+  color: #001D52;
+  border: 1.5px solid #ffffff;
+  border-radius: 14px;
+  padding: 11px 26px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 4px 8px 18px rgba(112, 162, 255, 0.38),
+              inset 2px 2px 5px rgba(255, 255, 255, 0.75),
+              inset -2px -2px 5px rgba(0, 29, 82, 0.25);
+}
+
+.btnNewPlan:hover {
+  background: #84b1ff;
+  transform: translateY(-2px);
+  box-shadow: 6px 12px 24px rgba(112, 162, 255, 0.48),
+              inset 2px 2px 5px rgba(255, 255, 255, 0.85);
+}
+
+.btnModify {
+  background: #ffffff;
+  color: #001D52;
+  border: 1.5px solid #ADCAFF;
+  border-radius: 14px;
+  padding: 11px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 4px 6px 14px rgba(0, 29, 82, 0.06),
+              inset 2px 2px 4px #ffffff,
+              inset -2px -2px 4px rgba(173, 202, 255, 0.25);
+}
+
+.btnModify:hover {
+  border-color: #70A2FF;
+  transform: translateY(-2px);
+  box-shadow: 6px 10px 18px rgba(0, 29, 82, 0.1);
+}
+
+.btnCancelSub {
+  background: #FFE4E4;
+  color: #991b1b;
+  border: 1.5px solid #FECACA;
+  border-radius: 14px;
+  padding: 11px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 4px 6px 14px rgba(153, 27, 27, 0.1),
+              inset 2px 2px 4px rgba(255, 255, 255, 0.8),
+              inset -2px -2px 4px rgba(254, 202, 202, 0.4);
+}
+
+.btnCancelSub:hover {
+  background: #fca5a5;
+  transform: translateY(-2px);
+}
