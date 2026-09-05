@@ -37,7 +37,7 @@ export interface Quotation {
   id: string
   dealName: string
   customerName: string
-  customerTier: 'Bronze' | 'Silver' | 'Gold' | 'Platinum'
+  customerTier: 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'ENTERPRISE' | 'MID_MARKET' | 'SMB' | string
   salesRep: string
   status: QuotationStatus
   createdAt: string

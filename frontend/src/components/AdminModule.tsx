@@ -211,9 +211,67 @@ export default function AdminModule({
   onSwitchRole,
   onShowToast,
   onImpersonateUser,
+  users,
 }: AdminModuleProps) {
-  // Directory & Users State
-  const [directory, setDirectory] = useState<DirectoryUser[]>(INITIAL_DIRECTORY)
+  // Directory & Users State from live PostgreSQL
+  const [directory, setDirectory] = useState<DirectoryUser[]>(() => {
+    if (users && users.length > 0) {
+      return users.map((u, idx) => {
+        const r = (u.role || '').toLowerCase()
+        const mappedRole: UserRole = r.includes('admin')
+          ? 'admin'
+          : r.includes('manager')
+          ? 'sales_manager'
+          : r.includes('finance') || r.includes('operation')
+          ? 'finance'
+          : r.includes('customer')
+          ? 'customer'
+          : 'sales_rep'
+        return {
+          id: `u-${u.id || idx + 1}`,
+          name: u.name,
+          email: u.email,
+          role: mappedRole,
+          roleLabel: u.role,
+          company: mappedRole === 'customer' ? 'Customer Account' : 'DealFlow360 HQ',
+          status: (u.status === 'Active' ? 'Active' : 'Pending Invite') as any,
+          lastActive: 'Active in Database',
+          avatarInitials: u.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'U',
+        }
+      })
+    }
+    return INITIAL_DIRECTORY
+  })
+
+  React.useEffect(() => {
+    if (users && users.length > 0) {
+      setDirectory(
+        users.map((u, idx) => {
+          const r = (u.role || '').toLowerCase()
+          const mappedRole: UserRole = r.includes('admin')
+            ? 'admin'
+            : r.includes('manager')
+            ? 'sales_manager'
+            : r.includes('finance') || r.includes('operation')
+            ? 'finance'
+            : r.includes('customer')
+            ? 'customer'
+            : 'sales_rep'
+          return {
+            id: `u-${u.id || idx + 1}`,
+            name: u.name,
+            email: u.email,
+            role: mappedRole,
+            roleLabel: u.role,
+            company: mappedRole === 'customer' ? 'Customer Account' : 'DealFlow360 HQ',
+            status: (u.status === 'Active' ? 'Active' : 'Pending Invite') as any,
+            lastActive: 'Active in Database',
+            avatarInitials: u.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'U',
+          }
+        })
+      )
+    }
+  }, [users])
 
   // Tab 1: Access Provisioning Form State
   const [provisionName, setProvisionName] = useState('Liam Thorne')

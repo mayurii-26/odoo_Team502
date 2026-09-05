@@ -25,19 +25,40 @@ export default function CustomerPortalModule({
   onShowToast,
   customerTab = 'quotation',
 }: CustomerPortalProps) {
-  // Negotiation items matching wireframe
-  const [lines, setLines] = useState<NegotiationLine[]>([
-    {
-      id: 'neg-1',
-      line: 'Extended Warranty',
-      customerComment: 'Can this be 15% off instead of 10%?',
-    },
-    {
-      id: 'neg-2',
-      line: 'Onsite Setup',
-      customerComment: 'Can we push this to next month?',
-    },
-  ])
+  // Negotiation items matching wireframe or live quotation items
+  const [lines, setLines] = useState<NegotiationLine[]>(() => {
+    if (quotation?.items && quotation.items.length > 0) {
+      return quotation.items.map((item, idx) => ({
+        id: `neg-${item.id || idx + 1}`,
+        line: item.name,
+        customerComment: idx === 0 ? 'Requesting additional volume discount.' : 'Terms acceptable.',
+      }))
+    }
+    return [
+      {
+        id: 'neg-1',
+        line: 'Extended Warranty',
+        customerComment: 'Can this be 15% off instead of 10%?',
+      },
+      {
+        id: 'neg-2',
+        line: 'Onsite Setup',
+        customerComment: 'Can we push this to next month?',
+      },
+    ]
+  })
+
+  React.useEffect(() => {
+    if (quotation?.items && quotation.items.length > 0) {
+      setLines(
+        quotation.items.map((item, idx) => ({
+          id: `neg-${item.id || idx + 1}`,
+          line: item.name,
+          customerComment: idx === 0 ? 'Requesting additional volume discount.' : 'Terms acceptable.',
+        }))
+      )
+    }
+  }, [quotation?.id, quotation?.items])
 
   const [counterDiscount, setCounterDiscount] = useState('15')
   const [requestedDeliveryDate, setRequestedDeliveryDate] = useState('2026-10-15')

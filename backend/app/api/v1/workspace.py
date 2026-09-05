@@ -17,6 +17,7 @@ from app.models.approval import Approval, ApprovalStep
 from app.models.health import DealHealthSnapshot
 from app.models.customer import Customer, CustomerContact
 from app.models.user import User
+from app.models.discount import DiscountTier, DiscountRule
 
 router = APIRouter()
 
@@ -50,6 +51,7 @@ def format_quotation(q: Quotation, db: Session) -> Dict[str, Any]:
     # Customer and primary contact
     customer = db.query(Customer).filter(Customer.id == q.customer_id).first()
     cust_company = customer.company_name if customer else "Enterprise Client"
+    cust_tier = customer.customer_tier if customer else "Gold"
     
     primary_contact = db.query(CustomerContact).filter(CustomerContact.customer_id == q.customer_id, CustomerContact.is_primary == True).first()
     if not primary_contact:
@@ -67,11 +69,16 @@ def format_quotation(q: Quotation, db: Session) -> Dict[str, Any]:
         prod = db.query(Product).filter(Product.id == l.product_id).first()
         prod_name = prod.name if prod else f"Product #{l.product_id}"
         sku = prod.sku if prod else f"SKU-{l.product_id}"
+        cat_frontend = "Services" if (prod and prod.category_id in [4, 5]) else "Hardware"
+        prod_type = "recurring" if (prod and prod.category_id in [4, 5] and any(x in prod_name.lower() for x in ["care", "support", "plan", "warranty"])) else "one_time"
+
         formatted_lines.append({
             "id": str(l.id),
             "product_id": l.product_id,
             "product_name": prod_name,
             "sku": sku,
+            "category": cat_frontend,
+            "type": prod_type,
             "quantity": l.quantity,
             "unit_price": float(l.unit_price or 0.0),
             "unit_cost": float(l.unit_cost or 0.0),
@@ -92,6 +99,7 @@ def format_quotation(q: Quotation, db: Session) -> Dict[str, Any]:
         "customer_name": cust_name,
         "customer_company": cust_company,
         "customer_email": cust_email,
+        "customer_tier": cust_tier,
         "total_amount": float(q.total_amount or 0.0),
         "subtotal": float(q.subtotal or 0.0),
         "discount_amount": float(q.discount_amount or 0.0),
@@ -150,14 +158,17 @@ def get_workspace_bootstrap(db: Session = Depends(get_db)):
     db_warehouses = db.query(Warehouse).all()
     warehouses_list = []
     for w in db_warehouses:
-        total_units = db.query(func.sum(InventoryStock.quantity_on_hand)).filter(InventoryStock.warehouse_id == w.id).scalar() or 2400
+        total_units = db.query(func.sum(InventoryStock.quantity_on_hand)).filter(InventoryStock.warehouse_id == w.id).scalar() or 0
+        stocks = db.query(InventoryStock).filter(InventoryStock.warehouse_id == w.id).all()
+        inv_map = {str(s.product_id): int(s.quantity_available or s.quantity_on_hand) for s in stocks}
         warehouses_list.append({
-            "id": w.id,
+            "id": str(w.id),
             "code": w.warehouse_code,
             "name": w.name,
             "location": f"{w.city}, {w.state or w.country}",
             "capacity": w.capacity,
             "current_stock": int(total_units),
+            "inventory": inv_map,
             "manager_name": w.manager_name or "Operations Lead"
         })
 
@@ -230,7 +241,9 @@ def get_workspace_bootstrap(db: Session = Depends(get_db)):
             "id": u.id,
             "email": u.email,
             "fullName": u.name,
+            "name": u.name,
             "role": u.role,
+            "status": "Active" if u.status == "ACTIVE" else "Pending Invite",
             "is_active": u.status == "ACTIVE",
             "department": "Sales Operations"
         })
@@ -252,6 +265,28 @@ def get_workspace_bootstrap(db: Session = Depends(get_db)):
         "avg_margin": 38.6
     }
 
+    # 9. Governance Rules from PostgreSQL
+    db_tiers = db.query(DiscountTier).all()
+    tier_limits = {t.name: float(t.max_discount) for t in db_tiers}
+    if "Platinum" not in tier_limits:
+        tier_limits["Platinum"] = 20.0
+    if "Bronze" not in tier_limits:
+        tier_limits["Bronze"] = 5.0
+    if "Silver" not in tier_limits:
+        tier_limits["Silver"] = 10.0
+    if "Gold" not in tier_limits:
+        tier_limits["Gold"] = 15.0
+
+    cat_limits = {"Hardware": 15.0, "Software": 25.0, "Services": 10.0}
+    governance_data = {
+        "tierLimits": tier_limits,
+        "categoryLimits": cat_limits,
+        "approvalLevels": {
+            "managerThreshold": 15.0,
+            "financeThreshold": 20.0
+        }
+    }
+
     return {
         "status": "success",
         "data": {
@@ -262,6 +297,7 @@ def get_workspace_bootstrap(db: Session = Depends(get_db)):
             "subscriptions": subs_list,
             "approvals": approvals_list,
             "users": users_list,
+            "governance": governance_data,
             "reports": reports_summary
         }
     }

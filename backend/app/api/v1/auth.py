@@ -206,8 +206,16 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     """
     clean_email = payload.email.strip().lower()
     
-    # Check PostgreSQL database user
-    user = db.query(User).filter(User.email.ilike(clean_email)).first()
+    # Check PostgreSQL database user (supports .demo seed users and .com aliases)
+    alias_map = {
+        "admin@dealflow360.com": "admin@dealflow360.demo",
+        "sales@dealflow360.com": "sales1@dealflow360.demo",
+        "manager@dealflow360.com": "manager1@dealflow360.demo",
+        "finance@dealflow360.com": "finance1@dealflow360.demo",
+        "customer@acme.com": "customer1@acme.demo",
+    }
+    lookup_email = alias_map.get(clean_email, clean_email)
+    user = db.query(User).filter(User.email.ilike(lookup_email)).first()
     if user:
         if user.status == "PENDING_VERIFICATION":
             raise HTTPException(

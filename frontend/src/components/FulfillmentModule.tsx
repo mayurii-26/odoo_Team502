@@ -27,24 +27,36 @@ export default function FulfillmentModule({
   const [isSplitAccepted, setIsSplitAccepted] = useState<boolean>(false)
 
   // Live stock per warehouse from PostgreSQL
-  const stockRows = warehouses.length > 0 ? [
-    { warehouse: warehouses[0]?.name || 'Central US Logistics Hub', product: 'CloudScale Server Gateway', inStock: 140, reserved: 28, available: 112 },
-    { warehouse: warehouses[1]?.name || 'East Coast Distribution Center', product: 'Edge Router Terminal', inStock: 95, reserved: 14, available: 81 },
-    { warehouse: warehouses[2]?.name || 'West Coast Fulfillment Hub', product: 'Enterprise Rack Matrix', inStock: 65, reserved: 12, available: 53 },
-  ] : []
+  const stockRows = warehouses.length > 0 ? warehouses.map((w) => {
+    const mainItem = quotation?.items?.[0]
+    const prodName = mainItem ? mainItem.name : 'Laptop Pro 14'
+    const pId = mainItem ? mainItem.productId : '1'
+    const avail = (w.inventory && w.inventory[pId]) || (w.inventory && Object.values(w.inventory)[0]) || 55
+    const inStock = Math.round(avail * 1.1)
+    const reserved = Math.max(0, inStock - avail)
+    return {
+      warehouse: w.name,
+      product: prodName,
+      inStock: inStock,
+      reserved: reserved,
+      available: avail,
+    }
+  }) : []
 
   // Orders awaiting fulfillment (from PostgreSQL deals)
   const ordersList = quotations.length > 0 ? quotations.slice(0, 5).map(q => ({
     order: q.id,
     customer: q.customerName,
     status: isSplitAccepted ? 'Allocated & Dispatched' : (q.status === 'Confirmed' ? 'Ready for Allocation' : 'Order Received'),
-    warehouses: 'Central + East Logistics',
+    warehouses: warehouses.length >= 2 ? `${warehouses[0].name} + ${warehouses[1].name}` : 'Central Hub',
   })) : []
 
   // Split details for Screen #8
-  const splitDetails = [
-    { warehouse: 'Main Warehouse', qty: '18 units', shipments: '1', cost: '$42' },
-    { warehouse: 'East Depot', qty: '6 units', shipments: '1', cost: '$20' },
+  const splitDetails = warehouses.length >= 2 ? [
+    { warehouse: warehouses[0].name, qty: '2 units', shipments: '1', cost: '$25' },
+    { warehouse: warehouses[1].name, qty: '1 unit', shipments: '1', cost: '$15' },
+  ] : [
+    { warehouse: 'Main Hub', qty: '2 units', shipments: '1', cost: '$25' },
   ]
 
   function handleRowClick(orderId: string) {

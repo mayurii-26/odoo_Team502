@@ -227,6 +227,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
   const [invoices, setInvoices] = useState<any[]>([])
   const [subscriptions, setSubscriptions] = useState<any[]>([])
   const [approvals, setApprovals] = useState<any[]>([])
+  const [reportsData, setReportsData] = useState<any>(null)
   const [isDbLoaded, setIsDbLoaded] = useState<boolean>(true)
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false)
 
@@ -354,7 +355,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             id: dq.quote_number || dq.id,
             dealName: `${dq.customer_company || dq.customer_name} - $${Number(dq.total_amount).toLocaleString()}`,
             customerName: dq.customer_company || dq.customer_name,
-            customerTier: 'Gold',
+            customerTier: dq.customer_tier || 'Gold',
             salesRep: dq.sales_rep || 'Jane Smith',
             status: mapBackendStatusToFrontend(dq.status),
             createdAt: dq.created_at || '2026-03-01',
@@ -365,8 +366,8 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
               id: String(l.id),
               productId: String(l.product_id),
               name: l.product_name,
-              category: 'Hardware',
-              type: 'one_time',
+              category: l.category === 'Services' ? 'Services' : l.category === 'Software' ? 'Software' : 'Hardware',
+              type: l.type === 'recurring' ? 'recurring' : 'one_time',
               qty: l.quantity,
               unitPrice: l.unit_price,
               discountPct: l.discount_percent,
@@ -375,14 +376,13 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
               {
                 id: '1',
                 productId: '1',
-                name: 'CloudScale Engine',
-                category: 'Software',
-                type: 'recurring',
-                billingInterval: 'annual',
+                name: 'Laptop Pro 14',
+                category: 'Hardware',
+                type: 'one_time',
                 qty: 1,
-                unitPrice: dq.total_amount || 12400,
+                unitPrice: dq.total_amount || 1200,
                 discountPct: dq.discount_percent || 0,
-                costPrice: (dq.total_amount || 12400) * 0.6,
+                costPrice: (dq.total_amount || 1200) * 0.7,
               }
             ],
           }))
@@ -398,7 +398,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             sku: dp.sku,
             name: dp.name,
             category: dp.category === 'Software' ? 'Software' : dp.category === 'Services' ? 'Services' : 'Hardware',
-            type: dp.name.toLowerCase().includes('subscription') || dp.name.toLowerCase().includes('cloud') ? 'recurring' : 'one_time',
+            type: dp.name.toLowerCase().includes('subscription') || dp.name.toLowerCase().includes('cloud') || dp.name.toLowerCase().includes('care') ? 'recurring' : 'one_time',
             unitPrice: dp.unit_price,
             costPrice: dp.cost_price,
             stock: dp.stock_quantity || 50,
@@ -412,13 +412,20 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             id: String(dw.id),
             name: dw.name,
             location: dw.location,
-            inventory: { '1': dw.current_stock || 150 },
+            inventory: dw.inventory || { '1': dw.current_stock || 150 },
           }))
           setWarehouses(adaptedWarehouses)
         }
 
         if (data.users && data.users.length > 0) {
-          setUsers(data.users)
+          const adaptedUsers: UserAccount[] = data.users.map((u: any) => ({
+            id: u.id,
+            name: u.name || u.fullName,
+            email: u.email,
+            role: u.role,
+            status: u.status || (u.is_active ? 'Active' : 'Pending Invite'),
+          }))
+          setUsers(adaptedUsers)
         }
         if (data.invoices && data.invoices.length > 0) {
           setInvoices(data.invoices)
@@ -428,6 +435,12 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
         }
         if (data.approvals && data.approvals.length > 0) {
           setApprovals(data.approvals)
+        }
+        if (data.governance) {
+          setGovernance(data.governance)
+        }
+        if (data.reports) {
+          setReportsData(data.reports)
         }
 
         setIsDbLoaded(true)
@@ -1074,6 +1087,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
               }
               onSwitchRole={onSwitchRole}
               onShowToast={showToast}
+              users={users}
             />
           )}
 
@@ -1182,6 +1196,8 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
           {/* Reports & Analytics */}
           {activeModule === 'reports' && (
             <ReportsModule
+              reportsData={reportsData}
+              quotations={quotations}
               onNavigate={handleNavigateModule}
               onShowToast={showToast}
             />

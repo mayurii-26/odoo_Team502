@@ -26,6 +26,7 @@ export interface BootstrapResponse {
     subscriptions: any[]
     approvals: any[]
     users: UserAccount[]
+    governance?: GovernanceRule
     reports: {
       total_revenue: number
       active_pipeline: number
@@ -66,21 +67,21 @@ export async function loginUser(credentials: { email: string; password: string }
     // Network fallback
   }
 
-  // Demo account fallback
+  // Demo account fallback matching PostgreSQL users
   if (cleanEmail.includes('admin')) {
-    return { email: cleanEmail, fullName: 'Sarah Connor', full_name: 'Sarah Connor', role: 'admin' }
+    return { email: cleanEmail, fullName: 'Rajesh Varma', full_name: 'Rajesh Varma', role: 'admin' }
   } else if (cleanEmail.includes('manager')) {
-    return { email: cleanEmail, fullName: 'Alex Rivera', full_name: 'Alex Rivera', role: 'sales_manager' }
+    return { email: cleanEmail, fullName: 'Rohan Kapoor', full_name: 'Rohan Kapoor', role: 'sales_manager' }
   } else if (cleanEmail.includes('finance')) {
-    return { email: cleanEmail, fullName: 'David Chen', full_name: 'David Chen', role: 'finance' }
+    return { email: cleanEmail, fullName: 'Vikram Malhotra', full_name: 'Vikram Malhotra', role: 'finance' }
   } else if (cleanEmail.includes('customer') || cleanEmail.includes('acme')) {
-    return { email: cleanEmail, fullName: 'Acme Contact', full_name: 'Acme Contact', role: 'customer' }
+    return { email: cleanEmail, fullName: 'Kavita Rao', full_name: 'Kavita Rao', companyName: 'Acme Corp', role: 'customer' }
   }
 
   return {
     email: cleanEmail,
-    fullName: 'Jane Smith (Sales Rep)',
-    full_name: 'Jane Smith (Sales Rep)',
+    fullName: 'Aarav Sharma',
+    full_name: 'Aarav Sharma',
     role: 'sales_rep',
   }
 }
