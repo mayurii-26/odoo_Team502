@@ -60,53 +60,91 @@ class CreateAuditLogPayload(BaseModel):
     new_value: Optional[str] = None
     details: Optional[str] = None
 
-# â"â" Helpers to format model objects to frontend shapes â"â"â"â"â"â"â"
-def format_quotation(q: Quotation, db: Session) -> Dict[str, Any]:
-    lines = db.query(QuotationLine).filter(QuotationLine.quotation_id == q.id).all()
-    
-    # Customer and primary contact
-    customer = db.query(Customer).filter(Customer.id == q.customer_id).first()
-    cust_company = customer.company_name if customer else "Enterprise Client"
-    cust_tier = customer.customer_tier if customer else "Gold"
-    
-    primary_contact = db.query(CustomerContact).filter(CustomerContact.customer_id == q.customer_id, CustomerContact.is_primary == True).first()
-    if not primary_contact:
-        primary_contact = db.query(CustomerContact).filter(CustomerContact.customer_id == q.customer_id).first()
+# ── Helpers ───────────────────────────────────────────────────
+def format_quotation(q: Quotation, db: Session, preloaded: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    if preloaded:
+        customers_map = preloaded.get("customers", {})
+        contacts_map = preloaded.get("contacts", {})
+        users_map = preloaded.get("users", {})
+        products_map = preloaded.get("products", {})
+        lines = preloaded.get("lines_by_quote", {}).get(q.id, [])
 
-    cust_name = primary_contact.name if primary_contact else cust_company
-    cust_email = primary_contact.email if primary_contact else "client@example.com"
+        customer = customers_map.get(q.customer_id)
+        cust_company = customer.company_name if customer else "Enterprise Client"
+        cust_tier = customer.customer_tier if customer else "Gold"
+        primary_contact = contacts_map.get(q.customer_id)
+        cust_name = primary_contact.name if primary_contact else cust_company
+        cust_email = primary_contact.email if primary_contact else "client@example.com"
+        sales_rep = users_map.get(q.sales_rep_id)
+        sales_rep_name = sales_rep.name if sales_rep else "Jane Smith"
 
-    # Sales Rep
-    sales_rep = db.query(User).filter(User.id == q.sales_rep_id).first()
-    sales_rep_name = sales_rep.name if sales_rep else "Jane Smith"
+        formatted_lines = []
+        for l in lines:
+            prod = products_map.get(l.product_id)
+            prod_name = prod.name if prod else f"Product #{l.product_id}"
+            sku = prod.sku if prod else f"SKU-{l.product_id}"
+            cat_frontend = "Services" if (prod and prod.category_id in [4, 5]) else "Hardware"
+            prod_type = "recurring" if (prod and prod.category_id in [4, 5] and any(x in prod_name.lower() for x in ["care", "support", "plan", "warranty"])) else "one_time"
 
-    formatted_lines = []
-    for l in lines:
-        prod = db.query(Product).filter(Product.id == l.product_id).first()
-        prod_name = prod.name if prod else f"Product #{l.product_id}"
-        sku = prod.sku if prod else f"SKU-{l.product_id}"
-        cat_frontend = "Services" if (prod and prod.category_id in [4, 5]) else "Hardware"
-        prod_type = "recurring" if (prod and prod.category_id in [4, 5] and any(x in prod_name.lower() for x in ["care", "support", "plan", "warranty"])) else "one_time"
+            formatted_lines.append({
+                "id": str(l.id),
+                "product_id": l.product_id,
+                "product_name": prod_name,
+                "sku": sku,
+                "category": cat_frontend,
+                "type": prod_type,
+                "quantity": l.quantity,
+                "unit_price": float(l.unit_price or 0.0),
+                "unit_cost": float(l.unit_cost or 0.0),
+                "discount_percent": float(l.discount_percent or 0.0),
+                "discount_amount": float(l.discount_amount or 0.0),
+                "line_subtotal": float(l.line_subtotal or 0.0),
+                "line_cost": float(l.line_cost or 0.0),
+                "line_margin": float(l.line_margin or 0.0),
+                "line_margin_percent": float(l.line_margin_percent or 0.0),
+                "discount_limit_percent": float(l.discount_limit_percent or 15.0),
+                "discount_status": l.discount_status or "OK"
+            })
+    else:
+        lines = db.query(QuotationLine).filter(QuotationLine.quotation_id == q.id).all()
+        customer = db.query(Customer).filter(Customer.id == q.customer_id).first()
+        cust_company = customer.company_name if customer else "Enterprise Client"
+        cust_tier = customer.customer_tier if customer else "Gold"
+        primary_contact = db.query(CustomerContact).filter(CustomerContact.customer_id == q.customer_id, CustomerContact.is_primary == True).first()
+        if not primary_contact:
+            primary_contact = db.query(CustomerContact).filter(CustomerContact.customer_id == q.customer_id).first()
+        cust_name = primary_contact.name if primary_contact else cust_company
+        cust_email = primary_contact.email if primary_contact else "client@example.com"
+        sales_rep = db.query(User).filter(User.id == q.sales_rep_id).first()
+        sales_rep_name = sales_rep.name if sales_rep else "Jane Smith"
 
-        formatted_lines.append({
-            "id": str(l.id),
-            "product_id": l.product_id,
-            "product_name": prod_name,
-            "sku": sku,
-            "category": cat_frontend,
-            "type": prod_type,
-            "quantity": l.quantity,
-            "unit_price": float(l.unit_price or 0.0),
-            "unit_cost": float(l.unit_cost or 0.0),
-            "discount_percent": float(l.discount_percent or 0.0),
-            "discount_amount": float(l.discount_amount or 0.0),
-            "line_subtotal": float(l.line_subtotal or 0.0),
-            "line_cost": float(l.line_cost or 0.0),
-            "line_margin": float(l.line_margin or 0.0),
-            "line_margin_percent": float(l.line_margin_percent or 0.0),
-            "discount_limit_percent": float(l.discount_limit_percent or 15.0),
-            "discount_status": l.discount_status or "OK"
-        })
+        formatted_lines = []
+        for l in lines:
+            prod = db.query(Product).filter(Product.id == l.product_id).first()
+            prod_name = prod.name if prod else f"Product #{l.product_id}"
+            sku = prod.sku if prod else f"SKU-{l.product_id}"
+            cat_frontend = "Services" if (prod and prod.category_id in [4, 5]) else "Hardware"
+            prod_type = "recurring" if (prod and prod.category_id in [4, 5] and any(x in prod_name.lower() for x in ["care", "support", "plan", "warranty"])) else "one_time"
+
+            formatted_lines.append({
+                "id": str(l.id),
+                "product_id": l.product_id,
+                "product_name": prod_name,
+                "sku": sku,
+                "category": cat_frontend,
+                "type": prod_type,
+                "quantity": l.quantity,
+                "unit_price": float(l.unit_price or 0.0),
+                "unit_cost": float(l.unit_cost or 0.0),
+                "discount_percent": float(l.discount_percent or 0.0),
+                "discount_amount": float(l.discount_amount or 0.0),
+                "line_subtotal": float(l.line_subtotal or 0.0),
+                "line_cost": float(l.line_cost or 0.0),
+                "line_margin": float(l.line_margin or 0.0),
+                "line_margin_percent": float(l.line_margin_percent or 0.0),
+                "discount_limit_percent": float(l.discount_limit_percent or 15.0),
+                "discount_status": l.discount_status or "OK"
+            })
 
     return {
         "id": q.quote_number or f"Q-{q.id}",
@@ -137,28 +175,55 @@ def format_quotation(q: Quotation, db: Session) -> Dict[str, Any]:
         "lines": formatted_lines
     }
 
-# â"â" Bootstrap Endpoint: All Workspace Data in One Call â"â"â"â"â"â"â"
+# ── Bootstrap Endpoint: All Workspace Data in One Call ───────
 @router.get("/bootstrap")
 def get_workspace_bootstrap(db: Session = Depends(get_db)):
     """
-    Returns live PostgreSQL dataset for all workspace tabs in a single call.
+    Returns live PostgreSQL dataset for all workspace tabs in a fast, batch-prefetched call.
     """
+    # Bulk prefetch reference dictionaries to avoid N+1 query latency over cloud DB
+    all_customers = {c.id: c for c in db.query(Customer).all()}
+    all_users = {u.id: u for u in db.query(User).all()}
+    all_products = {p.id: p for p in db.query(Product).all()}
+    all_categories = {cat.id: cat.name for cat in db.query(ProductCategory).all()}
+    
+    # Preload contacts
+    contacts_map = {}
+    for c in db.query(CustomerContact).all():
+        if c.customer_id not in contacts_map or c.is_primary:
+            contacts_map[c.customer_id] = c
+
+    # Preload lines grouped by quotation_id
+    lines_by_quote: Dict[int, List[Any]] = {}
+    for l in db.query(QuotationLine).all():
+        lines_by_quote.setdefault(l.quotation_id, []).append(l)
+
+    preloaded = {
+        "customers": all_customers,
+        "contacts": contacts_map,
+        "users": all_users,
+        "products": all_products,
+        "lines_by_quote": lines_by_quote,
+    }
+
     # 1. Quotations (60 records)
     db_quotes = db.query(Quotation).order_by(desc(Quotation.id)).limit(60).all()
-    quotations_list = [format_quotation(q, db) for q in db_quotes]
+    quotations_list = [format_quotation(q, db, preloaded=preloaded) for q in db_quotes]
+
+    # Preload stock sums
+    stock_by_prod: Dict[int, int] = {}
+    stock_by_wh: Dict[int, Dict[str, int]] = {}
+    for s in db.query(InventoryStock).all():
+        qty = int(s.quantity_available or s.quantity_on_hand or 0)
+        stock_by_prod[s.product_id] = stock_by_prod.get(s.product_id, 0) + qty
+        stock_by_wh.setdefault(s.warehouse_id, {})[str(s.product_id)] = qty
 
     # 2. Products (24 records)
-    db_products = db.query(Product).order_by(Product.name).all()
     products_list = []
-    for p in db_products:
-        cat = db.query(ProductCategory).filter(ProductCategory.id == p.category_id).first() if p.category_id else None
-        cat_name = cat.name if cat else "Enterprise Hardware"
-        total_stock = db.query(func.sum(InventoryStock.quantity_available)).filter(InventoryStock.product_id == p.id).scalar()
-        if total_stock is None:
-            total_stock = 45
-
+    for p in all_products.values():
+        cat_name = all_categories.get(p.category_id, "Enterprise Hardware")
+        total_stock = stock_by_prod.get(p.id, 45)
         margin_pct = float(p.margin_percent) if p.margin_percent else (round(((p.unit_price - p.cost_price) / p.unit_price) * 100, 1) if p.unit_price > 0 else 35.0)
-
         products_list.append({
             "id": p.id,
             "name": p.name,
@@ -167,7 +232,7 @@ def get_workspace_bootstrap(db: Session = Depends(get_db)):
             "unit_price": float(p.unit_price or 0.0),
             "cost_price": float(p.cost_price or 0.0),
             "margin_percent": margin_pct,
-            "stock_quantity": int(total_stock),
+            "stock_quantity": total_stock,
             "description": p.description or f"Enterprise tier {p.name}.",
             "is_active": p.is_active if hasattr(p, "is_active") else True
         })
@@ -176,16 +241,15 @@ def get_workspace_bootstrap(db: Session = Depends(get_db)):
     db_warehouses = db.query(Warehouse).all()
     warehouses_list = []
     for w in db_warehouses:
-        total_units = db.query(func.sum(InventoryStock.quantity_on_hand)).filter(InventoryStock.warehouse_id == w.id).scalar() or 0
-        stocks = db.query(InventoryStock).filter(InventoryStock.warehouse_id == w.id).all()
-        inv_map = {str(s.product_id): int(s.quantity_available or s.quantity_on_hand) for s in stocks}
+        inv_map = stock_by_wh.get(w.id, {})
+        total_units = sum(inv_map.values())
         warehouses_list.append({
             "id": str(w.id),
             "code": w.warehouse_code,
             "name": w.name,
             "location": f"{w.city}, {w.state or w.country}",
             "capacity": w.capacity,
-            "current_stock": int(total_units),
+            "current_stock": total_units,
             "inventory": inv_map,
             "manager_name": w.manager_name or "Operations Lead"
         })
@@ -194,7 +258,7 @@ def get_workspace_bootstrap(db: Session = Depends(get_db)):
     db_invoices = db.query(Invoice).order_by(desc(Invoice.id)).limit(40).all()
     invoices_list = []
     for inv in db_invoices:
-        cust = db.query(Customer).filter(Customer.id == inv.customer_id).first() if inv.customer_id else None
+        cust = all_customers.get(inv.customer_id)
         cust_name = cust.company_name if cust else f"Client #{inv.customer_id}"
         invoices_list.append({
             "id": inv.id,
@@ -214,7 +278,7 @@ def get_workspace_bootstrap(db: Session = Depends(get_db)):
     db_subs = db.query(Subscription).order_by(desc(Subscription.id)).all()
     subs_list = []
     for s in db_subs:
-        cust = db.query(Customer).filter(Customer.id == s.customer_id).first() if s.customer_id else None
+        cust = all_customers.get(s.customer_id)
         cust_name = cust.company_name if cust else f"Customer #{s.customer_id}"
         subs_list.append({
             "id": s.id,
@@ -229,15 +293,16 @@ def get_workspace_bootstrap(db: Session = Depends(get_db)):
             "auto_renew": s.auto_renew if hasattr(s, "auto_renew") else True
         })
 
-    # 6. Approvals
+    # 6. Approvals (25 records)
+    quotes_by_id = {q.id: q for q in db_quotes}
     db_approvals = db.query(Approval).order_by(desc(Approval.id)).all()
     approvals_list = []
     for a in db_approvals:
-        quote = db.query(Quotation).filter(Quotation.id == a.quotation_id).first()
+        quote = quotes_by_id.get(a.quotation_id)
         q_num = quote.quote_number if quote else f"Q-{a.quotation_id}"
-        cust = db.query(Customer).filter(Customer.id == quote.customer_id).first() if quote else None
+        cust = all_customers.get(quote.customer_id) if quote else None
         c_name = cust.company_name if cust else "Enterprise Client"
-        req_user = db.query(User).filter(User.id == a.requested_by).first() if a.requested_by else None
+        req_user = all_users.get(a.requested_by) if a.requested_by else None
         approvals_list.append({
             "id": a.id,
             "quotation_id": a.quotation_id,
@@ -252,9 +317,8 @@ def get_workspace_bootstrap(db: Session = Depends(get_db)):
         })
 
     # 7. Users
-    db_users = db.query(User).order_by(desc(User.id)).all()
     users_list = []
-    for u in db_users:
+    for u in all_users.values():
         users_list.append({
             "id": u.id,
             "email": u.email,
@@ -284,7 +348,7 @@ def get_workspace_bootstrap(db: Session = Depends(get_db)):
         "avg_margin": 38.6
     }
 
-    # 9. Governance Rules from PostgreSQL
+    # 9. Governance Rules
     db_tiers = db.query(DiscountTier).all()
     tier_limits = {t.name: float(t.max_discount) for t in db_tiers}
     if "Platinum" not in tier_limits:
@@ -306,11 +370,11 @@ def get_workspace_bootstrap(db: Session = Depends(get_db)):
         }
     }
 
-    # 10. Timestamped Audit Trail (Manager, Rep, Finance actions)
+    # 10. Audit Logs
     db_audit = db.query(AuditLog).order_by(desc(AuditLog.id)).limit(100).all()
     audit_logs_list = []
     for a in db_audit:
-        u = db.query(User).filter(User.id == a.user_id).first() if a.user_id else None
+        u = all_users.get(a.user_id) if a.user_id else None
         role_label = u.role.lower() if u and u.role else "admin"
         ts = a.created_at.strftime("%b %d, %Y, %I:%M:%S %p") if a.created_at else datetime.utcnow().strftime("%b %d, %Y, %I:%M:%S %p")
         audit_logs_list.append({

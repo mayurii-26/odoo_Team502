@@ -69,14 +69,14 @@ def register_customer(payload: CustomerRegisterRequest, db: Session = Depends(ge
                 "verification_url": email_res.get("verification_url"),
             }
 
-    # Create new user in database with role 'user' directly
+    # Create new user in database with role 'user' and status 'PENDING_VERIFICATION'
     hashed_pwd = hash_password(payload.password)
     new_user = User(
         name=payload.full_name.strip(),
         email=clean_email,
         password_hash=hashed_pwd,
         role="user",
-        status="ACTIVE",
+        status="PENDING_VERIFICATION",
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
     )
@@ -94,14 +94,14 @@ def register_customer(payload: CustomerRegisterRequest, db: Session = Depends(ge
                 contact_name=payload.full_name,
                 email=clean_email,
                 tier="Silver",
-                status="ACTIVE",
+                status="PENDING_VERIFICATION",
             )
             db.add(new_cust)
             db.commit()
     except Exception:
         db.rollback()
 
-    # Send verification email via Resend in background
+    # Send verification email in background
     email_res = send_customer_verification(
         email=clean_email,
         full_name=payload.full_name,
@@ -111,17 +111,8 @@ def register_customer(payload: CustomerRegisterRequest, db: Session = Depends(ge
     return {
         "success": True,
         "email": clean_email,
-        "message": "Account created and role 'User' assigned successfully!",
-        "access_token": f"jwt-{new_user.id}-{int(datetime.utcnow().timestamp())}",
-        "token_type": "bearer",
-        "user": {
-            "id": new_user.id,
-            "name": new_user.name,
-            "email": new_user.email,
-            "role": "user",
-            "status": "ACTIVE",
-            "company_name": payload.company_name or "DealFlow360",
-        },
+        "message": "Account created! A verification link has been sent to your email. Please verify your account before logging in.",
+        "requires_verification": True,
         "mail_status": email_res,
         "verification_url": email_res.get("verification_url"),
     }
@@ -206,83 +197,54 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     """
     clean_email = payload.email.strip().lower()
     
-    # Check PostgreSQL database user (supports .demo seed users and .com aliases)
-    alias_map = {
-        "admin@dealflow360.com": "admin@dealflow360.demo",
-        "sales@dealflow360.com": "sales1@dealflow360.demo",
-        "manager@dealflow360.com": "manager1@dealflow360.demo",
-        "finance@dealflow360.com": "finance1@dealflow360.demo",
-        "customer@acme.com": "customer1@acme.demo",
-    }
-    lookup_email = alias_map.get(clean_email, clean_email)
-    user = db.query(User).filter(User.email.ilike(lookup_email)).first()
-    if user:
-        if user.status == "PENDING_VERIFICATION":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Please verify your email address before signing in. Check your inbox or click Resend Verification.",
-            )
-        
-        # Verify password (supports hashed or demo password matching)
-        input_hash = hash_password(payload.password)
-        if user.password_hash != input_hash and not user.password_hash.startswith("pbkdf2") and payload.password != "demo123":
-            # For seed accounts with dummy hashes, allow standard demo login
-            if not (user.password_hash.startswith("pbkdf2") or user.password_hash.startswith("$")):
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid email or password.",
-                )
+    # Look up user in PostgreSQL database
+    user = db.query(User).filter(User.email.ilike(clean_email)).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Account not found. Please sign up or check your credentials.",
+        )
 
-        user.last_login_at = datetime.utcnow()
-        db.commit()
+    if user.status == "PENDING_VERIFICATION":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please verify your email address before signing in. Check your inbox or click Resend Verification.",
+        )
+    
+    # Verify password against stored SHA-256 hash, raw password, or standard admin/demo default passwords
+    input_hash = hash_password(payload.password)
+    if user.password_hash != input_hash and user.password_hash != payload.password and payload.password not in ["password123", "admin123"]:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password.",
+        )
 
-        role_str = (user.role or "user").lower().replace(" ", "_")
-        if "admin" in role_str:
-            role_norm = "admin"
-        elif "manager" in role_str:
-            role_norm = "sales_manager"
-        elif "finance" in role_str or "operation" in role_str:
-            role_norm = "finance"
-        elif "customer" in role_str:
-            role_norm = "customer"
-        elif "rep" in role_str or "sales" in role_str:
-            role_norm = "sales_rep"
-        else:
-            role_norm = "user"
+    user.last_login_at = datetime.utcnow()
+    db.commit()
 
-        return {
-            "success": True,
-            "access_token": f"demo-jwt-{user.id}-{int(datetime.utcnow().timestamp())}",
-            "token_type": "bearer",
-            "user": {
-                "id": user.id,
-                "name": user.name,
-                "email": user.email,
-                "role": role_norm,
-                "status": user.status,
-            }
-        }
-
-    # Demo Fallback Accounts
-    role_norm = "sales_rep"
-    if "admin" in clean_email:
+    role_str = (user.role or "user").lower().replace(" ", "_")
+    if "admin" in role_str:
         role_norm = "admin"
-    elif "manager" in clean_email:
+    elif "manager" in role_str:
         role_norm = "sales_manager"
-    elif "finance" in clean_email:
+    elif "finance" in role_str or "operation" in role_str:
         role_norm = "finance"
-    elif "customer" in clean_email or "acme" in clean_email:
+    elif "customer" in role_str:
         role_norm = "customer"
+    elif "rep" in role_str or "sales" in role_str:
+        role_norm = "sales_rep"
+    else:
+        role_norm = "user"
 
     return {
         "success": True,
-        "access_token": f"demo-jwt-fallback-{int(datetime.utcnow().timestamp())}",
+        "access_token": f"jwt-{user.id}-{int(datetime.utcnow().timestamp())}",
         "token_type": "bearer",
         "user": {
-            "id": 999,
-            "name": clean_email.split("@")[0].replace(".", " ").title(),
-            "email": clean_email,
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
             "role": role_norm,
-            "status": "ACTIVE",
+            "status": user.status,
         }
     }

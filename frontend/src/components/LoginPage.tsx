@@ -7,24 +7,7 @@ import { UserSession, UserRole } from './types'
 import { IconEye, IconEyeOff } from './Icons'
 import { registerCustomer, resendVerification, verifyEmailToken, loginUser } from '@/lib/api'
 
-/* ── Demo Test Accounts — populated from backend or environment ─────────
- * These only provide the role label for the login switcher UI.
- * Actual credentials (email/password) are entered by the user or fetched
- * from the backend. Names are resolved at login time from the API response.
- * ----------------------------------------------------------------------- */
-export const DEMO_ACCOUNTS: {
-  email: string
-  password: string
-  role: UserRole
-  label: string
-}[] = [
-  { email: 'admin@dealflow360.demo',   password: 'password123', role: 'admin',         label: 'Administrator' },
-  { email: 'sales1@dealflow360.demo',  password: 'password123', role: 'sales_rep',     label: 'Sales Rep' },
-  { email: 'customer1@acme.demo',      password: 'password123', role: 'customer',      label: 'Customer' },
-  { email: 'manager1@dealflow360.demo',password: 'password123', role: 'sales_manager', label: 'Sales Manager' },
-  { email: 'finance1@dealflow360.demo',password: 'password123', role: 'finance',       label: 'Financial Officer' },
-  { email: 'user@dealflow360.com',     password: 'password123', role: 'user',          label: 'User' },
-]
+
 
 /* ── DealFlow360 Official Brand Logo ──────────────────────────────── */
 function BrandLogo() {
@@ -156,12 +139,11 @@ export default function LoginPage() {
   const [mode, setMode] = useState<'login' | 'signup'>('login')
 
   // Login Form states
-  const [email, setEmail] = useState('sales@dealflow360.com')
-  const [password, setPassword] = useState('password123')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [activeRole, setActiveRole] = useState<UserRole>('sales_rep')
 
   // Signup Form states
   const [suName, setSuName] = useState('')
@@ -297,24 +279,6 @@ export default function LoginPage() {
     } catch {}
   }
 
-  // Quick switch demo account
-  function selectDemoAccount(acc: typeof DEMO_ACCOUNTS[0]) {
-    setEmail(acc.email)
-    setPassword(acc.password)
-    setActiveRole(acc.role)
-    setError('')
-    setVerificationSuccess(null)
-  }
-
-  // "Change" button action: cycles through demo accounts
-  function handleChangeEmail() {
-    const roles: UserRole[] = ['sales_rep', 'finance', 'sales_manager', 'admin', 'customer']
-    const nextIdx = (roles.indexOf(activeRole) + 1) % roles.length
-    const nextRole = roles[nextIdx]
-    const nextAcc = DEMO_ACCOUNTS.find(a => a.role === nextRole) || DEMO_ACCOUNTS[0]
-    selectDemoAccount(nextAcc)
-  }
-
   async function handleLoginSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!email || !password) {
@@ -335,7 +299,7 @@ export default function LoginPage() {
         companyName: res.companyName || res.company_name || '',
       })
     } catch (err: any) {
-      setError(err.message || 'Invalid credentials. Select a demo account below.')
+      setError(err.message || 'Invalid email or password. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -365,16 +329,6 @@ export default function LoginPage() {
         full_name: suName.trim(),
         company_name: suCompany.trim(),
       })
-
-      if (res.user || res.access_token || res.success) {
-        handleLoginSuccess({
-          email: res.user?.email || suEmail.trim(),
-          fullName: res.user?.name || suName.trim(),
-          role: 'user',
-          companyName: res.user?.company_name || suCompany.trim() || 'DealFlow360',
-        })
-        return
-      }
 
       setVerificationSent({
         email: suEmail.trim(),
@@ -410,23 +364,7 @@ export default function LoginPage() {
     }
   }
 
-  async function handleDirectVerify() {
-    const token = verificationSent?.token
-    if (!token) return
-    setLoading(true)
-    setError('')
-    try {
-      const res = await verifyEmailToken(token)
-      setVerificationSent(null)
-      setVerificationSuccess(res.message || 'Email verified successfully! You may now sign in.')
-      setMode('login')
-      setEmail(verificationSent.email)
-    } catch (err: any) {
-      setError(err.message || 'Failed to activate account.')
-    } finally {
-      setLoading(false)
-    }
-  }
+
 
   // Prevent SSR hydration mismatch
   if (!isClient) {
@@ -478,25 +416,17 @@ export default function LoginPage() {
                 </div>
               )}
 
-              {/* Email Input Field with "Change" button */}
+              {/* Email Input Field */}
               <div className={styles.inputGroup}>
                 <input
                   id="login-email"
                   type="email"
                   className={styles.input}
-                  placeholder="patriciaboyle@zylker.com"
+                  placeholder="name@company.com"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   autoComplete="email"
                 />
-                <button
-                  type="button"
-                  className={styles.changeBtn}
-                  onClick={handleChangeEmail}
-                  title="Switch test account"
-                >
-                  Change
-                </button>
               </div>
 
               {/* Password Input Field with Eye Toggle */}
@@ -525,7 +455,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   className={styles.forgotLink}
-                  onClick={() => setError('For demo access, password is: password123')}
+                  onClick={() => setError('Please contact your administrator to reset your password.')}
                 >
                   Forgot password?
                 </button>
@@ -552,23 +482,6 @@ export default function LoginPage() {
                   Sign up
                 </button>
               </div>
-
-              {/* Clean Demo Account Switcher (No Emojis) */}
-              <div className={styles.demoSwitchWrap}>
-                <span className={styles.demoLabel}>Demo Accounts:</span>
-                <div className={styles.demoPills}>
-                  {DEMO_ACCOUNTS.map(acc => (
-                    <button
-                      key={acc.email}
-                      type="button"
-                      className={`${styles.demoPill} ${activeRole === acc.role ? styles.demoPillActive : ''}`}
-                      onClick={() => selectDemoAccount(acc)}
-                    >
-                      {acc.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </form>
           ) : verificationSent ? (
             /* ── Verification Sent Confirmation Screen ── */
@@ -585,25 +498,9 @@ export default function LoginPage() {
                 We sent an email verification link to <span className={styles.verifyEmailHighlight}>{verificationSent.email}</span>.
               </p>
 
-              {verificationSent.mailSuccess ? (
-                <p className={styles.verifyText} style={{ fontSize: '13px', color: '#16a34a' }}>
-                  ✓ Email successfully dispatched via Resend API. Please check your inbox.
-                </p>
-              ) : (
-                <div className={styles.verifySandboxNote}>
-                  <strong>Resend Sandbox Notice:</strong> Resend restricts test deliveries to verified domains. You can verify your account instantly using the button below.
-                </div>
-              )}
-
-              {/* Direct Verify Action */}
-              <button
-                type="button"
-                className={styles.directVerifyBtn}
-                onClick={handleDirectVerify}
-                disabled={loading}
-              >
-                {loading ? 'Activating Account...' : 'Direct Verify & Activate Account'}
-              </button>
+              <p className={styles.verifyText} style={{ fontSize: '13px', color: '#16a34a' }}>
+                ✓ Verification email has been sent to your inbox. Please click the link in the email to activate your account.
+              </p>
 
               {/* Resend Action */}
               <button

@@ -53,7 +53,8 @@ def send_customer_verification(email: str, full_name: str, user_id: Optional[int
     Generates token, builds link, and sends the verification email.
     """
     token = create_verification_token(email, full_name, user_id)
-    verification_url = f"{FRONTEND_URL}?verify_token={token}&email={email}"
+    base_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+    verification_url = f"{base_url}?verify_token={token}&email={email}"
     
     subject = "Verify your DealFlow360 Account"
     html_content = build_verification_email_html(full_name=full_name, verification_url=verification_url, token=token)

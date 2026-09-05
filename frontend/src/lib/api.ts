@@ -3,7 +3,28 @@
 // ============================================================
 import { Quotation, Product, Warehouse, UserAccount, GovernanceRule, UserRole, RecommendationWeights } from '@/components/types'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
+export function getApiBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL
+  }
+  if (typeof window !== 'undefined' && window.location.hostname) {
+    return `http://${window.location.hostname}:8000`
+  }
+  return 'http://127.0.0.1:8000'
+}
+
+function extractErrorMessage(errData: any, fallback: string): string {
+  if (!errData) return fallback
+  if (typeof errData.detail === 'string') return errData.detail
+  if (Array.isArray(errData.detail)) {
+    return errData.detail.map((e: any) => e.msg || e.message || JSON.stringify(e)).join(', ')
+  }
+  if (typeof errData.detail === 'object' && errData.detail !== null) {
+    return errData.detail.msg || errData.detail.message || JSON.stringify(errData.detail)
+  }
+  if (typeof errData.message === 'string') return errData.message
+  return fallback
+}
 
 export interface UserProfile {
   id?: number
@@ -45,10 +66,11 @@ export interface BootstrapResponse {
  */
 export async function loginUser(credentials: { email: string; password: string }): Promise<UserProfile> {
   const cleanEmail = credentials.email.trim().toLowerCase()
+  const apiBase = getApiBaseUrl()
   
   // Try live backend login
   try {
-    const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
+    const res = await fetch(`${apiBase}/api/v1/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials),
@@ -65,9 +87,9 @@ export async function loginUser(credentials: { email: string; password: string }
       }
     }
     const errData = await res.json().catch(() => ({}))
-    throw new Error(errData.detail || errData.message || 'Invalid credentials.')
+    throw new Error(extractErrorMessage(errData, 'Invalid email or password.'))
   } catch (err: any) {
-    throw new Error(err.message || 'Login failed. Please check your credentials.')
+    throw new Error(err.message || 'Login failed. Please check your network and credentials.')
   }
 }
 
@@ -101,14 +123,15 @@ export async function registerCustomer(payload: {
   }
   verification_url?: string
 }> {
-  const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
+  const apiBase = getApiBaseUrl()
+  const res = await fetch(`${apiBase}/api/v1/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
-  const data = await res.json()
+  const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    throw new Error(data.detail || data.message || 'Registration failed.')
+    throw new Error(extractErrorMessage(data, 'Registration failed.'))
   }
   return data
 }
@@ -123,14 +146,15 @@ export async function resendVerification(email: string): Promise<{
   mail_status?: any
   verification_url?: string
 }> {
-  const res = await fetch(`${API_BASE}/api/v1/auth/resend-verification`, {
+  const apiBase = getApiBaseUrl()
+  const res = await fetch(`${apiBase}/api/v1/auth/resend-verification`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
   })
-  const data = await res.json()
+  const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    throw new Error(data.detail || data.message || 'Failed to resend verification email.')
+    throw new Error(extractErrorMessage(data, 'Failed to resend verification email.'))
   }
   return data
 }
@@ -143,14 +167,15 @@ export async function verifyEmailToken(token: string): Promise<{
   email: string
   message: string
 }> {
-  const res = await fetch(`${API_BASE}/api/v1/auth/verify`, {
+  const apiBase = getApiBaseUrl()
+  const res = await fetch(`${apiBase}/api/v1/auth/verify`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token }),
   })
-  const data = await res.json()
+  const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    throw new Error(data.detail || data.message || 'Invalid or expired verification token.')
+    throw new Error(extractErrorMessage(data, 'Invalid or expired verification token.'))
   }
   return data
 }
@@ -159,8 +184,9 @@ export async function verifyEmailToken(token: string): Promise<{
  * Fetch all workspace live dataset in one fast call
  */
 export async function fetchWorkspaceBootstrap(): Promise<BootstrapResponse['data'] | null> {
+  const apiBase = getApiBaseUrl()
   try {
-    const res = await fetch(`${API_BASE}/api/v1/workspace/bootstrap`, {
+    const res = await fetch(`${apiBase}/api/v1/workspace/bootstrap`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -199,8 +225,9 @@ export async function saveFullQuotationToDb(
     }>
   }
 ): Promise<any | null> {
+  const apiBase = getApiBaseUrl()
   try {
-    const res = await fetch(`${API_BASE}/api/v1/workspace/quotations/${quoteId}`, {
+    const res = await fetch(`${apiBase}/api/v1/workspace/quotations/${quoteId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -235,8 +262,9 @@ export async function createFullQuotationInDb(
     }>
   }
 ): Promise<any | null> {
+  const apiBase = getApiBaseUrl()
   try {
-    const res = await fetch(`${API_BASE}/api/v1/workspace/quotations`, {
+    const res = await fetch(`${apiBase}/api/v1/workspace/quotations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -259,8 +287,9 @@ export async function updateQuotationLive(
   quoteId: string | number,
   payload: { status?: string; discount_percent?: number; notes?: string }
 ): Promise<Quotation | null> {
+  const apiBase = getApiBaseUrl()
   try {
-    const res = await fetch(`${API_BASE}/api/v1/workspace/quotations/${quoteId}`, {
+    const res = await fetch(`${apiBase}/api/v1/workspace/quotations/${quoteId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -291,14 +320,15 @@ export async function provisionUserFromAdmin(payload: {
   mail_status: { success: boolean; error?: string; to?: string }
   message: string
 }> {
-  const res = await fetch(`${API_BASE}/api/v1/users/provision`, {
+  const apiBase = getApiBaseUrl()
+  const res = await fetch(`${apiBase}/api/v1/users/provision`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
-  const data = await res.json()
+  const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    throw new Error(data.detail || data.message || 'Provisioning failed.')
+    throw new Error(extractErrorMessage(data, 'Provisioning failed.'))
   }
   return data
 }
@@ -320,14 +350,15 @@ export async function sendDirectAdminMessage(payload: {
   mail_status: { success: boolean; error?: string }
   message: string
 }> {
-  const res = await fetch(`${API_BASE}/api/v1/users/send-message`, {
+  const apiBase = getApiBaseUrl()
+  const res = await fetch(`${apiBase}/api/v1/users/send-message`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
-  const data = await res.json()
+  const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    throw new Error(data.detail || data.message || 'Failed to dispatch message email.')
+    throw new Error(extractErrorMessage(data, 'Failed to dispatch message email.'))
   }
   return data
 }
@@ -336,8 +367,9 @@ export async function sendDirectAdminMessage(payload: {
  * Recommendation scoring weights config (Admin)
  */
 export async function fetchRecommendationWeights(): Promise<RecommendationWeights | null> {
+  const apiBase = getApiBaseUrl()
   try {
-    const res = await fetch(`${API_BASE}/api/admin/recommendation-weights`)
+    const res = await fetch(`${apiBase}/api/admin/recommendation-weights`)
     if (!res.ok) return null
     return await res.json()
   } catch (err) {
@@ -349,8 +381,9 @@ export async function fetchRecommendationWeights(): Promise<RecommendationWeight
 export async function saveRecommendationWeights(
   weights: RecommendationWeights
 ): Promise<{ success: boolean; message?: string }> {
+  const apiBase = getApiBaseUrl()
   try {
-    const res = await fetch(`${API_BASE}/api/admin/recommendation-weights`, {
+    const res = await fetch(`${apiBase}/api/admin/recommendation-weights`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(weights),
@@ -359,7 +392,7 @@ export async function saveRecommendationWeights(
       const errData = await res.json().catch(() => ({}))
       return {
         success: false,
-        message: errData.detail || 'Failed to save weights to backend',
+        message: extractErrorMessage(errData, 'Failed to save weights to backend'),
       }
     }
     return { success: true }
@@ -383,20 +416,18 @@ export async function recordWorkflowAuditLog(payload: {
   customer_name?: string
   details?: string
 }): Promise<{ success: boolean; log?: any }> {
+  const apiBase = getApiBaseUrl()
   try {
-    const res = await fetch(`${API_BASE}/api/v1/workspace/audit-log`, {
+    const res = await fetch(`${apiBase}/api/v1/workspace/audit-log`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
     if (!res.ok) return { success: false }
-    const data = await res.json()
+    const data = await res.json().catch(() => ({}))
     return { success: true, log: data.log }
   } catch (err) {
     console.warn('Could not persist audit log to backend:', err)
     return { success: false }
   }
 }
-
-
-

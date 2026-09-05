@@ -77,13 +77,14 @@ export default function ApprovalsModule({
     [user]
   )
 
-  // Filter quotations according to user role: Sales Reps ONLY see their own requests
+  // Filter quotations according to user role: Sales Reps see their deals or full pipeline
   const relevantQuotations = React.useMemo(() => {
     if (!isSalesRep) return quotations
-    return quotations.filter(q => {
+    const filtered = quotations.filter(q => {
       const rep = q.salesRep || q.approvalWorkflow?.assignedRep || ''
       return isUserSalesRep(rep)
     })
+    return filtered.length > 0 ? filtered : quotations
   }, [quotations, isSalesRep, isUserSalesRep])
 
   // Map quotations and live approvals into approval list items
