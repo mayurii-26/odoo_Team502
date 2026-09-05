@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import styles from './AdminModule.module.css'
-import { DirectoryUser, UserRole, RecommendationWeights } from './types'
+import { DirectoryUser, UserRole, RecommendationWeights, UserAccount } from './types'
 import {
   fetchRecommendationWeights,
   saveRecommendationWeights,
@@ -16,6 +16,7 @@ interface AdminModuleProps {
   onSwitchRole: (role: UserRole) => void
   onShowToast: (msg: string) => void
   onImpersonateUser?: (email: string, role: UserRole, name: string, company: string) => void
+  users?: UserAccount[]
 }
 
 const DEFAULT_WEIGHTS: RecommendationWeights = {
@@ -216,7 +217,7 @@ export default function AdminModule({
   // Directory & Users State from live PostgreSQL
   const [directory, setDirectory] = useState<DirectoryUser[]>(() => {
     if (users && users.length > 0) {
-      return users.map((u, idx) => {
+      return users.map((u: UserAccount, idx: number) => {
         const r = (u.role || '').toLowerCase()
         const mappedRole: UserRole = r.includes('admin')
           ? 'admin'
@@ -246,7 +247,7 @@ export default function AdminModule({
   React.useEffect(() => {
     if (users && users.length > 0) {
       setDirectory(
-        users.map((u, idx) => {
+        users.map((u: UserAccount, idx: number) => {
           const r = (u.role || '').toLowerCase()
           const mappedRole: UserRole = r.includes('admin')
             ? 'admin'
@@ -616,61 +617,6 @@ export default function AdminModule({
         </div>
       </div>
 
-      {/* ── Quick Switch Bar (Test Login Directly as Any Role) ── */}
-      <div className={styles.quickSwitchBar}>
-        <div className={styles.quickSwitchLabel}>
-          <span>⚡ Instant Role Switch / Impersonation:</span>
-          <span style={{ fontSize: 12, color: '#64748b', fontWeight: 500 }}>
-            (Immediately test platform views without logging out)
-          </span>
-        </div>
-        <div className={styles.quickSwitchGroup}>
-          <button
-            type="button"
-            className={styles.quickSwitchBtn}
-            onClick={() => {
-              onSwitchRole('finance')
-              onShowToast('Switched session to Finance User (David Miller).')
-            }}
-            title="Switch to Finance User"
-          >
-            💰 Login as Finance User
-          </button>
-          <button
-            type="button"
-            className={styles.quickSwitchBtn}
-            onClick={() => {
-              onSwitchRole('sales_manager')
-              onShowToast('Switched session to Sales Manager (Alex Rivera).')
-            }}
-            title="Switch to Sales Manager"
-          >
-            📊 Login as Sales Manager
-          </button>
-          <button
-            type="button"
-            className={styles.quickSwitchBtn}
-            onClick={() => {
-              onSwitchRole('sales_rep')
-              onShowToast('Switched session to Sales Representative (Jane Smith).')
-            }}
-            title="Switch to Sales Rep"
-          >
-            💼 Login as Sales Rep
-          </button>
-          <button
-            type="button"
-            className={styles.quickSwitchBtn}
-            onClick={() => {
-              onSwitchRole('customer')
-              onShowToast('Switched session to Customer (John Davis / Acme Corp).')
-            }}
-            title="Switch to Customer Portal"
-          >
-            🏢 Login as Customer
-          </button>
-        </div>
-      </div>
 
       {/* ── Sub-Tabs Navigation ── */}
       <div className={styles.adminNavTabs}>

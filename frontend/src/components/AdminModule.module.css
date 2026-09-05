@@ -60,61 +60,6 @@
   margin: 0;
 }
 
-/* ── Quick Switch Bar (Test Login as other roles) ───────── */
-.quickSwitchBar {
-  background: linear-gradient(145deg, #ffffff 0%, #f0f6ff 100%);
-  border: 1.5px solid #ADCAFF;
-  border-radius: 20px;
-  padding: 16px 22px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 14px;
-  box-shadow: 6px 10px 24px rgba(0, 29, 82, 0.06),
-              inset 2px 2px 4px #ffffff,
-              inset -2px -2px 4px rgba(173, 202, 255, 0.3);
-}
-
-.quickSwitchLabel {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #001D52;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.quickSwitchGroup {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.quickSwitchBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #001D52;
-  background: #ffffff;
-  border: 1.5px solid #ADCAFF;
-  border-radius: 12px;
-  cursor: pointer;
-  box-shadow: 2px 4px 10px rgba(0, 29, 82, 0.05),
-              inset 1px 1px 2px #ffffff;
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.quickSwitchBtn:hover {
-  transform: translateY(-2px);
-  background: #f8faff;
-  border-color: #70A2FF;
-  box-shadow: 4px 8px 16px rgba(0, 29, 82, 0.12),
-              inset 1px 1px 2px #ffffff;
-}
 
 /* ── Base Clay Card ─────────────────────────────────────── */
 .clayCard {
