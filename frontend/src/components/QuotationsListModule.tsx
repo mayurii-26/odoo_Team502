@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react'
 import styles from './QuotationsWireframe.module.css'
-import { Quotation, QuotationStatus, ActiveModule } from './types'
+import { Quotation, QuotationStatus, ActiveModule, UserSession } from './types'
 import { exportQuotationPDF } from '../lib/pdfGenerator'
 import { useCurrency } from '@/context/CurrencyContext'
 
@@ -13,6 +13,7 @@ interface QuotationsListProps {
   onUpdateQuotation?: (updated: Quotation) => void
   onShowToast?: (msg: string) => void
   readOnly?: boolean
+  user?: UserSession
 }
 
 type KanbanColStatus = 'Draft' | 'Pending Approval' | 'Approved' | 'Negotiation' | 'Confirmed'
@@ -24,6 +25,7 @@ export default function QuotationsListModule({
   onUpdateQuotation,
   onShowToast,
   readOnly = false,
+  user,
 }: QuotationsListProps) {
   const { formatPrice } = useCurrency()
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban')

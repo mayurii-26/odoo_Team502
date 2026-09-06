@@ -5,6 +5,7 @@ import listStyles from './ApprovalsWireframe.module.css'
 import detailStyles from './ApprovalDetailWireframe.module.css'
 import { Quotation, ActiveModule, UserSession, UserAccount, WorkflowAuditEntry } from './types'
 import { exportApprovalDossierPDF } from '../lib/pdfGenerator'
+import { processApprovalLive } from '../lib/api'
 
 interface ApprovalsModuleProps {
   quotations: Quotation[]
@@ -87,11 +88,55 @@ export default function ApprovalsModule({
       const risk: 'HIGH' | 'MEDIUM' | 'LOW' =
         q.blendedRiskScore < 60 ? 'HIGH' : q.blendedRiskScore < 75 ? 'MEDIUM' : 'LOW'
       
+      // Find matching live approval from backend approvals prop if available
+      const cleanQuoteId = String(q.id).replace(/\D/g, '')
+      const matchingApproval = (approvals || []).find(
+        (a: any) =>
+          String(a.quote_number || '').toLowerCase() === String(q.id).toLowerCase() ||
+          String(a.quotation_id || '') === cleanQuoteId ||
+          String(a.id || '') === cleanQuoteId
+      )
+
       let status: 'Pending' | 'Returned' | 'Approved' | 'Rejected' = 'Pending'
-      if (q.status === 'Approved' || q.status === 'Confirmed') status = 'Approved'
-      else if (q.status === 'Draft' && q.approvalWorkflow?.status === 'Returned') status = 'Returned'
-      else if (q.approvalWorkflow?.status === 'Rejected') status = 'Rejected'
-      else status = 'Pending'
+      
+      const rawStatus = (q.status || '').toLowerCase()
+      const wfStatus = (q.approvalWorkflow?.status || '').toLowerCase()
+      const mgrStatus = (q.approvalWorkflow?.managerStatus || '').toLowerCase()
+      const finStatus = (q.approvalWorkflow?.financeStatus || '').toLowerCase()
+      const apprvStatus = (matchingApproval?.status || '').toLowerCase()
+
+      if (
+        rawStatus === 'rejected' ||
+        wfStatus === 'rejected' ||
+        mgrStatus === 'rejected' ||
+        finStatus === 'rejected' ||
+        apprvStatus === 'rejected'
+      ) {
+        status = 'Rejected'
+      } else if (
+        rawStatus === 'approved' ||
+        rawStatus === 'confirmed' ||
+        wfStatus === 'approved' ||
+        mgrStatus === 'approved' ||
+        apprvStatus === 'approved'
+      ) {
+        status = 'Approved'
+      } else if (
+        wfStatus === 'returned' ||
+        mgrStatus === 'returned' ||
+        apprvStatus === 'returned'
+      ) {
+        status = 'Returned'
+      } else {
+        status = 'Pending'
+      }
+
+      let stage = 'Sales Manager'
+      if (status === 'Approved') stage = 'Approved'
+      else if (status === 'Rejected') stage = mgrStatus === 'rejected' ? 'Rejected by Manager' : finStatus === 'rejected' ? 'Rejected by Finance' : 'Rejected'
+      else if (status === 'Returned') stage = 'Returned to Rep'
+      else if (q.approvalWorkflow?.status) stage = q.approvalWorkflow.status
+      else if (q.taggedFinanceOfficer && q.taggedFinanceOfficer !== 'None' && mgrStatus === 'approved') stage = 'Finance Officer'
 
       return {
         id: `appr-${q.id}`,
@@ -101,11 +146,11 @@ export default function ApprovalsModule({
         reportingManager: q.reportingManager || q.approvalWorkflow?.reportingManager || '',
         taggedFinance: q.taggedFinanceOfficer || q.approvalWorkflow?.taggedFinanceOfficer || 'None',
         blendedRisk: risk,
-        stage: q.approvalWorkflow?.status || (status === 'Approved' ? 'Approved' : 'Sales Manager'),
+        stage: stage,
         status: status,
       }
     })
-  }, [relevantQuotations, user?.fullName])
+  }, [relevantQuotations, approvals, user?.fullName])
 
   const currentQuote = quotations.find(q => q.id === selectedQuotation) || relevantQuotations[0] || quotations[0]
 
@@ -148,6 +193,11 @@ export default function ApprovalsModule({
     }
 
     onUpdateQuotation(updated)
+    processApprovalLive(currentQuote.id, {
+      action: 'APPROVE',
+      comments: note,
+      approver_name: actorName,
+    }).catch(() => null)
     onRecordAudit?.({
       user: actorName,
       role: 'sales_manager',
@@ -181,6 +231,11 @@ export default function ApprovalsModule({
     }
 
     onUpdateQuotation(updated)
+    processApprovalLive(currentQuote.id, {
+      action: 'REJECT',
+      comments: note,
+      approver_name: actorName,
+    }).catch(() => null)
     onRecordAudit?.({
       user: actorName,
       role: 'sales_manager',
@@ -214,6 +269,11 @@ export default function ApprovalsModule({
     }
 
     onUpdateQuotation(updated)
+    processApprovalLive(currentQuote.id, {
+      action: 'REJECT',
+      comments: note,
+      approver_name: actorName,
+    }).catch(() => null)
     onRecordAudit?.({
       user: actorName,
       role: 'sales_manager',
@@ -252,6 +312,11 @@ export default function ApprovalsModule({
     }
 
     onUpdateQuotation(updated)
+    processApprovalLive(currentQuote.id, {
+      action: 'APPROVE',
+      comments: note,
+      approver_name: actorName,
+    }).catch(() => null)
     onRecordAudit?.({
       user: actorName,
       role: 'finance',
@@ -284,6 +349,11 @@ export default function ApprovalsModule({
     }
 
     onUpdateQuotation(updated)
+    processApprovalLive(currentQuote.id, {
+      action: 'REJECT',
+      comments: note,
+      approver_name: actorName,
+    }).catch(() => null)
     onRecordAudit?.({
       user: actorName,
       role: 'finance',

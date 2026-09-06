@@ -10,7 +10,7 @@ import hashlib
 
 from app.core.database import get_db
 from app.models.user import User
-from app.models.customer import Customer
+from app.models.customer import Customer, CustomerContact
 from app.services.notification_service import (
     send_customer_verification,
     verify_token,
@@ -84,21 +84,44 @@ def register_customer(payload: CustomerRegisterRequest, db: Session = Depends(ge
     db.commit()
     db.refresh(new_user)
 
-    # Also register customer company record if available
+    # Register customer company record and primary contact in PostgreSQL
+    company_val = (payload.company_name or payload.full_name or "Enterprise Client").strip()
     try:
-        existing_cust = db.query(Customer).filter(Customer.email.ilike(clean_email)).first()
-        if not existing_cust:
+        contact_match = db.query(CustomerContact).filter(CustomerContact.email.ilike(clean_email)).first()
+        if not contact_match:
             new_cust = Customer(
                 customer_code=f"CUST-{new_user.id:04d}",
-                company_name=payload.company_name or payload.full_name,
-                contact_name=payload.full_name,
-                email=clean_email,
-                tier="Silver",
-                status="PENDING_VERIFICATION",
+                company_name=company_val,
+                industry="Higher Education & Technology",
+                company_size="50-250",
+                country="India",
+                state="Maharashtra",
+                city="Pune",
+                currency="USD",
+                customer_tier="MID_MARKET",
+                sales_owner_id=1,
+                credit_limit=100000.0,
+                payment_terms_days=30,
+                status="ACTIVE",
             )
             db.add(new_cust)
             db.commit()
-    except Exception:
+            db.refresh(new_cust)
+
+            new_contact = CustomerContact(
+                customer_id=new_cust.id,
+                name=payload.full_name.strip(),
+                email=clean_email,
+                phone="+91-9876543210",
+                job_title="Authorized Representative",
+                department="Procurement",
+                is_primary=True,
+                portal_enabled=True,
+                status="ACTIVE",
+            )
+            db.add(new_contact)
+            db.commit()
+    except Exception as e:
         db.rollback()
 
     # Send verification email in background
@@ -236,6 +259,18 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     else:
         role_norm = "user"
 
+    # Resolve company name from customer records
+    comp_name = None
+    contact = db.query(CustomerContact).filter(CustomerContact.email.ilike(user.email)).first()
+    if contact:
+        cust = db.query(Customer).filter(Customer.id == contact.customer_id).first()
+        if cust:
+            comp_name = cust.company_name
+    if not comp_name:
+        cust = db.query(Customer).filter(Customer.company_name.ilike(user.name)).first()
+        if cust:
+            comp_name = cust.company_name
+
     return {
         "success": True,
         "access_token": f"jwt-{user.id}-{int(datetime.utcnow().timestamp())}",
@@ -243,8 +278,11 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         "user": {
             "id": user.id,
             "name": user.name,
+            "fullName": user.name,
             "email": user.email,
             "role": role_norm,
             "status": user.status,
+            "companyName": comp_name or user.name,
+            "company_name": comp_name or user.name,
         }
     }

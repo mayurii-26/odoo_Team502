@@ -132,7 +132,20 @@ const PROMO_SLIDES = [
 
 /* ── Main Exported Page Component ─────────────────────────────────── */
 export default function LoginPage() {
-  const [currentUser, setCurrentUser] = useState<UserSession | null>(null)
+  const [currentUser, setCurrentUser] = useState<UserSession | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('dealflow_active_user')
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (parsed && parsed.email && parsed.role) {
+            return parsed
+          }
+        }
+      } catch {}
+    }
+    return null
+  })
   const [isClient, setIsClient] = useState(false)
 
   // Mode: 'login' or 'signup'

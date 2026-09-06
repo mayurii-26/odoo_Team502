@@ -36,6 +36,7 @@ export default function CustomerPortalModule({
   const repName = quotation?.salesRep || 'Your Sales Rep'
   const repEmail = quotation?.salesRepEmail || ''
   const managerName = quotation?.reportingManager || ''
+  const customerDisplayName = user?.companyName || user?.fullName || quotation?.customerName || 'Customer'
 
   const proposalTotal = quotation?.items && quotation.items.length > 0
     ? quotation.items.reduce((s, it) => s + it.qty * it.unitPrice * (1 - (it.discountPct || 0) / 100), 0)
@@ -155,7 +156,6 @@ export default function CustomerPortalModule({
   const [negotiationStatus, setNegotiationStatus] = useState<'Under Negotiation' | 'Confirmed'>('Under Negotiation')
 
   // Messages Thread State tailored to dedicated sales rep
-  const customerDisplayName = user?.fullName || user?.companyName || 'Customer'
   const [chatInput, setChatInput] = useState('')
   const [messages, setMessages] = useState([
     {

@@ -226,15 +226,100 @@ interface AppShellProps {
 }
 
 export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps) {
-  // Domain state with robust fallbacks
-  const [quotations, setQuotations] = useState<Quotation[]>(INITIAL_QUOTATIONS)
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS)
-  const [warehouses, setWarehouses] = useState<Warehouse[]>(INITIAL_WAREHOUSES)
+  // Instant SWR Cache Initialization (0ms buffer on page reload)
+  const [quotations, setQuotations] = useState<Quotation[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('dealflow_cached_quotations')
+        if (cached) {
+          const parsed = JSON.parse(cached)
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed
+        }
+      } catch {}
+    }
+    return INITIAL_QUOTATIONS
+  })
+
+  const [products, setProducts] = useState<Product[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('dealflow_cached_products')
+        if (cached) {
+          const parsed = JSON.parse(cached)
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed
+        }
+      } catch {}
+    }
+    return INITIAL_PRODUCTS
+  })
+
+  const [warehouses, setWarehouses] = useState<Warehouse[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('dealflow_cached_warehouses')
+        if (cached) {
+          const parsed = JSON.parse(cached)
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed
+        }
+      } catch {}
+    }
+    return INITIAL_WAREHOUSES
+  })
+
   const [governance, setGovernance] = useState<GovernanceRule>(INITIAL_GOVERNANCE)
-  const [users, setUsers] = useState<UserAccount[]>(INITIAL_USERS)
-  const [invoices, setInvoices] = useState<any[]>([])
-  const [subscriptions, setSubscriptions] = useState<any[]>([])
-  const [approvals, setApprovals] = useState<any[]>([])
+
+  const [users, setUsers] = useState<UserAccount[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('dealflow_cached_users')
+        if (cached) {
+          const parsed = JSON.parse(cached)
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed
+        }
+      } catch {}
+    }
+    return INITIAL_USERS
+  })
+
+  const [invoices, setInvoices] = useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('dealflow_cached_invoices')
+        if (cached) {
+          const parsed = JSON.parse(cached)
+          if (Array.isArray(parsed)) return parsed
+        }
+      } catch {}
+    }
+    return []
+  })
+
+  const [subscriptions, setSubscriptions] = useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('dealflow_cached_subscriptions')
+        if (cached) {
+          const parsed = JSON.parse(cached)
+          if (Array.isArray(parsed)) return parsed
+        }
+      } catch {}
+    }
+    return []
+  })
+
+  const [approvals, setApprovals] = useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('dealflow_cached_approvals')
+        if (cached) {
+          const parsed = JSON.parse(cached)
+          if (Array.isArray(parsed)) return parsed
+        }
+      } catch {}
+    }
+    return []
+  })
+
   const [auditLogs, setAuditLogs] = useState<WorkflowAuditEntry[]>(INITIAL_WORKFLOW_AUDIT_LOGS)
   const [reportsData, setReportsData] = useState<any>(null)
   const [isDbLoaded, setIsDbLoaded] = useState<boolean>(true)
@@ -389,6 +474,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             id: dq.quote_number || dq.id,
             dealName: `${dq.customer_company || dq.customer_name} - $${Number(dq.total_amount).toLocaleString()}`,
             customerName: dq.customer_company || dq.customer_name,
+            customerEmail: dq.customer_email || '',
             customerTier: dq.customer_tier || 'Gold',
             salesRep: dq.sales_rep || '',
             salesRepEmail: dq.sales_rep_email || '',
@@ -437,10 +523,44 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
                 addedByRep: true,
               },
             ],
+            approvalWorkflow: dq.approvalWorkflow || dq.approval_workflow,
+            approvalDetails: dq.approvalDetails || dq.approval_details,
+            managerComment: dq.internal_notes || dq.managerComment,
           }))
           setQuotations(adaptedQuotes)
-          if (adaptedQuotes[0]) {
-            setSelectedQuotationId(adaptedQuotes[0].id)
+          try {
+            localStorage.setItem('dealflow_cached_quotations', JSON.stringify(adaptedQuotes))
+          } catch {}
+          if (adaptedQuotes.length > 0) {
+            if (isSalesRep) {
+              const uEmail = (user.email || '').trim().toLowerCase()
+              const uName = (user.fullName || '').trim().toLowerCase()
+              const repQ = adaptedQuotes.find(q => {
+                const qEmail = (q.salesRepEmail || '').trim().toLowerCase()
+                const qRep = (q.salesRep || '').trim().toLowerCase()
+                return (
+                  (Boolean(qEmail) && Boolean(uEmail) && qEmail === uEmail) ||
+                  (Boolean(qRep) && Boolean(uName) && (qRep === uName || uName.includes(qRep) || qRep.includes(uName)))
+                )
+              })
+              setSelectedQuotationId(repQ ? repQ.id : adaptedQuotes[0].id)
+            } else if (isCustomer) {
+              const uEmail = (user.email || '').trim().toLowerCase()
+              const uName = (user.fullName || '').trim().toLowerCase()
+              const uComp = (user.companyName || '').trim().toLowerCase()
+              const custQ = adaptedQuotes.find(q => {
+                const qEmail = (q.customerEmail || '').trim().toLowerCase()
+                const qCust = (q.customerName || '').trim().toLowerCase()
+                return (
+                  (Boolean(qEmail) && Boolean(uEmail) && qEmail === uEmail) ||
+                  (Boolean(qCust) && Boolean(uComp) && qCust.includes(uComp)) ||
+                  (Boolean(qCust) && Boolean(uName) && qCust.includes(uName))
+                )
+              })
+              setSelectedQuotationId(custQ ? custQ.id : adaptedQuotes[0].id)
+            } else {
+              setSelectedQuotationId(adaptedQuotes[0].id)
+            }
           }
         }
 
@@ -457,6 +577,9 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             description: dp.description || '',
           }))
           setProducts(adaptedProds)
+          try {
+            localStorage.setItem('dealflow_cached_products', JSON.stringify(adaptedProds))
+          } catch {}
         }
 
         if (data.warehouses && data.warehouses.length > 0) {
@@ -467,6 +590,9 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             inventory: dw.inventory || { '1': dw.current_stock || 150 },
           }))
           setWarehouses(adaptedWarehouses)
+          try {
+            localStorage.setItem('dealflow_cached_warehouses', JSON.stringify(adaptedWarehouses))
+          } catch {}
         }
 
         if (data.users && data.users.length > 0) {
@@ -479,15 +605,27 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
             status: u.status || (u.is_active ? 'Active' : 'Pending Invite'),
           }))
           setUsers(adaptedUsers)
+          try {
+            localStorage.setItem('dealflow_cached_users', JSON.stringify(adaptedUsers))
+          } catch {}
         }
         if (data.invoices && data.invoices.length > 0) {
           setInvoices(data.invoices)
+          try {
+            localStorage.setItem('dealflow_cached_invoices', JSON.stringify(data.invoices))
+          } catch {}
         }
         if (data.subscriptions && data.subscriptions.length > 0) {
           setSubscriptions(data.subscriptions)
+          try {
+            localStorage.setItem('dealflow_cached_subscriptions', JSON.stringify(data.subscriptions))
+          } catch {}
         }
         if (data.approvals && data.approvals.length > 0) {
           setApprovals(data.approvals)
+          try {
+            localStorage.setItem('dealflow_cached_approvals', JSON.stringify(data.approvals))
+          } catch {}
         }
         if (data.governance) {
           setGovernance(data.governance)
@@ -535,7 +673,31 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
       }
       return [updated, ...prev]
     })
+    if (updated.approvalWorkflow) {
+      setApprovals(prev =>
+        prev.map(a => {
+          const cleanQuoteId = String(updated.id).replace(/\D/g, '')
+          if (
+            String(a.quote_number || '').toLowerCase() === String(updated.id).toLowerCase() ||
+            String(a.quotation_id || '') === cleanQuoteId ||
+            String(a.id || '') === cleanQuoteId
+          ) {
+            return {
+              ...a,
+              status: (updated.approvalWorkflow?.status || a.status || '').toUpperCase(),
+              reason: updated.approvalWorkflow?.managerNotes || a.reason,
+            }
+          }
+          return a
+        })
+      )
+    }
     setSelectedQuotationId(updated.id)
+    try {
+      localStorage.setItem('dealflow_cached_quotations', JSON.stringify(
+        quotations.map(q => q.id === updated.id ? updated : q)
+      ))
+    } catch {}
     try {
       const backendStatus = mapFrontendStatusToBackend(updated.status)
       await updateQuotationLive(updated.id, {
@@ -612,9 +774,91 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
   }
 
   const isNewQuote = selectedQuotationId === 'new' || !selectedQuotationId
+
+  // Role-scoped quotations for views and dashboards
+  const relevantQuotations = useMemo(() => {
+    if (isSalesRep) {
+      const uEmail = (user.email || '').trim().toLowerCase()
+      const uName = (user.fullName || '').trim().toLowerCase()
+      const uFirst = uName.split(' ')[0]
+      const filtered = quotations.filter(q => {
+        const qRepEmail = (q.salesRepEmail || '').trim().toLowerCase()
+        const qRepName = (q.salesRep || '').trim().toLowerCase()
+        const qRepFirst = qRepName.split(' ')[0]
+        return (
+          (Boolean(qRepEmail) && Boolean(uEmail) && qRepEmail === uEmail) ||
+          (Boolean(qRepName) && Boolean(uName) && (qRepName === uName || uName.includes(qRepName) || qRepName.includes(uName))) ||
+          (Boolean(uFirst) && Boolean(qRepFirst) && uFirst.length > 2 && uFirst === qRepFirst)
+        )
+      })
+      return filtered
+    }
+    if (isCustomer) {
+      const uEmail = (user.email || '').trim().toLowerCase()
+      const uName = (user.fullName || '').trim().toLowerCase()
+      const uComp = (user.companyName || '').trim().toLowerCase()
+      const filtered = quotations.filter(q => {
+        const qEmail = (q.customerEmail || '').trim().toLowerCase()
+        const qName = (q.customerName || '').trim().toLowerCase()
+        return (
+          (Boolean(qEmail) && Boolean(uEmail) && qEmail === uEmail) ||
+          (Boolean(qName) && Boolean(uComp) && (qName.includes(uComp) || uComp.includes(qName))) ||
+          (Boolean(qName) && Boolean(uName) && (qName.includes(uName) || uName.includes(qName)))
+        )
+      })
+      if (filtered.length > 0) return filtered
+
+      // Individualized quotation for the logged in customer organization (never fallback to Acme Corp)
+      const userCompany = user.companyName || user.fullName || 'My Organization'
+      return [
+        {
+          id: `Q-PROPOSAL`,
+          dealName: `${userCompany} - Enterprise Agreement`,
+          customerName: userCompany,
+          customerEmail: user.email || 'customer@dealflow360.com',
+          customerTier: 'Gold',
+          salesRep: 'Aarav Sharma',
+          salesRepEmail: 'sales@dealflow360.com',
+          reportingManager: 'Sarah Jenkins',
+          status: 'Under Review' as QuotationStatus,
+          createdAt: new Date().toISOString().split('T')[0],
+          validUntil: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+          blendedRiskScore: 85,
+          riskLevel: 'Low' as const,
+          items: [
+            {
+              id: 'item-1',
+              productId: '1',
+              name: 'Enterprise Platform License',
+              category: 'Software' as const,
+              type: 'recurring' as const,
+              qty: 1,
+              unitPrice: 2400,
+              discountPct: 10,
+              costPrice: 800,
+            },
+            {
+              id: 'item-2',
+              productId: '2',
+              name: 'Enterprise Setup & Support Pack',
+              category: 'Services' as const,
+              type: 'one_time' as const,
+              qty: 1,
+              unitPrice: 1200,
+              discountPct: 5,
+              costPrice: 300,
+            },
+          ],
+          recommendedItems: [],
+        },
+      ]
+    }
+    return quotations
+  }, [quotations, user.email, user.fullName, user.companyName, isSalesRep, isCustomer])
+
   const selectedQuote = isNewQuote
     ? null
-    : (quotations.find(q => q.id === selectedQuotationId) || null)
+    : (quotations.find(q => q.id === selectedQuotationId) || relevantQuotations[0] || quotations[0] || null)
 
   const moduleTitles: Record<ActiveModule, string> = {
     dashboard: isCustomer
@@ -1203,7 +1447,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
           {activeModule === 'dashboard' && (
             <DashboardModule
               user={user}
-              quotations={quotations}
+              quotations={relevantQuotations}
               onNavigate={handleNavigateModule}
               onSelectQuotation={setSelectedQuotationId}
             />
@@ -1212,7 +1456,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
           {/* Customer Portal Modules (from Local Stash) */}
           {(activeModule === 'customer_portal' || (activeModule === 'messages' && isCustomer) || activeModule === 'profile') && (
             <CustomerPortalModule
-              quotation={selectedQuote || quotations[0]}
+              quotation={selectedQuote || relevantQuotations[0] || quotations[0]}
               customerTab={
                 activeModule === 'messages'
                   ? 'messages'
@@ -1295,9 +1539,9 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
           {/* Fulfillment Module (shared across Finance and Sales Reps) */}
           {activeModule === 'fulfillment' && (
             <FulfillmentModule
-              quotation={selectedQuote || quotations[0]}
+              quotation={selectedQuote || relevantQuotations[0] || quotations[0]}
               warehouses={warehouses}
-              quotations={quotations}
+              quotations={relevantQuotations}
               onUpdateQuotation={handleUpdateQuotation}
               onNavigate={handleNavigateModule}
               onShowToast={showToast}
@@ -1307,7 +1551,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
           {/* Invoices Module (shared across Finance and Sales Reps) */}
           {(activeModule === 'invoices' || activeModule === 'billing') && (
             <InvoicesModule
-              quotation={selectedQuote || quotations[0]}
+              quotation={selectedQuote || relevantQuotations[0] || quotations[0]}
               invoices={invoices}
               onUpdateQuotation={handleUpdateQuotation}
               onNavigate={handleNavigateModule}
@@ -1318,7 +1562,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
           {/* Deal Health Module (shared across Sales Manager and Reps) */}
           {activeModule === 'deal_health' && (
             <DealHealthModule
-              quotations={quotations}
+              quotations={relevantQuotations}
               onNavigate={handleNavigateModule}
               onSelectQuotation={setSelectedQuotationId}
               onShowToast={showToast}
@@ -1328,12 +1572,13 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
           {/* Quotations List Module (Kanban view) */}
           {activeModule === 'quotations' && (
             <QuotationsListModule
-              quotations={quotations}
+              quotations={relevantQuotations}
               onSelectQuotation={setSelectedQuotationId}
               onNavigate={handleNavigateModule}
               onUpdateQuotation={handleUpdateQuotation}
               onShowToast={showToast}
-              readOnly={false}
+              readOnly={isAdmin}
+              user={user}
             />
           )}
 

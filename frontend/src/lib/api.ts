@@ -303,6 +303,31 @@ export async function updateQuotationLive(
 }
 
 /**
+ * Process approval decision (Approve / Reject) in PostgreSQL
+ */
+export async function processApprovalLive(
+  approvalId: number | string,
+  payload: {
+    action: 'APPROVE' | 'REJECT'
+    comments?: string
+    approver_name?: string
+  }
+): Promise<{ status: string; new_status: string; quote_number?: string } | null> {
+  const apiBase = getApiBaseUrl()
+  try {
+    const res = await fetch(`${apiBase}/api/v1/workspace/approvals/${approvalId}/action`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) return null
+    return await res.json()
+  } catch (err) {
+    return null
+  }
+}
+
+/**
  * Provision role access and dispatch credentials email from Admin
  */
 export async function provisionUserFromAdmin(payload: {

@@ -280,6 +280,7 @@ export default function QuotationBuilderModule({
   useEffect(() => {
     if (quotation && quotation.id && quotation.id !== 'new') {
       setCustomer(quotation.customerName || '')
+      setAssignedRep(quotation.salesRep || currentUser?.fullName || '')
       setValidUntil(quotation.validUntil || getDefaultValidUntil())
       setNotes(quotation.managerComment || '')
       if (quotation.items && quotation.items.length > 0) {
@@ -302,11 +303,12 @@ export default function QuotationBuilderModule({
     } else {
       // Clean slate for new quotation
       setCustomer('')
+      setAssignedRep(currentUser?.fullName || '')
       setValidUntil(getDefaultValidUntil())
       setNotes('')
       setLines([])
     }
-  }, [quotation?.id])
+  }, [quotation?.id, currentUser?.fullName])
 
   // Combined Catalog ensuring all prompt and backend products are available
   const availableProducts = useMemo(() => {
@@ -522,9 +524,11 @@ export default function QuotationBuilderModule({
     const payload = {
       customer_name: customer.trim(),
       customer_company: customer.trim(),
+      customer_email: `contact@${customer.trim().toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
       status: backendStatus,
       notes: effectiveNotes,
-      sales_rep_name: assignedRep,
+      sales_rep_name: assignedRep || currentUser?.fullName,
+      sales_rep_email: currentUser?.email,
       lines: lines.map(l => ({
         product_id: parseInt(l.productId) || undefined,
         product_name: l.name,
@@ -536,7 +540,7 @@ export default function QuotationBuilderModule({
     }
 
     const workflowData = statusTarget === 'Under Review' ? {
-      assignedRep,
+      assignedRep: assignedRep || currentUser?.fullName || 'Sales Representative',
       reportingManager: targetManager,
       taggedFinanceOfficer: isFinanceTagged ? taggedFinance : undefined,
       submittedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric', year: 'numeric' }),
@@ -557,9 +561,11 @@ export default function QuotationBuilderModule({
         const newQuotation: Quotation = {
           id: String(generatedId),
           customerName: customer.trim(),
+          customerEmail: payload.customer_email,
           dealName: `${customer.trim()} - $${grandTotal.toLocaleString()}`,
           customerTier: 'Gold',
-          salesRep: assignedRep,
+          salesRep: assignedRep || currentUser?.fullName || 'Sales Representative',
+          salesRepEmail: currentUser?.email || '',
           reportingManager: targetManager,
           taggedFinanceOfficer: isFinanceTagged ? taggedFinance : undefined,
           approvalWorkflow: workflowData,

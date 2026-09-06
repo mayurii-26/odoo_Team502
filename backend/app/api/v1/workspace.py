@@ -146,6 +146,24 @@ def format_quotation(q: Quotation, db: Session, preloaded: Optional[Dict[str, An
                 "discount_status": l.discount_status or "OK"
             })
 
+    appr = None
+    if preloaded and "approvals_by_quote" in preloaded:
+        appr = preloaded["approvals_by_quote"].get(q.id)
+    else:
+        appr = db.query(Approval).filter(Approval.quotation_id == q.id).first()
+
+    approval_wf = None
+    if appr:
+        approval_wf = {
+            "id": appr.id,
+            "status": appr.status.capitalize() if appr.status else "Pending",
+            "managerStatus": appr.status.capitalize() if appr.status else "Pending",
+            "financeStatus": "Approved" if appr.status == "APPROVED" else ("Rejected" if appr.status == "REJECTED" else "Pending"),
+            "managerNotes": appr.decision_comment or "",
+            "reason": appr.reason or "",
+            "submittedAt": appr.created_at.isoformat() if appr.created_at else None,
+        }
+
     return {
         "id": q.quote_number or f"Q-{q.id}",
         "db_id": q.id,
@@ -164,7 +182,7 @@ def format_quotation(q: Quotation, db: Session, preloaded: Optional[Dict[str, An
         "margin_percent": float(q.margin_percent or 0.0),
         "status": q.status or "DRAFT",
         "deal_health_score": float(q.deal_health_score or 75.0),
-        "deal_stage": "Negotiation" if q.status in ["SENT", "PENDING_APPROVAL"] else ("Closed Won" if q.status == "ACCEPTED" else "Drafting"),
+        "deal_stage": "Negotiation" if q.status in ["SENT", "PENDING_APPROVAL"] else ("Closed Won" if q.status == "ACCEPTED" else ("Lost" if q.status == "REJECTED" else "Drafting")),
         "created_at": q.created_at.strftime("%Y-%m-%d") if q.created_at else "2026-03-01",
         "expires_at": q.valid_until.strftime("%Y-%m-%d") if q.valid_until else "2026-04-01",
         "sales_rep": sales_rep_name,
@@ -172,7 +190,10 @@ def format_quotation(q: Quotation, db: Session, preloaded: Optional[Dict[str, An
         "sales_rep_id": sales_rep.id if sales_rep else 1,
         "customer_notes": q.customer_notes or "",
         "internal_notes": q.internal_notes or "",
-        "lines": formatted_lines
+        "lines": formatted_lines,
+        "approval_status": appr.status if appr else None,
+        "approval_workflow": approval_wf,
+        "approvalWorkflow": approval_wf
     }
 
 # ── Bootstrap Endpoint: All Workspace Data in One Call ───────
@@ -198,12 +219,18 @@ def get_workspace_bootstrap(db: Session = Depends(get_db)):
     for l in db.query(QuotationLine).all():
         lines_by_quote.setdefault(l.quotation_id, []).append(l)
 
+    # Preload latest approval by quotation_id
+    approvals_by_quote: Dict[int, Any] = {}
+    for a in db.query(Approval).order_by(Approval.id.asc()).all():
+        approvals_by_quote[a.quotation_id] = a
+
     preloaded = {
         "customers": all_customers,
         "contacts": contacts_map,
         "users": all_users,
         "products": all_products,
         "lines_by_quote": lines_by_quote,
+        "approvals_by_quote": approvals_by_quote,
     }
 
     # 1. Quotations (60 records)
@@ -443,13 +470,58 @@ def update_full_quotation(quote_id: str, payload: SaveFullQuotationPayload, db: 
     if payload.notes is not None:
         quote.internal_notes = payload.notes
     if payload.sales_rep_email:
-        rep_u = db.query(User).filter(User.email == payload.sales_rep_email).first()
+        rep_u = db.query(User).filter(User.email.ilike(payload.sales_rep_email)).first()
         if rep_u:
             quote.sales_rep_id = rep_u.id
     elif payload.sales_rep_name:
-        rep_u = db.query(User).filter(User.name == payload.sales_rep_name).first()
+        rep_u = db.query(User).filter(User.name.ilike(payload.sales_rep_name)).first()
         if rep_u:
             quote.sales_rep_id = rep_u.id
+
+    if payload.customer_name and payload.customer_name.strip():
+        cust = db.query(Customer).filter(Customer.company_name.ilike(payload.customer_name.strip())).first()
+        if not cust:
+            contact = db.query(CustomerContact).filter(CustomerContact.name.ilike(payload.customer_name.strip())).first()
+            if contact:
+                cust = db.query(Customer).filter(Customer.id == contact.customer_id).first()
+        if not cust:
+            comp_name = payload.customer_name.strip()
+            last_c = db.query(Customer).order_by(desc(Customer.id)).first()
+            next_code = f"CUST-{(last_c.id + 101) if last_c else 101}"
+            cust = Customer(
+                customer_code=next_code,
+                company_name=comp_name,
+                industry="Healthcare & Pharmaceuticals" if "pharma" in comp_name.lower() else "Enterprise Services",
+                company_size="50-250",
+                country="India",
+                state="Maharashtra",
+                city="Mumbai",
+                currency="USD",
+                customer_tier="Gold",
+                sales_owner_id=quote.sales_rep_id or 1,
+                credit_limit=150000.0,
+                payment_terms_days=30,
+                status="ACTIVE"
+            )
+            db.add(cust)
+            db.commit()
+            db.refresh(cust)
+
+            contact = CustomerContact(
+                customer_id=cust.id,
+                name=f"{comp_name} Procurement Lead",
+                email=payload.customer_email or f"contact@{comp_name.lower().replace(' ', '')}.com",
+                phone="+91-9876543210",
+                job_title="Procurement Director",
+                department="Procurement",
+                is_primary=True,
+                portal_enabled=True,
+                status="ACTIVE"
+            )
+            db.add(contact)
+            db.commit()
+        if cust:
+            quote.customer_id = cust.id
 
     # Update line items if provided
     if payload.lines is not None and len(payload.lines) > 0:
@@ -517,15 +589,106 @@ def update_full_quotation(quote_id: str, payload: SaveFullQuotationPayload, db: 
         # Calculate health score based on margin
         quote.deal_health_score = 90.0 if m_pct >= 40 else (75.0 if m_pct >= 25 else 50.0)
 
+    # Synchronize approvals table
+    if quote.status == "PENDING_APPROVAL":
+        existing_appr = db.query(Approval).filter(Approval.quotation_id == quote.id).first()
+        manager_user = db.query(User).filter(User.role.ilike("%manager%")).first() or db.query(User).first()
+        manager_id = manager_user.id if manager_user else 3
+        
+        last_appr = db.query(Approval).order_by(desc(Approval.id)).first()
+        next_appr_num = f"APR-{(last_appr.id + 1020) if last_appr else 1021}"
+
+        if not existing_appr:
+            new_appr = Approval(
+                approval_number=next_appr_num,
+                quotation_id=quote.id,
+                requested_by=quote.sales_rep_id or 1,
+                assigned_to=manager_id,
+                approval_type="DISCOUNT",
+                reason=payload.notes or "Quotation discount concession requested",
+                risk_score=float(quote.deal_health_score or 50.0),
+                status="PENDING",
+                requested_at=datetime.utcnow(),
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+            db.add(new_appr)
+        else:
+            existing_appr.status = "PENDING"
+            if payload.notes:
+                existing_appr.reason = payload.notes
+    elif quote.status in ["APPROVED", "ACCEPTED", "CONFIRMED"]:
+        appr = db.query(Approval).filter(Approval.quotation_id == quote.id).first()
+        if appr:
+            appr.status = "APPROVED"
+            appr.resolved_at = datetime.utcnow()
+    elif quote.status == "REJECTED":
+        appr = db.query(Approval).filter(Approval.quotation_id == quote.id).first()
+        if appr:
+            appr.status = "REJECTED"
+            appr.resolved_at = datetime.utcnow()
+
     db.commit()
     db.refresh(quote)
     return format_quotation(quote, db)
 
 @router.post("/quotations")
 def create_new_quotation(payload: SaveFullQuotationPayload, db: Session = Depends(get_db)):
+    # Resolve sales rep
+    sales_rep = None
+    if payload.sales_rep_email:
+        sales_rep = db.query(User).filter(User.email.ilike(payload.sales_rep_email)).first()
+    if not sales_rep and payload.sales_rep_name:
+        sales_rep = db.query(User).filter(User.name.ilike(payload.sales_rep_name)).first()
+    if not sales_rep:
+        sales_rep = db.query(User).filter(User.role.ilike("%rep%")).first() or db.query(User).first()
+
     # Find or create customer
-    cust = db.query(Customer).first()
-    sales_rep = db.query(User).filter(User.role == "sales_rep").first() or db.query(User).first()
+    cust = None
+    if payload.customer_name and payload.customer_name.strip():
+        cust = db.query(Customer).filter(Customer.company_name.ilike(payload.customer_name.strip())).first()
+        if not cust:
+            contact = db.query(CustomerContact).filter(CustomerContact.name.ilike(payload.customer_name.strip())).first()
+            if contact:
+                cust = db.query(Customer).filter(Customer.id == contact.customer_id).first()
+        if not cust:
+            comp_name = payload.customer_name.strip()
+            last_c = db.query(Customer).order_by(desc(Customer.id)).first()
+            next_code = f"CUST-{(last_c.id + 101) if last_c else 101}"
+            cust = Customer(
+                customer_code=next_code,
+                company_name=comp_name,
+                industry="Healthcare & Pharmaceuticals" if "pharma" in comp_name.lower() else "Enterprise Services",
+                company_size="50-250",
+                country="India",
+                state="Maharashtra",
+                city="Mumbai",
+                currency="USD",
+                customer_tier="Gold",
+                sales_owner_id=sales_rep.id if sales_rep else 1,
+                credit_limit=150000.0,
+                payment_terms_days=30,
+                status="ACTIVE"
+            )
+            db.add(cust)
+            db.commit()
+            db.refresh(cust)
+
+            contact = CustomerContact(
+                customer_id=cust.id,
+                name=f"{comp_name} Procurement Lead",
+                email=payload.customer_email or f"contact@{comp_name.lower().replace(' ', '')}.com",
+                phone="+91-9876543210",
+                job_title="Procurement Director",
+                department="Procurement",
+                is_primary=True,
+                portal_enabled=True,
+                status="ACTIVE"
+            )
+            db.add(contact)
+            db.commit()
+    if not cust:
+        cust = db.query(Customer).first()
     
     # Generate next quote number
     last_q = db.query(Quotation).order_by(desc(Quotation.id)).first()
@@ -553,25 +716,49 @@ def create_new_quotation(payload: SaveFullQuotationPayload, db: Session = Depend
     db.commit()
     db.refresh(new_q)
 
-    # Now use update_full_quotation logic to populate lines
+    # Populate lines and create approval if needed
     return update_full_quotation(str(new_q.id), payload, db)
 
 @router.post("/approvals/{approval_id}/action")
-def process_approval(approval_id: int, payload: ApprovalActionPayload, db: Session = Depends(get_db)):
-    req = db.query(Approval).filter(Approval.id == approval_id).first()
+def process_approval(approval_id: str, payload: ApprovalActionPayload, db: Session = Depends(get_db)):
+    req = None
+    clean_id = approval_id.replace("appr-", "").replace("Q-", "")
+    if clean_id.isdigit():
+        req = db.query(Approval).filter(Approval.id == int(clean_id)).first()
+        if not req:
+            req = db.query(Approval).filter(Approval.quotation_id == int(clean_id)).first()
+    if not req:
+        # try matching by quotation quote_number
+        quote_match = db.query(Quotation).filter(Quotation.quote_number == approval_id).first()
+        if quote_match:
+            req = db.query(Approval).filter(Approval.quotation_id == quote_match.id).first()
+            if not req:
+                req = Approval(
+                    quotation_id=quote_match.id,
+                    requested_by=quote_match.sales_rep_id,
+                    status="PENDING",
+                    reason="Manager reviewed approval"
+                )
+                db.add(req)
+                db.commit()
+                db.refresh(req)
+
     if not req:
         raise HTTPException(status_code=404, detail="Approval request not found")
 
-    req.status = "APPROVED" if payload.action.upper() == "APPROVE" else "REJECTED"
-    req.decision_comment = payload.comments or f"Decision processed via Workspace Hub."
+    new_stat = "APPROVED" if payload.action.upper() == "APPROVE" else "REJECTED"
+    req.status = new_stat
+    req.decision_comment = payload.comments or f"Decision processed by {payload.approver_name}."
     req.resolved_at = datetime.utcnow()
     
     quote = db.query(Quotation).filter(Quotation.id == req.quotation_id).first()
     if quote:
         quote.status = "APPROVED" if payload.action.upper() == "APPROVE" else "REJECTED"
+        if payload.comments:
+            quote.internal_notes = payload.comments
 
     db.commit()
-    return {"status": "success", "new_status": req.status}
+    return {"status": "success", "new_status": req.status, "quote_number": quote.quote_number if quote else None}
 
 @router.post("/audit-log")
 def create_audit_log(payload: CreateAuditLogPayload, db: Session = Depends(get_db)):
