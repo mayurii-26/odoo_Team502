@@ -176,10 +176,19 @@ export default function QuotationBuilderModule({
 
   const availableReps = useMemo(() => {
     if (users && users.length > 0) {
-      const reps = users.filter(u => (u.role || '').toLowerCase().includes('rep') || (u.role || '').toLowerCase().includes('sales'))
+      const reps = users.filter(u => 
+        (u.role || '').toLowerCase().includes('rep') || 
+        (u.role || '').toLowerCase().includes('sales') ||
+        (u.role || '').toLowerCase() === 'user' ||
+        (u.role || '').toLowerCase() === 'sales_rep'
+      )
       if (reps.length > 0) return reps
     }
-    return []
+    return [
+      { id: 1, name: 'Aarav Sharma', email: 'aarav.sharma@dealflow360.com', role: 'sales_rep' },
+      { id: 2, name: 'Jane Smith', email: 'sales@dealflow360.com', role: 'sales_rep' },
+      { id: 3, name: 'John Doe', email: 'john.doe@dealflow360.com', role: 'sales_rep' },
+    ]
   }, [users])
 
   const availableManagers = useMemo(() => {
@@ -521,14 +530,20 @@ export default function QuotationBuilderModule({
 
     const effectiveNotes = customReportingNotes !== undefined ? customReportingNotes : notes
 
+    const selectedRepObj = availableReps.find(
+      (r: any) => r.name === assignedRep || r.email === assignedRep
+    )
+    const effectiveRepEmail = selectedRepObj?.email || currentUser?.email || 'sales@dealflow360.com'
+    const effectiveRepName = selectedRepObj?.name || assignedRep || currentUser?.fullName || 'Sales Representative'
+
     const payload = {
       customer_name: customer.trim(),
       customer_company: customer.trim(),
       customer_email: `contact@${customer.trim().toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
       status: backendStatus,
       notes: effectiveNotes,
-      sales_rep_name: assignedRep || currentUser?.fullName,
-      sales_rep_email: currentUser?.email,
+      sales_rep_name: effectiveRepName,
+      sales_rep_email: effectiveRepEmail,
       lines: lines.map(l => ({
         product_id: parseInt(l.productId) || undefined,
         product_name: l.name,
@@ -540,7 +555,7 @@ export default function QuotationBuilderModule({
     }
 
     const workflowData = statusTarget === 'Under Review' ? {
-      assignedRep: assignedRep || currentUser?.fullName || 'Sales Representative',
+      assignedRep: effectiveRepName,
       reportingManager: targetManager,
       taggedFinanceOfficer: isFinanceTagged ? taggedFinance : undefined,
       submittedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric', year: 'numeric' }),
@@ -564,8 +579,8 @@ export default function QuotationBuilderModule({
           customerEmail: payload.customer_email,
           dealName: `${customer.trim()} - $${grandTotal.toLocaleString()}`,
           customerTier: 'Gold',
-          salesRep: assignedRep || currentUser?.fullName || 'Sales Representative',
-          salesRepEmail: currentUser?.email || '',
+          salesRep: effectiveRepName,
+          salesRepEmail: effectiveRepEmail,
           reportingManager: targetManager,
           taggedFinanceOfficer: isFinanceTagged ? taggedFinance : undefined,
           approvalWorkflow: workflowData,
@@ -593,14 +608,14 @@ export default function QuotationBuilderModule({
 
         if (onRecordAudit) {
           onRecordAudit({
-            actorName: currentUser?.fullName || assignedRep,
+            actorName: currentUser?.fullName || effectiveRepName,
             actorRole: currentUser?.role || 'sales_rep',
             actionType: statusTarget === 'Under Review' ? 'APPROVAL_REQUESTED' : 'QUOTE_CREATED',
             targetQuotationId: newQuotation.id,
             customerName: customer.trim(),
             details: statusTarget === 'Under Review'
               ? `Reported to ${targetManager}${isFinanceTagged ? ` [Tagged Finance: ${taggedFinance}]` : ''}. Notes: ${effectiveNotes || 'Volume concession request'}`
-              : `Created draft quotation with value $${grandTotal.toLocaleString()}`,
+              : `Created draft quotation with value $${grandTotal.toLocaleString()} assigned to ${effectiveRepName}`,
           })
         }
 
@@ -618,7 +633,8 @@ export default function QuotationBuilderModule({
           ...quotation!,
           customerName: customer.trim(),
           dealName: `${customer.trim()} - $${grandTotal.toLocaleString()}`,
-          salesRep: assignedRep,
+          salesRep: effectiveRepName,
+          salesRepEmail: effectiveRepEmail,
           reportingManager: targetManager,
           taggedFinanceOfficer: isFinanceTagged ? taggedFinance : undefined,
           approvalWorkflow: workflowData,
@@ -820,18 +836,27 @@ export default function QuotationBuilderModule({
               value={customer}
               onChange={e => setCustomer(e.target.value)}
               placeholder="Account / Company name"
+              list="customer-suggestions"
               disabled={readOnly}
             />
+            <datalist id="customer-suggestions">
+              <option value="pharma set" />
+              <option value="MIT AOE" />
+              <option value="Acme Corp" />
+              <option value="Apex Global Solutions" />
+              <option value="Nexus Systems" />
+              <option value="GlobalTech Enterprise" />
+            </datalist>
           </div>
 
           <div className={styles.inputField}>
             <label className={styles.inputLabel}>
               Assigned Sales Rep
-              {currentUser?.role === 'sales_manager' && !readOnly && (
-                <span style={{ fontSize: '11px', color: '#6366f1', marginLeft: 6 }}>(Manager Reassign)</span>
+              {!readOnly && (
+                <span style={{ fontSize: '11px', color: '#6366f1', marginLeft: 6 }}>(Select Rep)</span>
               )}
             </label>
-            {currentUser?.role === 'sales_manager' && !readOnly ? (
+            {!readOnly ? (
               <select
                 className={styles.inputBox}
                 value={assignedRep}
@@ -840,12 +865,12 @@ export default function QuotationBuilderModule({
                   setAssignedRep(newRep)
                   if (onRecordAudit) {
                     onRecordAudit({
-                      actorName: currentUser?.fullName || 'Alex Rivera (Sales Manager)',
-                      actorRole: 'sales_manager',
+                      actorName: currentUser?.fullName || 'DealFlow360 User',
+                      actorRole: currentUser?.role || 'sales_rep',
                       actionType: 'DEAL_ASSIGNED',
                       targetQuotationId: quotation?.id || 'New Deal',
                       customerName: customer.trim() || 'Client',
-                      details: `Manager reassigned deal to ${newRep}`,
+                      details: `Assigned quotation deal to ${newRep}`,
                     })
                   }
                   onShowToast(`Assigned deal to ${newRep}!`)

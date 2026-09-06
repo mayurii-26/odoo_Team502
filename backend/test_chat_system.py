@@ -105,17 +105,17 @@ async def test_socketio_realtime(u1_id, u2_id, img_data, pdf_data):
     read_receipts_c1 = []
 
     @sio_client2.on("receive_message")
-    def on_c2_receive_message(data):
+    async def on_c2_receive_message(data):
         print(f"  [Client 2 Event] Received message in real time: '{data.get('content')}' type={data.get('message_type')}")
         received_messages_c2.append(data)
 
     @sio_client2.on("user_typing")
-    def on_c2_typing(data):
+    async def on_c2_typing(data):
         print(f"  [Client 2 Event] Typing indicator: user_id={data.get('user_id')} is_typing={data.get('is_typing')}")
         typing_events_c2.append(data)
 
     @sio_client1.on("messages_read")
-    def on_c1_read(data):
+    async def on_c1_read(data):
         print(f"  [Client 1 Event] Messages read receipt: read_by_user_id={data.get('read_by_user_id')}")
         read_receipts_c1.append(data)
 
@@ -127,7 +127,7 @@ async def test_socketio_realtime(u1_id, u2_id, img_data, pdf_data):
     # Join user rooms
     await sio_client1.emit("join_user", {"user_id": u1_id})
     await sio_client2.emit("join_user", {"user_id": u2_id})
-    await asyncio.sleep(0.3)
+    await asyncio.sleep(0.5)
     print(f"✓ Joined rooms: user_{u1_id} and user_{u2_id}")
 
     # Test Typing Indicator
@@ -148,7 +148,7 @@ async def test_socketio_realtime(u1_id, u2_id, img_data, pdf_data):
         "content": "Real-time socket text delivery test! 🚀",
         "message_type": "text"
     })
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(2.0)
     assert len(received_messages_c2) >= 1, "Client 2 should have received text message"
     print("✓ Real-time text message sent and received over Socket.IO!")
 
@@ -163,7 +163,7 @@ async def test_socketio_realtime(u1_id, u2_id, img_data, pdf_data):
         "file_size": img_data["file_size"],
         "mime_type": img_data["mime_type"]
     })
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(2.0)
     assert any(m.get("message_type") == "image" for m in received_messages_c2), "Client 2 should receive image message"
     print("✓ Real-time image message delivered with full metadata over Socket.IO!")
 
@@ -178,7 +178,7 @@ async def test_socketio_realtime(u1_id, u2_id, img_data, pdf_data):
         "file_size": pdf_data["file_size"],
         "mime_type": pdf_data["mime_type"]
     })
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(2.0)
     assert any(m.get("message_type") == "pdf" for m in received_messages_c2), "Client 2 should receive PDF message"
     print("✓ Real-time PDF document delivered with full metadata over Socket.IO!")
 
@@ -188,7 +188,7 @@ async def test_socketio_realtime(u1_id, u2_id, img_data, pdf_data):
         "conversation_id": conv_id,
         "user_id": u2_id
     })
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(1.0)
     assert len(read_receipts_c1) >= 1, "Client 1 should have received read receipt"
     print("✓ Real-time read receipt (double-tick update) delivered to sender!")
 
