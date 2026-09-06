@@ -17,6 +17,7 @@ pgvector==0.3.3               # vector search (for AI/RAG if needed)
 # Auth & security
 python-jose[cryptography]==3.3.0   # JWT
 passlib[bcrypt]==1.7.4             # password hashing
+email-validator==2.2.0
 
 # Config
 pydantic-settings==2.5.2
