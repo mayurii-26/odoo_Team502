@@ -1468,6 +1468,7 @@ export default function AppShell({ user, onLogout, onSwitchRole }: AppShellProps
               onNavigate={handleNavigateModule}
               onShowToast={showToast}
               user={user}
+              users={users}
               onRecordAudit={handleRecordAuditLog}
             />
           )}

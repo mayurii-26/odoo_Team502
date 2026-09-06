@@ -835,18 +835,9 @@ export default function QuotationBuilderModule({
               className={styles.inputBox}
               value={customer}
               onChange={e => setCustomer(e.target.value)}
-              placeholder="Account / Company name"
-              list="customer-suggestions"
+              placeholder="e.g. Acme Corp, pharma set, MIT AOE..."
               disabled={readOnly}
             />
-            <datalist id="customer-suggestions">
-              <option value="pharma set" />
-              <option value="MIT AOE" />
-              <option value="Acme Corp" />
-              <option value="Apex Global Solutions" />
-              <option value="Nexus Systems" />
-              <option value="GlobalTech Enterprise" />
-            </datalist>
           </div>
 
           <div className={styles.inputField}>

@@ -56,22 +56,24 @@ export default function ChatModule({
   const pdfInputRef = useRef<HTMLInputElement | null>(null)
   const typingTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Determine current user's DB ID from email
+  // Determine current user's DB ID from email or currentUser session
   const activeUserId = useMemo(() => {
-    const match = chatUsers.find(
-      u => u.email.toLowerCase() === currentUser.email.toLowerCase()
-    )
-    if (match) return match.id
-    const propMatch = propUsers.find(
-      u => u.email.toLowerCase() === currentUser.email.toLowerCase()
-    )
-    if (propMatch) {
-      return typeof propMatch.id === 'number'
-        ? propMatch.id
-        : parseInt(String(propMatch.id).replace(/\D/g, '') || '1', 10)
+    if (typeof currentUser?.id === 'number' && currentUser.id > 0) {
+      return currentUser.id
     }
-    return 1 // Default fallback ID
-  }, [chatUsers, propUsers, currentUser.email])
+    if (typeof currentUser?.id === 'string') {
+      const parsed = parseInt(currentUser.id.replace(/\D/g, ''), 10)
+      if (!isNaN(parsed) && parsed > 0 && !currentUser.id.includes('-')) return parsed
+    }
+    const allKnown = [...chatUsers, ...propUsers]
+    const match = allKnown.find(
+      u => u.email && currentUser?.email && u.email.toLowerCase() === currentUser.email.toLowerCase()
+    )
+    if (match) {
+      return typeof match.id === 'number' ? match.id : parseInt(String(match.id).replace(/\D/g, '') || '1', 10)
+    }
+    return 1
+  }, [currentUser?.id, currentUser?.email, chatUsers, propUsers])
 
   // ── 1. Fetch Users & Conversations on Mount ─────────────────
   useEffect(() => {
@@ -79,52 +81,62 @@ export default function ChatModule({
 
     async function loadData() {
       try {
-        const usersRes = await fetch(`${API_BASE}/api/v1/chat/users?current_user_id=${activeUserId}`)
+        let loadedUsers: ChatUser[] = []
+        const usersRes = await fetch(`${API_BASE}/api/v1/chat/users`)
         if (usersRes.ok) {
-          const usersData: ChatUser[] = await usersRes.json()
-          if (isMounted) setChatUsers(usersData)
+          loadedUsers = await usersRes.json()
+          if (isMounted) setChatUsers(loadedUsers)
         } else if (propUsers.length > 0 && isMounted) {
-          setChatUsers(
-            propUsers.map(u => ({
-              id: typeof u.id === 'number' ? u.id : parseInt(String(u.id).replace(/\D/g, '') || '1', 10),
-              name: u.name || u.email,
-              email: u.email,
-              role: u.role,
-              status: 'ACTIVE',
-            }))
-          )
+          loadedUsers = propUsers.map(u => ({
+            id: typeof u.id === 'number' ? u.id : parseInt(String(u.id).replace(/\D/g, '') || '1', 10),
+            name: u.name || u.email,
+            email: u.email,
+            role: u.role,
+            status: 'ACTIVE',
+          }))
+          setChatUsers(loadedUsers)
         }
 
         const convsRes = await fetch(`${API_BASE}/api/v1/chat/conversations?user_id=${activeUserId}`)
+        let convsData: ChatConversation[] = []
         if (convsRes.ok) {
-          const convsData: ChatConversation[] = await convsRes.json()
-          if (isMounted) {
-            setConversations(convsData)
-            // Auto-select initial conversation if specified
-            if (initialRecipientEmail) {
-              const matchedConv = convsData.find(
-                c => c.recipient.email.toLowerCase() === initialRecipientEmail.toLowerCase()
+          convsData = await convsRes.json()
+          if (isMounted) setConversations(convsData)
+        }
+
+        if (isMounted) {
+          if (initialRecipientEmail) {
+            const matchedConv = convsData.find(
+              c => c.recipient.email.toLowerCase() === initialRecipientEmail.toLowerCase()
+            )
+            if (matchedConv) {
+              setActiveRecipient(matchedConv.recipient)
+            } else {
+              const matchedUser = loadedUsers.find(
+                u => u.email.toLowerCase() === initialRecipientEmail.toLowerCase()
               )
-              if (matchedConv) {
-                setActiveRecipient(matchedConv.recipient)
-              }
-            } else if (convsData.length > 0 && !activeRecipient) {
-              setActiveRecipient(convsData[0].recipient)
+              if (matchedUser) setActiveRecipient(matchedUser)
             }
+          } else if (convsData.length > 0) {
+            setActiveRecipient(convsData[0].recipient)
+          } else if (loadedUsers.length > 0) {
+            const otherUser = loadedUsers.find(u => u.id !== activeUserId && u.email.toLowerCase() !== currentUser.email.toLowerCase()) || loadedUsers[0]
+            if (otherUser) setActiveRecipient(otherUser)
           }
         }
       } catch (err) {
         console.warn('Chat API initial load notice (using fallback):', err)
         if (isMounted && propUsers.length > 0) {
-          setChatUsers(
-            propUsers.map(u => ({
-              id: typeof u.id === 'number' ? u.id : parseInt(String(u.id).replace(/\D/g, '') || '1', 10),
-              name: u.name || u.email,
-              email: u.email,
-              role: u.role,
-              status: 'ACTIVE',
-            }))
-          )
+          const fallbackUsers: ChatUser[] = propUsers.map(u => ({
+            id: typeof u.id === 'number' ? u.id : parseInt(String(u.id).replace(/\D/g, '') || '1', 10),
+            name: u.name || u.email,
+            email: u.email,
+            role: u.role,
+            status: 'ACTIVE',
+          }))
+          setChatUsers(fallbackUsers)
+          const other = fallbackUsers.find(u => u.email.toLowerCase() !== currentUser.email.toLowerCase())
+          if (other) setActiveRecipient(other)
         }
       }
     }
@@ -133,19 +145,7 @@ export default function ChatModule({
     return () => {
       isMounted = false
     }
-  }, [activeUserId, initialRecipientEmail, propUsers])
-
-  // Handle initial recipient fallback if not in conversations
-  useEffect(() => {
-    if (initialRecipientEmail && chatUsers.length > 0 && !activeRecipient) {
-      const match = chatUsers.find(
-        u => u.email.toLowerCase() === initialRecipientEmail.toLowerCase()
-      )
-      if (match) {
-        setActiveRecipient(match)
-      }
-    }
-  }, [initialRecipientEmail, chatUsers, activeRecipient])
+  }, [activeUserId, initialRecipientEmail, currentUser.email, propUsers])
 
   // ── 2. Socket.IO Real-Time Subscriptions ─────────────────────
   useEffect(() => {
@@ -438,7 +438,7 @@ export default function ChatModule({
     // Clear typing status
     emitTypingStatus(activeUserId, activeRecipient.id, false)
 
-    // Emit through Socket.IO real-time delivery
+    // 1. Real-Time Socket.IO Broadcast
     emitChatMessage({
       sender_id: activeUserId,
       receiver_id: activeRecipient.id,
@@ -450,6 +450,30 @@ export default function ChatModule({
       mime_type: uploadedMimeType,
       temp_id: tempId,
     })
+
+    // 2. Guaranteed REST Write Fallback
+    try {
+      fetch(`${API_BASE}/api/v1/chat/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sender_id: activeUserId,
+          receiver_id: activeRecipient.id,
+          message_type: messageType,
+          content: trimmed,
+          file_url: uploadedFileUrl,
+          file_name: uploadedFileName,
+          file_size: uploadedFileSize,
+          mime_type: uploadedMimeType,
+          temp_id: tempId,
+        }),
+      }).then(async res => {
+        if (res.ok) {
+          const saved: ChatMessage = await res.json()
+          setMessages(prev => prev.map(m => (m.temp_id === tempId ? saved : m)))
+        }
+      }).catch(() => {})
+    } catch {}
   }
 
   // ── 8. Formatted Filters & Helpers ───────────────────────────
@@ -536,60 +560,79 @@ export default function ChatModule({
         </div>
 
         <div className={styles.conversationList}>
-          {filteredConversations.length === 0 ? (
-            <div className={styles.emptyConvList}>
-              {conversations.length === 0 ? (
-                <>
-                  <p>No active conversations yet.</p>
-                  <button
-                    type="button"
-                    className={styles.btnNewChat}
-                    style={{ margin: '8px auto', display: 'inline-flex' }}
-                    onClick={() => setIsNewChatModalOpen(true)}
-                  >
-                    Start your first chat
-                  </button>
-                </>
-              ) : (
-                <p>No conversations match your search.</p>
-              )}
-            </div>
-          ) : (
-            filteredConversations.map(conv => {
-              const isActive = activeRecipient?.id === conv.recipient.id
-              return (
-                <div
-                  key={conv.id}
-                  className={`${styles.conversationItem} ${isActive ? styles.conversationItemActive : ''}`}
-                  onClick={() => setActiveRecipient(conv.recipient)}
-                >
-                  <div className={styles.convAvatar}>
-                    {getInitials(conv.recipient.name)}
-                    <span className={styles.onlineBadge} />
+          {filteredConversations.map(conv => {
+            const isActive = activeRecipient?.id === conv.recipient.id
+            return (
+              <div
+                key={conv.id}
+                className={`${styles.conversationItem} ${isActive ? styles.conversationItemActive : ''}`}
+                onClick={() => setActiveRecipient(conv.recipient)}
+              >
+                <div className={styles.convAvatar}>
+                  {getInitials(conv.recipient.name)}
+                  <span className={styles.onlineBadge} />
+                </div>
+
+                <div className={styles.convInfo}>
+                  <div className={styles.convTopRow}>
+                    <span className={styles.convName}>{conv.recipient.name}</span>
+                    {conv.last_message_at && (
+                      <span className={styles.convTime}>
+                        {formatMessageTime(conv.last_message_at)}
+                      </span>
+                    )}
                   </div>
 
-                  <div className={styles.convInfo}>
-                    <div className={styles.convTopRow}>
-                      <span className={styles.convName}>{conv.recipient.name}</span>
-                      {conv.last_message_at && (
-                        <span className={styles.convTime}>
-                          {formatMessageTime(conv.last_message_at)}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className={styles.convBottomRow}>
-                      <span className={styles.convLastMsg}>
-                        {conv.last_message || 'Draft message'}
-                      </span>
-                      {conv.unread_count > 0 && (
-                        <span className={styles.unreadPill}>{conv.unread_count}</span>
-                      )}
-                    </div>
+                  <div className={styles.convBottomRow}>
+                    <span className={styles.convLastMsg}>
+                      {conv.last_message || 'Draft message'}
+                    </span>
+                    {conv.unread_count > 0 && (
+                      <span className={styles.unreadPill}>{conv.unread_count}</span>
+                    )}
                   </div>
                 </div>
-              )
-            })
+              </div>
+            )
+          })}
+
+          {/* All Team Members and Customer Contacts */}
+          {chatUsers.filter(u => u.id !== activeUserId && !filteredConversations.some(c => c.recipient.id === u.id)).length > 0 && (
+            <div style={{ marginTop: 10, padding: '0 4px' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.05em', margin: '10px 0 6px 8px' }}>
+                All Team Contacts
+              </div>
+              {chatUsers
+                .filter(u => u.id !== activeUserId && !filteredConversations.some(c => c.recipient.id === u.id))
+                .filter(u => !searchQuery.trim() || u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase()))
+                .map(user => {
+                  const isActive = activeRecipient?.id === user.id
+                  return (
+                    <div
+                      key={user.id}
+                      className={`${styles.conversationItem} ${isActive ? styles.conversationItemActive : ''}`}
+                      onClick={() => setActiveRecipient(user)}
+                    >
+                      <div className={styles.convAvatar} style={{ background: '#475569' }}>
+                        {getInitials(user.name)}
+                        <span className={styles.onlineBadge} />
+                      </div>
+
+                      <div className={styles.convInfo}>
+                        <div className={styles.convTopRow}>
+                          <span className={styles.convName}>{user.name}</span>
+                          <span style={{ fontSize: 11, color: '#64748b' }}>{user.role}</span>
+                        </div>
+                        <div className={styles.convBottomRow}>
+                          <span className={styles.convLastMsg} style={{ color: '#94a3b8' }}>
+                            {user.email}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+            </div>
           )}
         </div>
       </aside>

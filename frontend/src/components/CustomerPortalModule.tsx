@@ -14,6 +14,7 @@ interface CustomerPortalProps {
   onShowToast: (msg: string) => void
   customerTab?: 'quotation' | 'messages' | 'profile'
   user?: UserSession
+  users?: any[]
   onRecordAudit?: (entry: { user: string; role: string; action: string; quotationId?: string; details: string }) => void
 }
 
@@ -30,6 +31,7 @@ export default function CustomerPortalModule({
   onShowToast,
   customerTab = 'quotation',
   user,
+  users,
   onRecordAudit,
 }: CustomerPortalProps) {
   const { formatPrice } = useCurrency()
@@ -256,6 +258,7 @@ export default function CustomerPortalModule({
               role: 'customer',
             }
           }
+          users={users}
           onShowToast={onShowToast}
           initialRecipientEmail={repEmail}
         />

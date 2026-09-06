@@ -62,6 +62,7 @@ def sanitize_filename(filename: str) -> str:
 @router.get("/users")
 def get_chat_users(
     current_user_id: Optional[int] = None,
+    exclude_current: bool = False,
     search: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
@@ -71,7 +72,7 @@ def get_chat_users(
     """
     query = db.query(User).filter(User.status == "ACTIVE")
 
-    if current_user_id:
+    if current_user_id and exclude_current:
         query = query.filter(User.id != current_user_id)
 
     if search:
